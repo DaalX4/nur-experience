@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نوبت توئه</title>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+/* ===== Final-stage polish only: intentionally isolated from the rest of the project ===== */
+#stage-final{
+  overflow:hidden;
+  isolation:isolate;
+}
+
+/* A soft light bloom that arrives before the sentence */
+#stage-final::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:min(68vw,760px);
+  aspect-ratio:1;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:-1;
+  opacity:0;
+  transform:translate(-50%,-50%) scale(.58);
+  background:
+    radial-gradient(circle,
+      rgba(199,231,174,.20) 0%,
+      rgba(170,211,155,.10) 24%,
+      rgba(114,164,126,.035) 47%,
+      transparent 70%);
+  filter:blur(22px);
+}
+
+#stage-final::after{
+  content:"✦   ·   ✧   ·   ✦";
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) scale(.9);
+  color:rgba(220,239,202,.0);
+  font-size:clamp(13px,1.3vw,20px);
+  letter-spacing:1.9em;
+  white-space:nowrap;
+  pointer-events:none;
+  opacity:0;
+  text-shadow:
+    0 0 12px rgba(213,237,194,.28),
+    0 0 28px rgba(184,222,166,.18);
+}
+
+/* Keep Claude's layout, but give the ending its own readable width. */
+#stage-final .scene-text{
+  position:relative;
+  z-index:2;
+  width:min(88vw,980px);
+  margin-inline:auto;
+  text-align:center;
+}
+
+#stage-final .final-message{
+  margin:0;
+  opacity:0;
+  filter:blur(15px);
+  transform:translateY(16px) scale(.985);
+  color:#f6f4ed;
+  font-size:clamp(23px,2.35vw,38px);
+  font-weight:600;
+  line-height:2;
+  text-wrap:balance;
+  text-shadow:
+    0 1px 0 rgba(0,0,0,.12),
+    0 0 22px rgba(212,231,197,.08);
+}
+
+/* Only runs when the existing app makes the final stage active. */
+#stage-final.active::before{
+  animation:finalLightBloom 4.8s cubic-bezier(.22,.75,.2,1) both;
+}
+
+#stage-final.active::after{
+  animation:finalSparkle 5.2s ease both;
+}
+
+#stage-final.active .final-message{
+  animation:finalMessageReveal 3.2s cubic-bezier(.2,.72,.18,1) .55s both;
+}
+
+@keyframes finalLightBloom{
+  0%{
+    opacity:0;
+    transform:translate(-50%,-50%) scale(.48);
+    filter:blur(32px);
+  }
+  35%{
+    opacity:.78;
+  }
+  72%{
+    opacity:.42;
+    transform:translate(-50%,-50%) scale(1.03);
+    filter:blur(24px);
+  }
+  100%{
+    opacity:.20;
+    transform:translate(-50%,-50%) scale(1.12);
+    filter:blur(28px);
+  }
+}
+
+@keyframes finalSparkle{
+  0%,14%{
+    opacity:0;
+    color:rgba(220,239,202,0);
+    transform:translate(-50%,-50%) scale(.86);
+  }
+  40%{
+    opacity:.72;
+    color:rgba(220,239,202,.62);
+  }
+  68%{
+    opacity:.28;
+    transform:translate(-50%,-50%) scale(1.08);
+  }
+  100%{
+    opacity:0;
+    color:rgba(220,239,202,0);
+    transform:translate(-50%,-50%) scale(1.16);
+  }
+}
+
+@keyframes finalMessageReveal{
+  0%{
+    opacity:0;
+    filter:blur(17px);
+    transform:translateY(18px) scale(.98);
+    letter-spacing:.025em;
+  }
+  42%{
+    opacity:.72;
+    filter:blur(4px);
+  }
+  100%{
+    opacity:1;
+    filter:blur(0);
+    transform:translateY(0) scale(1);
+    letter-spacing:0;
+  }
+}
+
+@media (max-width:760px){
+  #stage-final .scene-text{
+    width:88vw;
+  }
+  #stage-final .final-message{
+    font-size:clamp(20px,5.6vw,29px);
+    line-height:1.95;
+  }
+  #stage-final::after{
+    letter-spacing:1.15em;
+  }
+}
+
+/* Respect accessibility settings instead of forcing animation on everyone. */
+@media (prefers-reduced-motion:reduce){
+  #stage-final.active::before,
+  #stage-final.active::after,
+  #stage-final.active .final-message{
+    animation-duration:.01ms !important;
+    animation-delay:0ms !important;
+  }
+}
+</style>
+
+
+<style>
+/* ===== Countdown polish only =====
+   Scoped entirely to #stage-countdown so the rest of the project stays untouched. */
+
+#stage-countdown{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+}
+
+/* Wide, very soft magical aura */
+#stage-countdown::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:min(64vw,720px);
+  aspect-ratio:1;
+  border-radius:50%;
+  transform:translate(-50%,-50%) scale(.78);
+  pointer-events:none;
+  z-index:-2;
+  opacity:0;
+  background:
+    radial-gradient(circle,
+      rgba(202,232,177,.16) 0%,
+      rgba(164,210,160,.075) 27%,
+      rgba(108,162,140,.025) 51%,
+      transparent 72%);
+  filter:blur(22px);
+}
+
+/* Thin orbit / ripple around the number */
+#stage-countdown::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:clamp(210px,25vw,330px);
+  aspect-ratio:1;
+  border-radius:50%;
+  transform:translate(-50%,-50%) scale(.70);
+  pointer-events:none;
+  z-index:-1;
+  opacity:0;
+  border:1px solid rgba(218,239,196,.18);
+  box-shadow:
+    0 0 26px rgba(196,229,175,.08),
+    inset 0 0 28px rgba(196,229,175,.035);
+}
+
+#stage-countdown.active::before{
+  animation:countdownAura 4.8s ease-in-out infinite;
+}
+
+#stage-countdown.active::after{
+  animation:countdownOrbit 3.7s cubic-bezier(.4,0,.2,1) infinite;
+}
+
+/* Reuse Claude's existing glow element as a tiny living star */
+#stage-countdown .countdown-glow{
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  width:12px !important;
+  height:12px !important;
+  margin:0 !important;
+  border-radius:50%;
+  transform:translate(-50%,-50%) translateY(-112px);
+  background:#e3f2cb !important;
+  opacity:.48;
+  filter:blur(.2px);
+  box-shadow:
+    0 0 8px rgba(228,246,207,.72),
+    0 0 22px rgba(196,231,177,.42),
+    0 0 52px rgba(159,210,158,.17);
+  pointer-events:none;
+  z-index:0;
+}
+
+#stage-countdown.active .countdown-glow{
+  animation:countdownStar 3.2s ease-in-out infinite;
+}
+
+/* Main number: intentionally much larger and more important */
+#stage-countdown .countdown-number{
+  position:relative;
+  z-index:2;
+  min-width:2.4ch;
+  text-align:center;
+  font-size:clamp(108px,12vw,184px) !important;
+  line-height:.92 !important;
+  font-weight:600 !important;
+  letter-spacing:-.055em;
+  font-variant-numeric:tabular-nums;
+  color:#f5f3e8 !important;
+  text-shadow:
+    0 0 20px rgba(231,244,216,.11),
+    0 0 52px rgba(179,219,164,.075);
+  transform-origin:center;
+  will-change:transform,opacity,filter;
+}
+
+/* Re-triggered by the tiny JS observer whenever the digit changes */
+#stage-countdown .countdown-number.tick-magic{
+  animation:magicalTick .82s cubic-bezier(.19,.78,.22,1) both;
+}
+
+#stage-countdown .countdown-label{
+  position:relative;
+  z-index:2;
+  margin-top:26px !important;
+  font-size:clamp(20px,1.8vw,29px) !important;
+  line-height:1.5 !important;
+  font-weight:500 !important;
+  color:rgba(238,241,232,.74) !important;
+  letter-spacing:.01em;
+  text-shadow:0 0 18px rgba(202,228,184,.07);
+}
+
+#stage-countdown.active .countdown-label{
+  animation:labelBreath 3.2s ease-in-out infinite;
+}
+
+@keyframes magicalTick{
+  0%{
+    opacity:.18;
+    filter:blur(13px);
+    transform:translateY(8px) scale(.86);
+    text-shadow:
+      0 0 10px rgba(236,248,222,.10),
+      0 0 22px rgba(184,226,168,.06);
+  }
+  32%{
+    opacity:.92;
+    filter:blur(2.5px);
+    transform:translateY(-2px) scale(1.075);
+    text-shadow:
+      0 0 26px rgba(235,248,216,.22),
+      0 0 68px rgba(177,221,161,.16);
+  }
+  62%{
+    opacity:1;
+    filter:blur(0);
+    transform:translateY(0) scale(1.025);
+  }
+  100%{
+    opacity:1;
+    filter:blur(0);
+    transform:translateY(0) scale(1);
+  }
+}
+
+@keyframes countdownAura{
+  0%,100%{
+    opacity:.22;
+    transform:translate(-50%,-50%) scale(.76);
+    filter:blur(27px);
+  }
+  50%{
+    opacity:.65;
+    transform:translate(-50%,-50%) scale(1.02);
+    filter:blur(20px);
+  }
+}
+
+@keyframes countdownOrbit{
+  0%{
+    opacity:.08;
+    transform:translate(-50%,-50%) scale(.72);
+  }
+  47%{
+    opacity:.40;
+    transform:translate(-50%,-50%) scale(1);
+  }
+  100%{
+    opacity:0;
+    transform:translate(-50%,-50%) scale(1.17);
+  }
+}
+
+@keyframes countdownStar{
+  0%,100%{
+    opacity:.28;
+    transform:translate(-50%,-50%) translateY(-112px) scale(.68);
+  }
+  50%{
+    opacity:.92;
+    transform:translate(-50%,-50%) translateY(-112px) scale(1.18);
+  }
+}
+
+@keyframes labelBreath{
+  0%,100%{opacity:.60}
+  50%{opacity:.88}
+}
+
+@media (max-width:760px){
+  #stage-countdown .countdown-number{
+    font-size:clamp(92px,28vw,142px) !important;
+  }
+  #stage-countdown .countdown-label{
+    margin-top:22px !important;
+    font-size:clamp(18px,5vw,24px) !important;
+  }
+  #stage-countdown::after{
+    width:clamp(190px,58vw,280px);
+  }
+  #stage-countdown .countdown-glow{
+    transform:translate(-50%,-50%) translateY(-92px);
+  }
+  #stage-countdown.active .countdown-glow{
+    animation:countdownStarMobile 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes countdownStarMobile{
+  0%,100%{
+    opacity:.28;
+    transform:translate(-50%,-50%) translateY(-92px) scale(.68);
+  }
+  50%{
+    opacity:.92;
+    transform:translate(-50%,-50%) translateY(-92px) scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  #stage-countdown.active::before,
+  #stage-countdown.active::after,
+  #stage-countdown.active .countdown-glow,
+  #stage-countdown.active .countdown-label,
+  #stage-countdown .countdown-number.tick-magic{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+  }
+}
+</style>
+
+</head>
+<body>
+
+<div class="stars" id="stars" aria-hidden="true"></div>
+
+<main class="wrap">
+
+  <!-- 1. INTRO -->
+  <section class="stage active" id="stage-intro" data-stage>
+    <div class="scene-text">
+      <p class="greeting">درود <bdi class="handle" id="introHandle">@ArioPlay</bdi></p>
+      <p>قبل از شروع، در صفحه‌ی بعد نامه‌ای برای تو نوشته شده.</p>
+      <p>برای شکل گرفتن این مسیر، روزها وقت گذاشته شده؛ ازت می‌خوام با حوصله و صبر بازش کنی و بخونیش.</p>
+      <p>اگر به هر دلیلی الان زمان خوبی نیست، لطفاً همین‌جا این صفحه را رها کن.</p>
+    </div>
+    <div class="scene-actions">
+      <button class="btn btn-primary" id="toBeforeOpen">ادامه می‌دم</button>
+      <button class="btn btn-ghost" id="toLeaving">رهاش می‌کنم</button>
+    </div>
+  </section>
+
+  <!-- LEAVING (soft ending) -->
+  <section class="stage" id="stage-leaving" data-stage>
+    <div class="scene-text">
+      <p>مراقب خودت باش، موفق باشی.</p>
+    </div>
+  </section>
+
+  <!-- 2. BEFORE OPENING -->
+  <section class="stage" id="stage-before-open" data-stage>
+    <div class="scene-text small">
+      <p class="greeting">خوش اومدی <bdi class="handle" id="beforeOpenHandle">@ArioPlay</bdi> عزیز</p>
+      <p>یک قدم با نامه‌ات فاصله داری؛ کلیک کن وسط نامه تا برات باز بشه</p>
+    </div>
+    <div class="floating-scene" id="openEnvelope" role="button" tabindex="0" aria-label="باز کردن نامه">
+      <img class="envelope-img" src="assets/envelope.webp" alt="پاکت نامه دست‌ساز دال‌وی">
+    </div>
+  </section>
+
+  <!-- 3 / 4. THE LETTER (front + back, one physical card that turns) -->
+  <section class="stage" id="stage-letter" data-stage>
+    <div class="letter-stage-inner">
+      <div class="letter-flipper" id="letterFlipper">
+        <div class="letter-face front">
+          <img class="note-img" src="assets/note-page1.png" alt="نامه - صفحه ۱">
+          <div class="note-field field-name-overlay" id="letterNameOverlay"></div>
+          <button class="note-next-btn" id="toLetterBack">صفحه‌ی بعد</button>
+        </div>
+        <div class="letter-face back">
+          <img class="note-img" src="assets/note-page3.png" alt="نامه - صفحه ۳">
+          <button class="note-next-btn" id="toCountdown">دریافت نور</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COUNTDOWN — the light being sent -->
+  <section class="stage" id="stage-countdown" data-stage>
+    <div class="countdown-glow" aria-hidden="true"></div>
+    <div class="countdown-number" id="countdownNumber">30</div>
+    <div class="countdown-label">در حال ارسال...</div>
+  </section>
+
+  <!-- FINAL -->
+  <section class="stage" id="stage-final" data-stage>
+    <div class="scene-text">
+      <p class="final-message">باید تا الان دریافتش کرده باشی، ممنون که همراهی کردی و امیدوارم مسیر نور را ادامه بدی رفیق، مراقب خودت باش ;)💚</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+
+<script>
+/* Countdown-number animation enhancer.
+   Does not change the timer or app state; it only animates the number
+   whenever the existing app.js updates its text. */
+(() => {
+  const number = document.getElementById('countdownNumber');
+  if (!number) return;
+
+  const replayTick = () => {
+    number.classList.remove('tick-magic');
+    void number.offsetWidth; // restart animation without touching countdown logic
+    number.classList.add('tick-magic');
+  };
+
+  const observer = new MutationObserver(replayTick);
+  observer.observe(number, {
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
+
+  /* Give 30 the same entrance animation when the countdown stage first appears. */
+  const stage = document.getElementById('stage-countdown');
+  if (stage) {
+    const stageObserver = new MutationObserver(() => {
+      if (stage.classList.contains('active')) replayTick();
+    });
+    stageObserver.observe(stage, { attributes: true, attributeFilter: ['class'] });
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,445 @@
+/* ==========================================================================
+   NOBATE TOE — design tokens
+   ========================================================================== */
+@font-face{
+  font-family:"DigiSarve";
+  src:url("assets/fonts/DigiSarve.ttf") format("truetype");
+  font-display:swap;
+  font-weight:400 800;
+}
+/* Used ONLY for the dynamic name overlay on the page-1 letter image,
+   matching the exact font the original Photoshop salutation used
+   before that text was removed from the PNG. */
+@font-face{
+  font-family:"DigiDerakhshandeh";
+  src:url("assets/fonts/DigiDerakhshandeh.ttf") format("truetype");
+  font-display:swap;
+  font-weight:400 800;
+}
+
+:root{
+  --bg-1:#0a1226;          /* deep midnight blue */
+  --bg-2:#16224a;          /* mid night blue, cleaner/more saturated than before */
+  --text:#f0eee6;          /* warm off-white */
+  --muted:#a7b0c9;         /* cool muted, for secondary text on navy */
+  --accent:#8fc19a;        /* soft, slightly luminous natural green — "the light" */
+  --accent-bright:#aee0b4; /* hover state, a touch brighter */
+  --accent-ink:#0f2015;    /* text on top of the green */
+  --star:#fdf6e3;          /* star color */
+  --paper:#e7dcc2;         /* reference tone of the paper asset */
+  --ink:#3c3628;           /* dark warm text on paper */
+
+  --radius-lg:22px;
+  --ease-soft:cubic-bezier(.22,.8,.2,1);
+
+  --font-display:"DigiSarve",Tahoma,Arial,sans-serif;
+  --font-body:"DigiSarve",Tahoma,Arial,sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{-webkit-tap-highlight-color:transparent}
+
+body{
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:var(--font-display);
+  font-weight:400;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -6%, rgba(120,150,220,.10), transparent 62%),
+    linear-gradient(180deg,var(--bg-1),var(--bg-2) 55%,var(--bg-1));
+  overflow-x:hidden;
+}
+
+/* a very slow, almost imperceptible drift behind everything, so the sky
+   reads as a soft painted scene rather than a flat, static gradient */
+body::before{
+  content:"";
+  position:fixed;
+  inset:-10%;
+  z-index:0;
+  pointer-events:none;
+  background:radial-gradient(ellipse 45% 35% at 30% 20%, rgba(143,193,154,.06), transparent 60%),
+             radial-gradient(ellipse 40% 30% at 75% 70%, rgba(120,150,220,.07), transparent 60%);
+  filter:blur(40px);
+  animation:skyDrift 70s ease-in-out infinite alternate;
+}
+@keyframes skyDrift{
+  0%{transform:translate(0,0) scale(1)}
+  100%{transform:translate(-2%,2%) scale(1.04)}
+}
+@media (prefers-reduced-motion: reduce){
+  body::before{animation:none}
+}
+
+/* ==========================================================================
+   Night sky — a few soft, scattered, gently twinkling stars. Never a busy
+   field: generated once at load, low density, staggered timing, lots of
+   empty space between them.
+   ========================================================================== */
+.stars{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.star{
+  position:absolute;
+  border-radius:50%;
+  background:var(--star);
+  box-shadow:0 0 5px 1px rgba(253,246,227,.45);
+  animation:twinkle var(--dur,6s) ease-in-out infinite;
+  animation-delay:var(--delay,0s);
+  opacity:.3;
+}
+@keyframes twinkle{
+  0%,100%{opacity:.15;transform:scale(.8)}
+  50%{opacity:.75;transform:scale(1.1)}
+}
+@media (prefers-reduced-motion: reduce){
+  .star{animation:none;opacity:.4}
+}
+
+/* A Latin handle inside RTL Persian copy must never reflow or pick up the
+   Persian glyph shapes for its Latin letters — isolate direction and force
+   the fallback (non-Persian) face explicitly. */
+.handle{
+  unicode-bidi:isolate;
+  direction:ltr;
+}
+
+.wrap{
+  position:relative;
+  z-index:1;
+  width:min(1100px,92vw);
+  margin:0 auto;
+  min-height:100vh;
+}
+
+/* ==========================================================================
+   Stage / scene switching — one persistent shell, one scene visible at a
+   time. Transitions are slow, soft, and slightly blurry rather than a hard
+   cut: the outgoing scene fades and blurs away (pulled out of flow so it
+   can't jump the page height) while the incoming one fades and sharpens in.
+   ========================================================================== */
+.stage{
+  display:none;
+}
+.stage.active{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  padding:60px 0;
+  animation:sceneIn 1.1s var(--ease-soft) both;
+}
+.stage.leaving{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  animation:sceneOut .85s ease forwards;
+}
+
+@keyframes sceneIn{
+  from{opacity:0;filter:blur(18px)}
+  to{opacity:1;filter:blur(0)}
+}
+@keyframes sceneOut{
+  from{opacity:1;filter:blur(0)}
+  to{opacity:0;filter:blur(18px)}
+}
+@media (prefers-reduced-motion: reduce){
+  .stage.active{animation:none}
+  .stage.leaving{animation:none;opacity:0}
+}
+
+/* ==========================================================================
+   Full-screen text scenes (intro / leaving / before-open)
+   ========================================================================== */
+.scene-text{
+  max-width:560px;
+  width:92vw;
+  text-align:center;
+  margin:0 auto 26px;
+}
+.scene-text p{
+  font-size:clamp(18px,2.4vw,24px);
+  line-height:1.7;
+  margin:0 0 10px;
+  color:var(--text);
+}
+.scene-text p:last-child{margin-bottom:0}
+.scene-text p.greeting{
+  font-size:clamp(30px,4.4vw,42px);
+  font-weight:700;
+  margin-bottom:22px;
+}
+.scene-text.small{margin-bottom:26px}
+.scene-text.small p{
+  font-size:clamp(18px,2.2vw,22px);
+  line-height:1.65;
+  margin-bottom:9px;
+}
+.scene-text.small p.greeting{
+  font-size:clamp(26px,3.8vw,34px);
+  font-weight:700;
+  margin-bottom:16px;
+}
+
+.scene-actions{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+.btn{
+  border:0;
+  border-radius:999px;
+  padding:15px 34px;
+  cursor:pointer;
+  font-family:var(--font-display);
+  font-size:18px;
+  font-weight:600;
+  text-shadow:0 1px 1px rgba(0,0,0,.18);
+  text-decoration:none;
+  display:inline-block;
+  transition:transform .15s ease, box-shadow .25s ease, background-color .25s ease;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:var(--accent);
+  color:var(--accent-ink);
+  box-shadow:0 0 22px rgba(143,193,154,.35);
+}
+.btn-primary:hover{
+  background:var(--accent-bright);
+  box-shadow:0 0 28px rgba(174,224,180,.55);
+}
+.btn-ghost{
+  background:transparent;
+  color:var(--muted);
+  border:1px solid rgba(169,176,200,.35);
+}
+.btn-ghost:hover{color:var(--text);border-color:rgba(169,176,200,.6)}
+
+/* ==========================================================================
+   Envelope
+   ========================================================================== */
+.floating-scene{
+  position:relative;
+  width:min(500px,82vw);
+  margin:0 auto;
+  cursor:pointer;
+  outline:none;
+}
+.floating-scene:focus-visible{
+  outline:2px solid rgba(143,193,154,.9);
+  outline-offset:12px;
+  border-radius:18px;
+}
+.envelope-img{
+  display:block;
+  width:100%;
+  height:auto;
+  filter:drop-shadow(0 30px 55px rgba(0,0,0,.55));
+  user-select:none;
+  -webkit-user-drag:none;
+  animation:envelopeNudge 3.4s ease-in-out infinite;
+}
+.floating-scene:hover .envelope-img{
+  animation-play-state:paused;
+  transform:translateY(-3px);
+}
+@keyframes envelopeNudge{
+  0%,72%,100%{transform:translateY(0) rotate(0)}
+  77%{transform:translateY(-2px) rotate(-.65deg)}
+  82%{transform:translateY(0) rotate(.55deg)}
+  87%{transform:translateY(-1px) rotate(-.25deg)}
+  92%{transform:translateY(0) rotate(0)}
+}
+@media (prefers-reduced-motion: reduce){
+  .envelope-img{animation:none}
+}
+
+/* ==========================================================================
+   The letter — a physical card that turns to reveal its other side.
+   ========================================================================== */
+/* the letter is often taller than the viewport by design (a real long
+   letter, not a scrollbox) - align it to the top of its stage so opening
+   the envelope reveals the salutation first, not the middle of the page */
+#stage-letter.active{
+  justify-content:flex-start;
+  padding-top:56px;
+}
+
+.letter-stage-inner{
+  width:min(840px,92vw);
+  margin:0 auto 32px;
+  filter:drop-shadow(0 22px 50px rgba(0,0,0,.45));
+}
+/* the letter "turning" is a soft blur/fade crossfade between the two
+   faces (the same transition language used for every other scene in the
+   app) rather than a literal CSS 3D flip - reliable everywhere. Both
+   faces share one grid cell so the container sizes to the taller one
+   and no position-juggling is needed for two very differently-sized
+   faces (a full letter vs a short note). */
+.letter-flipper{
+  position:relative;
+  width:100%;
+  display:grid;
+  align-items:start;
+}
+.letter-face{
+  position:relative;
+  grid-area:1/1;
+  width:100%;
+  transition:opacity .8s ease, filter .8s ease;
+}
+.letter-face.back{
+  opacity:0;
+  filter:blur(14px);
+  pointer-events:none;
+}
+.letter-flipper.flipped .letter-face.front{
+  opacity:0;
+  filter:blur(14px);
+  pointer-events:none;
+}
+.letter-flipper.flipped .letter-face.back{
+  opacity:1;
+  filter:blur(0);
+  pointer-events:auto;
+}
+@media (prefers-reduced-motion: reduce){
+  .letter-face{transition:none}
+}
+
+.note-img{
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius:6px;
+}
+
+.note-field{
+  position:absolute;
+  z-index:3;
+  color:var(--ink);
+  /* a hairline lift off the paper grain — never a box, just enough for
+     legibility over the photo's own texture */
+  text-shadow:0 1px 1px rgba(255,252,242,.7);
+}
+
+/* The streamer name, drawn dynamically where the Photoshop salutation
+   used to be baked into note-page1.png before that area was left
+   blank. Font/weight/color match the original Photoshop text as
+   closely as possible (Digi Derakhshandeh, Bold, ~38.3pt, dark ink);
+   size is expressed relatively so it scales with the image exactly
+   like the rest of the note-field overlays. */
+.field-name-overlay{
+  right:4.5%;
+  top:2.8%;
+  font-family:"DigiDerakhshandeh",Tahoma,Arial,sans-serif;
+  font-weight:700;
+  font-size:clamp(34px,8.4vw,62px);
+  color:#241f16;
+  white-space:nowrap;
+}
+
+/* small in-paper control, sitting right under a page's baked-in text
+   rather than as a full-size pill below the whole card - both letter
+   faces are now baked images (assets/note-page1.png, note-page3.png)
+   with just this button overlaid; each face sets its own `top` since
+   the text ends at a different height in each image. */
+.note-next-btn{
+  position:absolute;
+  z-index:4;
+  left:50%;
+  transform:translateX(-50%);
+  border:0;
+  border-radius:999px;
+  padding:9px 26px;
+  font-family:var(--font-display);
+  font-size:clamp(15px,1.9vw,18px);
+  font-weight:700;
+  text-shadow:0 1px 1px rgba(0,0,0,.18);
+  color:var(--accent-ink);
+  background:var(--accent);
+  box-shadow:0 0 14px rgba(143,193,154,.35);
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .25s ease, background-color .25s ease;
+}
+.note-next-btn:hover{
+  background:var(--accent-bright);
+  box-shadow:0 0 18px rgba(174,224,180,.5);
+}
+.note-next-btn:active{transform:translateX(-50%) scale(.96)}
+
+.letter-face.front .note-next-btn{top:85%}
+.letter-face.back .note-next-btn{top:65%}
+
+/* ==========================================================================
+   Countdown — the light being sent. Kept deliberately bare: a number, a
+   quiet line beneath it, one soft green glow. Nothing else.
+   ========================================================================== */
+#stage-countdown{
+  position:relative;
+}
+.countdown-glow{
+  position:absolute;
+  width:min(280px,60vw);
+  aspect-ratio:1;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(143,193,154,.32), transparent 72%);
+  filter:blur(18px);
+  animation:glowPulse 4.5s ease-in-out infinite;
+  z-index:0;
+}
+@keyframes glowPulse{
+  0%,100%{opacity:.55;transform:scale(.94)}
+  50%{opacity:.9;transform:scale(1.06)}
+}
+.countdown-number{
+  position:relative;
+  z-index:1;
+  font-family:var(--font-body); /* clean, unambiguous digits over ornament */
+  font-size:clamp(56px,12vw,104px);
+  font-weight:600;
+  color:var(--text);
+  line-height:1;
+}
+.countdown-label{
+  position:relative;
+  z-index:1;
+  margin-top:16px;
+  font-size:clamp(16px,2vw,19px);
+  font-weight:400;
+  color:var(--muted);
+}
+@media (prefers-reduced-motion: reduce){
+  .countdown-glow{animation:none;opacity:.7}
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width:760px){
+  .stage.active{padding:40px 0}
+  .scene-text p{font-size:18px;line-height:1.75;margin-bottom:12px}
+  .scene-text.small p{font-size:16px;margin-bottom:8px}
+
+  /* both letter faces are single baked images that just scale as a
+     whole picture at every width, so only the overlaid buttons need a
+     smaller mobile size - no per-field position overrides needed. */
+  .note-next-btn{font-size:14px;padding:8px 22px}
+
+  #stage-letter.active{padding-top:36px}
+}
