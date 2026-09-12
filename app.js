@@ -41,7 +41,7 @@
       bdi.className = "handle";
       el.appendChild(bdi);
     }
-    bdi.textContent = "@" + handle.replace(/^@/, "");
+    bdi.textContent = handle.replace(/^@/, "");
   }
 
   loadStreamerName().then((name) => {
@@ -57,37 +57,14 @@
   });
 
   /* ------------------------------------------------------------------ *
-   *  The letter itself — page 1 (front) is now a single baked image
-   *  (assets/note-page1.png) with its own text and salutation drawn
-   *  directly into the artwork, so there is no DOM text to set for it
-   *  here. NOTE: that also means the "@ArioPlay" salutation on page 1
-   *  is fixed pixel content, not the dynamic ?u=/URL handle — the
-   *  personalization system below only still reaches the intro and
-   *  before-open screens (and the back face, which is still live HTML
-   *  text). A different recipient needs their own baked page-1 image.
-   *  LETTER_PAGE2 holds the remainder of the original single-page text
-   *  (including the opening "نترس..." joke, which the page-1 artwork
-   *  dropped), staged for the page-2 screen once its asset arrives —
-   *  not wired to any DOM yet. The old gift-note back face has since
-   *  been replaced the same way page 1 was: assets/note-page3.png is a
-   *  baked image (the user's own reworded/updated gift text), so
-   *  there's no LETTER_BACK string anymore either.
+   *  The letter — three baked pages (assets/note-page1/2/3.png), each
+   *  with its own text and artwork drawn directly into the image, so
+   *  there is no DOM text to set for any of them. Page 1 is the only
+   *  one with a live overlay on top (the dynamic streamer name). NOTE:
+   *  that name overlay is the only dynamic personalization touching
+   *  the letter itself — pages 1-3's own baked text is fixed, same for
+   *  every recipient.
    * ------------------------------------------------------------------ */
-  const LETTER_PAGE2 =
-    "نترس، این یک نامه‌ی عاشقانه نیست :)\n" +
-    "اما با تمام وجود و از ته دل نوشته شده.\n\n" +
-    "با همه‌ی بالا و پایین‌های زندگی، تو ادامه دادی،\n" +
-    "و من، به عنوان عضوی کوچک از این کامیونیتی، بهت افتخار می‌کنم و قدردان حضورت هستم.\n" +
-    "ما نمی‌دانیم پایان این تاریکی چه زمانی است،\n" +
-    "اما تو می‌توانی تا آن زمان یکی از ستاره‌های این شب باشی؛\n" +
-    "یک ستاره‌ی روشن که آدم‌ها با دیدنش دوباره به زندگی امیدوار شوند.\n\n" +
-    "می‌خواهم دعوتت کنم که تو ستاره‌ی نورانی بعدی این مسیر باشی.\n" +
-    "به‌زودی بخشی از نور من برای تو فرستاده می‌شود.\n" +
-    "یادت باشد تعداد محبت‌های یک نور را نشماری؛\n" +
-    "به آسمانی فکر کن که روزی در تاریک‌ترین شکل خودش بوده، اما به خاطر حضور و قدم‌های تو، کم‌کم به یک آسمان پرستاره تبدیل شده.\n\n" +
-    "از اینجا به بعد انتخاب با توست:\n" +
-    "می‌توانی این نور را فقط برای خودت نگه داری،\n" +
-    "یا به هر روشی که در توانت هست، باعث شوی یک ستاره‌ی نورانی دیگر هم به وجود بیاید.";
 
   /* ------------------------------------------------------------------ *
    *  Night sky — a handful of soft, staggered, twinkling stars
@@ -154,11 +131,16 @@
   });
 
   /* ------------------------------------------------------------------ *
-   *  Letter flip: front → back, same physical card turning over
+   *  Turning the letter's pages: same physical card, one baked page
+   *  crossfades to the next via the [data-active] attribute on the
+   *  flipper (CSS shows only the matching .pageN face - see styles.css).
    * ------------------------------------------------------------------ */
-  document.getElementById("toLetterBack").addEventListener("click", () => {
-    document.getElementById("letterFlipper").classList.add("flipped");
-    document.getElementById("stage-letter").classList.add("flipped");
+  const letterFlipper = document.getElementById("letterFlipper");
+  document.getElementById("toPage2").addEventListener("click", () => {
+    letterFlipper.dataset.active = "2";
+  });
+  document.getElementById("toPage3").addEventListener("click", () => {
+    letterFlipper.dataset.active = "3";
   });
 
   /* ------------------------------------------------------------------ *

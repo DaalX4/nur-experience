@@ -453,16 +453,20 @@
     </div>
   </section>
 
-  <!-- 3 / 4. THE LETTER (front + back, one physical card that turns) -->
+  <!-- 3 / 4 / 5. THE LETTER (three baked pages, one physical card, soft crossfade between them) -->
   <section class="stage" id="stage-letter" data-stage>
     <div class="letter-stage-inner">
-      <div class="letter-flipper" id="letterFlipper">
-        <div class="letter-face front">
+      <div class="letter-flipper" id="letterFlipper" data-active="1">
+        <div class="letter-face page1">
           <img class="note-img" src="assets/note-page1.png" alt="نامه - صفحه ۱">
           <div class="note-field field-name-overlay" id="letterNameOverlay"></div>
-          <button class="note-next-btn" id="toLetterBack">صفحه‌ی بعد</button>
+          <button class="note-next-btn" id="toPage2">صفحه‌ی بعد</button>
         </div>
-        <div class="letter-face back">
+        <div class="letter-face page2">
+          <img class="note-img" src="assets/note-page2.png" alt="نامه - صفحه ۲">
+          <button class="note-next-btn" id="toPage3">صفحه‌ی بعد</button>
+        </div>
+        <div class="letter-face page3">
           <img class="note-img" src="assets/note-page3.png" alt="نامه - صفحه ۳">
           <button class="note-next-btn" id="toCountdown">دریافت نور</button>
         </div>
