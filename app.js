@@ -193,15 +193,20 @@
     clearInterval(countdownTimer);
     countdownTimer = setInterval(() => {
       remaining -= 1;
-      numberEl.textContent = Math.max(remaining, 0);
       if (remaining <= 0) {
+        // Stop here, on purpose: never write "0" into the number - the
+        // display stays on "1" (its last real value) all the way through
+        // the transition to the final screen, so 0 never renders even
+        // for a single frame.
         clearInterval(countdownTimer);
         stopDots();
         setTimeout(() => {
           show("stage-final");
           revealSignature();
         }, 600);
+        return;
       }
+      numberEl.textContent = remaining;
     }, 1000);
   }
 
