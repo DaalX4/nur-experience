@@ -224,10 +224,53 @@
     renderTabContent();
   }
 
+  const ADMIN_PW_KEY = "nurAdminPw";
+
+  /* Pushes the saved config to the shared Wix endpoint so every future
+     visitor gets it, not just this browser. The password is never stored
+     anywhere but this tab's sessionStorage (cleared when the tab closes) -
+     it is typed in at Save time, not shipped in this file, and the Wix
+     backend is what actually checks it (see DEPLOY.md). If this fails for
+     any reason, the local save above has already happened, so the admin
+     never loses their edit - they just get told the global publish didn't
+     go through, instead of a false "done". */
+  async function pushConfigGlobal(config) {
+    let password = sessionStorage.getItem(ADMIN_PW_KEY);
+    if (!password) {
+      password = window.prompt("رمز مدیریت برای انتشار سراسری تغییرات را وارد کن:");
+      if (!password) {
+        setStatus("فقط به‌صورت محلی ذخیره شد (رمز وارد نشد)");
+        return;
+      }
+      sessionStorage.setItem(ADMIN_PW_KEY, password);
+    }
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(api.REMOTE_CONFIG_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, config }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (res.status === 401) {
+        sessionStorage.removeItem(ADMIN_PW_KEY); // wrong password - don't keep reusing a bad one
+        setStatus("رمز اشتباه است - فقط محلی ذخیره شد");
+        return;
+      }
+      if (!res.ok) throw new Error("nurConfig POST returned " + res.status);
+      setStatus("ذخیره شد ✓ (سراسری برای همه)");
+    } catch (err) {
+      setStatus("ذخیره محلی شد، اما انتشار سراسری ناموفق بود");
+    }
+  }
+
   function doSave() {
     api.saveConfig(draft);
     window.NUR_APP.applyConfig(api.deepClone(draft));
     setStatus("ذخیره شد ✓");
+    pushConfigGlobal(api.deepClone(draft));
   }
 
   function doResetSection() {

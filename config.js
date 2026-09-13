@@ -6,17 +6,24 @@
    and apply positions; nothing in app.js hardcodes copy or layout numbers
    that this file also controls.
 
-   Persistence: browser localStorage, per-visitor/per-browser only (see
-   NUR_STORAGE_KEY below). This is a LOCAL editing/preview tool, not a
-   shared backend - saving here does not change what other visitors see.
-   `streamerName` is written here in the same shape it will eventually take
-   when wired to Wix CMS (a single string), specifically so that swap is a
-   small, isolated change later rather than a redesign of this file.
+   Persistence: two layers. localStorage (NUR_STORAGE_KEY) is the fast local
+   cache every visitor reads first, so the page renders instantly with no
+   loading screen. REMOTE_CONFIG_URL is the actual source of truth for
+   production - app.js fetches it on every load and refreshes the local
+   cache from it; admin-panel.js's Save button pushes to it (password-
+   checked server-side, see DEPLOY.md) so a saved edit reaches every future
+   visitor, not just the browser that made it.
    ============================================================================ */
 (function (global) {
   "use strict";
 
   const NUR_STORAGE_KEY = "nurConfig.v1";
+
+  /* Single shared endpoint for the whole config, read by every visitor on
+     load and written by the admin panel's Save button (password-gated
+     server-side - see DEPLOY.md). app.js and admin-panel.js both read this
+     from here so there is exactly one URL to ever change. */
+  const REMOTE_CONFIG_URL = "https://www.daalvi.com/_functions/nurConfig";
 
   /* Every value here reproduces the CURRENT shipped design exactly - the
      admin panel starts out changing nothing until the user actually moves
@@ -117,6 +124,7 @@
 
   global.NUR_CONFIG_API = {
     STORAGE_KEY: NUR_STORAGE_KEY,
+    REMOTE_CONFIG_URL,
     DEFAULT_CONFIG,
     deepClone,
     mergeWithDefaults,

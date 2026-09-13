@@ -13,35 +13,27 @@
   let currentConfig = configApi.loadConfig();
 
   /* ------------------------------------------------------------------ *
-   *  Current streamer name — the public URL is always the same
-   *  (daalvi.com/nur), so the name is no longer read from the path or
-   *  a ?u= query param. Instead it's fetched from a tiny public Wix
-   *  Velo HTTP function that reads a single field the user edits
-   *  directly in Wix's own Content Manager (see DEPLOY.md). Until that's
-   *  set up (or if the fetch ever fails), config.streamerName - the same
-   *  field the admin panel's "Streamer Name" box edits - is the fallback,
-   *  so there's always exactly one value in play, never two competing
-   *  defaults.
+   *  Global config — the public URL is always the same (daalvi.com/nur),
+   *  so every visitor fetches the SAME config from one tiny public Wix
+   *  Velo HTTP function (see DEPLOY.md) rather than anything read from
+   *  the path/query. Until that endpoint is set up (or if the fetch ever
+   *  fails/times out), the local cache/DEFAULT_CONFIG - the same object
+   *  the admin panel edits - is the fallback, so there's always exactly
+   *  one value in play, never a broken or half-loaded page.
    *
-   *  A ?u= override is kept ONLY as a local-testing convenience (it
-   *  skips the network call entirely) - it is never meant to be given
-   *  out as a real link.
+   *  A ?u= override is kept ONLY as a local-testing convenience for the
+   *  streamer name (it skips the network call entirely) - it is never
+   *  meant to be given out as a real link.
    * ------------------------------------------------------------------ */
-  const CONFIG_URL = "https://www.daalvi.com/_functions/nurConfig";
-
-  async function fetchWixStreamerName() {
-    const override = new URLSearchParams(location.search).get("u");
-    if (override) return override.replace(/^@/, "");
-
+  async function fetchRemoteConfig() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(CONFIG_URL, { signal: controller.signal, cache: "no-store" });
+      const res = await fetch(configApi.REMOTE_CONFIG_URL, { signal: controller.signal, cache: "no-store" });
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error("nurConfig endpoint returned " + res.status);
       const data = await res.json();
-      const name = data && data.name ? String(data.name).trim() : "";
-      return name || null;
+      return data && data.config && typeof data.config === "object" ? data.config : null;
     } catch (err) {
       return null;
     }
@@ -147,12 +139,21 @@
   }
 
   applyConfig(currentConfig);
-  fetchWixStreamerName().then((wixName) => {
-    if (wixName) {
-      effectiveStreamerName = wixName;
-      renderStreamerName(currentConfig);
-    }
-  });
+
+  const nameOverride = new URLSearchParams(location.search).get("u");
+  if (nameOverride) {
+    // Local-testing convenience only - skips the network fetch entirely.
+    effectiveStreamerName = nameOverride.replace(/^@/, "");
+    renderStreamerName(currentConfig);
+  } else {
+    fetchRemoteConfig().then((remoteConfig) => {
+      if (!remoteConfig) return; // fetch failed/timed out - keep the local cache/defaults already rendered
+      const merged = configApi.mergeWithDefaults(remoteConfig);
+      configApi.saveConfig(merged); // refresh the local cache so the next load starts from this
+      currentConfig = merged;
+      applyConfig(merged);
+    });
+  }
 
   /* Public hooks admin-panel.js uses - the panel never touches the DOM
      directly, only this config object.
