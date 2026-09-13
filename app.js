@@ -127,6 +127,18 @@
     root.setProperty("--nur-letter-name-rotation", config.letterName.rotation + "deg");
     root.setProperty("--nur-letter-name-gap", config.letterName.gapToAziz + "px");
 
+    [1, 2, 3].forEach((n) => {
+      const section = config["letterPage" + n];
+      root.setProperty(`--nur-letter${n}-x`, section.x + "%");
+      root.setProperty(`--nur-letter${n}-y`, section.y + "%");
+      root.setProperty(`--nur-letter${n}-width`, section.width + "%");
+      root.setProperty(`--nur-letter${n}-font-size`, section.fontSize + "px");
+      root.setProperty(`--nur-letter${n}-line-height`, section.lineHeight);
+      root.setProperty(`--nur-letter${n}-gap`, section.paragraphGap + "px");
+      root.setProperty(`--nur-letter${n}-word-spacing`, section.wordSpacing + "px");
+      renderParagraphs(document.getElementById("letterBody" + n), section.body);
+    });
+
     root.setProperty("--nur-final-y", config.final.offsetY + "px");
     root.setProperty("--nur-final-font-size", config.final.mainFontSize + "px");
     root.setProperty("--nur-final-sig-y", config.final.signatureOffsetY + "px");

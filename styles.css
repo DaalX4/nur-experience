@@ -53,6 +53,15 @@
   --nur-envelope-gap-to-envelope:10px;
   --nur-envelope-font-size:20px;
 
+  /* The letter card renders as one scaling image (.letter-stage-inner's
+     width below); every px-sized thing overlaid on it needs to shrink at
+     the same rate or it stays full-size on a card that's shrunk around
+     it. 653px is note-page*.png's natural width - the size these numbers
+     were tuned at. See --nur-letter-name-font-size/--nur-letter1-font-size
+     etc. below for how this gets used. */
+  --nur-card-scale:min(840px,92vw);
+  --nur-card-reference-width:653px;
+
   --nur-letter-name-x:6%;
   --nur-letter-name-y:16%;
   --nur-letter-name-font-size:48px;
@@ -63,6 +72,36 @@
   --nur-final-font-size:34px;
   --nur-final-sig-y:96px;
   --nur-final-sig-font-size:15px;
+
+  /* Letter pages 1-3 - real HTML text laid over the now-blank paper
+     artwork (assets/note-page1/2/3.png). x/y/width are % (same reasoning
+     as --nur-letter-name-x/y: the whole card scales as one image, so a
+     fixed px position/width would overflow it on narrow screens) -
+     positioned the same way as --nur-letter-name-* (right/top), just
+     wrapping instead of nowrap since this is a paragraph block. */
+  --nur-letter1-x:6%;
+  --nur-letter1-y:21%;
+  --nur-letter1-width:80%;
+  --nur-letter1-font-size:17px;
+  --nur-letter1-line-height:1.55;
+  --nur-letter1-gap:8px;
+  --nur-letter1-word-spacing:0px;
+
+  --nur-letter2-x:6%;
+  --nur-letter2-y:13%;
+  --nur-letter2-width:80%;
+  --nur-letter2-font-size:17px;
+  --nur-letter2-line-height:1.55;
+  --nur-letter2-gap:8px;
+  --nur-letter2-word-spacing:0px;
+
+  --nur-letter3-x:6%;
+  --nur-letter3-y:13%;
+  --nur-letter3-width:80%;
+  --nur-letter3-font-size:17px;
+  --nur-letter3-line-height:1.55;
+  --nur-letter3-gap:8px;
+  --nur-letter3-word-spacing:0px;
 }
 
 *{box-sizing:border-box}
@@ -360,7 +399,11 @@ body::before{
 }
 
 .letter-stage-inner{
-  width:min(840px,92vw);
+  /* --nur-card-scale drives every px-based size overlaid on the letter
+     card (name overlay, letter-body text) so they scale down WITH the
+     card on narrow screens instead of staying fixed while the card
+     shrinks - keep this in sync with any change here, they must match. */
+  width:var(--nur-card-scale);
   margin:0 auto 32px;
   filter:drop-shadow(0 22px 50px rgba(0,0,0,.45));
 }
@@ -423,7 +466,10 @@ body::before{
   top:var(--nur-letter-name-y);
   font-family:"DigiDerakhshandeh",Tahoma,Arial,sans-serif;
   font-weight:700;
-  font-size:var(--nur-letter-name-font-size);
+  /* scaled by --nur-card-scale - see the comment on that var - so the
+     name stays proportional to the card instead of a fixed size that
+     looks huge once the card shrinks on a narrow screen. */
+  font-size:calc(var(--nur-letter-name-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
   color:#241f16;
   white-space:nowrap;
   transform:rotate(var(--nur-letter-name-rotation));
@@ -434,7 +480,56 @@ body::before{
    the surrounding RTL flow, and we always want space on its visual left
    (toward "عزیز", which follows it in the markup). */
 .field-name-overlay .handle{
-  margin-left:var(--nur-letter-name-gap);
+  margin-left:calc(var(--nur-letter-name-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
+}
+
+/* The letter body text - real HTML now, replacing what used to be baked
+   into the PNG. Unlike .field-name-overlay (a single nowrap label), this
+   wraps normally within its own width, one <p> per manual line break
+   (same renderParagraphs() used for the intro text). Each page gets its
+   own position/size since the blank artwork's writable area/decorations
+   differ slightly per page. */
+.letter-body p{
+  color:#241f16;
+}
+/* font-size/word-spacing/margin-bottom are all scaled by --nur-card-scale
+   (same reasoning as .field-name-overlay above) - without this, a fixed
+   px font-size stays full-size while the card shrinks on a narrow
+   screen, wrapping into far more lines than fit and overflowing past
+   the bottom of the card. line-height is already unitless (a multiplier
+   of font-size) so it scales automatically and needs no calc(). */
+.page1 .letter-body{
+  right:var(--nur-letter1-x);
+  top:var(--nur-letter1-y);
+  width:var(--nur-letter1-width);
+}
+.page1 .letter-body p{
+  font-size:calc(var(--nur-letter1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  line-height:var(--nur-letter1-line-height);
+  word-spacing:calc(var(--nur-letter1-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  margin:0 0 calc(var(--nur-letter1-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
+}
+.page2 .letter-body{
+  right:var(--nur-letter2-x);
+  top:var(--nur-letter2-y);
+  width:var(--nur-letter2-width);
+}
+.page2 .letter-body p{
+  font-size:calc(var(--nur-letter2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  line-height:var(--nur-letter2-line-height);
+  word-spacing:calc(var(--nur-letter2-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  margin:0 0 calc(var(--nur-letter2-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
+}
+.page3 .letter-body{
+  right:var(--nur-letter3-x);
+  top:var(--nur-letter3-y);
+  width:var(--nur-letter3-width);
+}
+.page3 .letter-body p{
+  font-size:calc(var(--nur-letter3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  line-height:var(--nur-letter3-line-height);
+  word-spacing:calc(var(--nur-letter3-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  margin:0 0 calc(var(--nur-letter3-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
 }
 
 /* small in-paper control, sitting right under a page's baked-in text
@@ -530,9 +625,11 @@ body::before{
   .scene-text p{font-size:18px;line-height:1.75;margin-bottom:12px}
   .scene-text.small p{font-size:16px;margin-bottom:8px}
 
-  /* both letter faces are single baked images that just scale as a
-     whole picture at every width, so only the overlaid buttons need a
-     smaller mobile size - no per-field position overrides needed. */
+  /* The letter card scales as a whole picture at every width, and the
+     name overlay/letter-body text already scale with it via
+     --nur-card-scale (see :root and the .letter-body/.field-name-overlay
+     rules) - only the button's OWN font-size doesn't derive from that
+     and needs an explicit smaller size here. */
   .note-next-btn{font-size:14px;padding:8px 22px}
 
   #stage-letter.active{padding-top:36px}

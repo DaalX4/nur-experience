@@ -63,6 +63,89 @@
       gapToAziz: 8
     },
 
+    /* The three letter pages used to be baked-text PNGs; the artwork is now
+       blank paper (assets/note-page1/2/3.png) and this is the real HTML
+       text laid over it, one section per page, all in the same shape so
+       the admin panel can treat them identically. letterPage1's `body`
+       intentionally does NOT repeat "{name} عزیز" - that line is still
+       drawn by the separate letterName overlay above (so it always tracks
+       the current streamer), never duplicated as literal text here.
+       x/y/width are % (like letterName.x/y) since the whole letter card
+       scales as one image at every viewport width - a fixed px position
+       would overflow the card on narrow screens. fontSize/lineHeight/
+       paragraphGap/wordSpacing are px/unitless, same as every other text
+       control in this file. */
+    letterPage1: {
+      body:
+        "اول از همه باید ازت تشکر کنم؛\n" +
+        "برای شب‌هایی که شاید حال دلت خوب نبوده\n" +
+        "اما اومدی اینجا و حتی اگر شده برای چند لحظه،\n" +
+        "حال دل دیگران را بهتر کردی.\n" +
+        "برای شب‌هایی که شاید تو باعث شدی کسی،\n" +
+        "حتی برای چند دقیقه، کنار تو بودن را تجربه کند و مشکلاتش\n" +
+        "را فراموش کند، برای روزهایی که با عشق کار کردی اما\n" +
+        "به نتیجه‌ای که می‌خواستی نرسیدی، و با این حال ادامه دادی؛\n" +
+        "ادامه دادی برای روزهای بهتر و برای آرزوهایی\n" +
+        "که با گران شدن ارزها، دور و دورتر شدند.\n" +
+        "می‌دانم شاید برای تو هم پیش آمده که به رها کردن این\n" +
+        "مسیر و انتخاب یک شغل بهتر فکر کرده باشی.\n" +
+        "اما ته دلت هنوز امیدی بوده که بالاخره این\n" +
+        "شب سیاه تمام می‌شود و ما دوباره خورشید را می‌بینیم...",
+      x: 6,
+      y: 21,
+      width: 80,
+      fontSize: 17,
+      lineHeight: 1.55,
+      paragraphGap: 8,
+      wordSpacing: 0
+    },
+
+    letterPage2: {
+      body:
+        "با همه‌ی سختی‌ها، تغییرها و روزهای خوب و بد،\n" +
+        "تو باز هم ادامه دادی و من، به عنوان عضوی کوچک\n" +
+        "از جامعه استریم فارسی، به دیدن این مسیر و ادامه دادنت\n" +
+        "افتخار می‌کنم و قدردان حضورت هستم.\n" +
+        "ما نمی‌دونیم پایان این تاریکی چه زمانی است،\n" +
+        "اما تو می‌تونی تا اون زمان یکی از ستاره‌های این شب باشی؛\n" +
+        "یک ستاره‌ی روشن که آدما با دیدنش دوباره به زندگی امیدوار میشن!\n\n" +
+        "می‌خوام دعوتت کنم که تو ستاره‌ی نورانی بعدی این مسیر باشی\n" +
+        "به‌زودی بخشی از نور من برای تو فرستاده می‌شه\n" +
+        "یادت باشه تعداد محبت‌های یک نور را نشماری؛\n" +
+        "به آسمانی فکر کن که روزی در تاریک‌ترین\n" +
+        "شکل خودش بوده، اما به خاطر حضور و قدم‌های تو، کم‌کم\n" +
+        "به یک آسمان پر ستاره تبدیل شده...",
+      x: 6,
+      y: 13,
+      width: 80,
+      fontSize: 17,
+      lineHeight: 1.55,
+      paragraphGap: 8,
+      wordSpacing: 0
+    },
+
+    letterPage3: {
+      body:
+        "یک قدم با هدیه‌ات فاصله داری\n" +
+        "می‌تونی همه‌ش رو برای خودت برداری،\n" +
+        "یا بخشی از این نور رو به نفر بعد برسونی؛ نه لزوماً به\n" +
+        "همون شکل، شاید با کمی توجه، گوش شنوا بودن،\n" +
+        "معرفی کردن یک نفر، یا هر کاری که از دستت برمیاد تا برای\n" +
+        "چند دقیقه هم که شده، شب یکی کمی روشن‌تر بشه.\n\n" +
+        "فراموش نکن که محبتِ نور رو نشماری؛ چون نور برای\n" +
+        "شمرده شدن نیست، برای پخش شدنه\n" +
+        "اگر نگهش داری، کوچیک می‌شه؛ اگر منتقلش کنی،\n" +
+        "گسترش پیدا می‌کنه، با قلبت حسش کن و بذار\n" +
+        "از تو، یک ستاره‌ی دیگه روشن بشه...",
+      x: 6,
+      y: 23,
+      width: 80,
+      fontSize: 17,
+      lineHeight: 1.55,
+      paragraphGap: 8,
+      wordSpacing: 0
+    },
+
     final: {
       main: "این نور حالا پیش توئه🌠",
       sub: "ممنون که همراه این مسیر شدی، امیدوارم وقتی وقتش رسید، تو هم دلیل روشن شدن شب یکی دیگه باشی❤️",

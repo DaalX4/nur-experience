@@ -63,7 +63,43 @@
         { type: "slider", path: ["letterName", "y"], label: "Y (فاصله از بالا)", min: 0, max: 55, step: 0.5, unit: "%" },
         { type: "slider", path: ["letterName", "fontSize"], label: "اندازه فونت", min: 16, max: 90, step: 1, unit: "px" },
         { type: "slider", path: ["letterName", "rotation"], label: "چرخش (Rotation)", min: -30, max: 30, step: 1, unit: "deg" },
-        { type: "slider", path: ["letterName", "gapToAziz"], label: "فاصله تا «عزیز»", min: 0, max: 40, step: 1, unit: "px" }
+        { type: "slider", path: ["letterName", "gapToAziz"], label: "فاصله تا «عزیز»", min: 0, max: 40, step: 1, unit: "px" },
+        { type: "textarea", path: ["letterPage1", "body"], label: "متن نامه - صفحه ۱ (خط خالی = پاراگراف جدید)" },
+        { type: "slider", path: ["letterPage1", "x"], label: "متن: X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "y"], label: "متن: Y (فاصله از بالا)", min: 0, max: 70, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "width"], label: "متن: عرض بلوک", min: 40, max: 95, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "fontSize"], label: "متن: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage1", "lineHeight"], label: "متن: فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
+        { type: "slider", path: ["letterPage1", "paragraphGap"], label: "متن: فاصله پاراگراف‌ها", min: 0, max: 40, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage1", "wordSpacing"], label: "متن: فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
+      ]
+    },
+    {
+      id: "letter2",
+      label: "نامه - صفحه ۲",
+      fields: [
+        { type: "textarea", path: ["letterPage2", "body"], label: "متن نامه - صفحه ۲ (خط خالی = پاراگراف جدید)" },
+        { type: "slider", path: ["letterPage2", "x"], label: "X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "y"], label: "Y (فاصله از بالا)", min: 0, max: 70, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "width"], label: "عرض بلوک", min: 40, max: 95, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "fontSize"], label: "اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage2", "lineHeight"], label: "فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
+        { type: "slider", path: ["letterPage2", "paragraphGap"], label: "فاصله پاراگراف‌ها", min: 0, max: 40, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage2", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
+      ]
+    },
+    {
+      id: "letter3",
+      label: "نامه - صفحه ۳",
+      fields: [
+        { type: "textarea", path: ["letterPage3", "body"], label: "متن نامه - صفحه ۳ (خط خالی = پاراگراف جدید)" },
+        { type: "slider", path: ["letterPage3", "x"], label: "X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "y"], label: "Y (فاصله از بالا)", min: 0, max: 70, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "width"], label: "عرض بلوک", min: 40, max: 95, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "fontSize"], label: "اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage3", "lineHeight"], label: "فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
+        { type: "slider", path: ["letterPage3", "paragraphGap"], label: "فاصله پاراگراف‌ها", min: 0, max: 40, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage3", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
       ]
     },
     {
@@ -274,14 +310,19 @@
   }
 
   function doResetSection() {
+    // A tab can span more than one config section (e.g. "letter" has both
+    // letterName and letterPage1) - reset every distinct section that tab
+    // actually shows fields for, not just the first one.
     const tab = TABS.find((t) => t.id === activeTab);
-    const sectionKey = tab.fields[0] ? tab.fields[0].path[0] : null;
-    if (!sectionKey) return;
-    if (sectionKey === "streamerName") {
-      draft.streamerName = api.DEFAULT_CONFIG.streamerName;
-    } else {
-      draft[sectionKey] = api.deepClone(api.DEFAULT_CONFIG[sectionKey]);
-    }
+    const sectionKeys = [...new Set(tab.fields.map((f) => f.path[0]))];
+    if (sectionKeys.length === 0) return;
+    sectionKeys.forEach((sectionKey) => {
+      if (sectionKey === "streamerName") {
+        draft.streamerName = api.DEFAULT_CONFIG.streamerName;
+      } else {
+        draft[sectionKey] = api.deepClone(api.DEFAULT_CONFIG[sectionKey]);
+      }
+    });
     api.saveConfig(draft);
     window.NUR_APP.applyConfig(api.deepClone(draft));
     refreshAllFields();
