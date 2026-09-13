@@ -67,13 +67,43 @@
   filter:blur(15px);
   transform:translateY(16px) scale(.985);
   color:#f6f4ed;
-  font-size:clamp(23px,2.35vw,38px);
-  font-weight:600;
-  line-height:2;
   text-wrap:balance;
   text-shadow:
     0 1px 0 rgba(0,0,0,.12),
     0 0 22px rgba(212,231,197,.08);
+}
+#stage-final .final-message-main{
+  font-size:clamp(27px,3.1vw,44px);
+  font-weight:700;
+  line-height:1.5;
+}
+#stage-final .final-message-sub{
+  margin-top:22px;
+  font-size:clamp(18px,2vw,26px);
+  font-weight:500;
+  line-height:1.9;
+  color:#eae8dd;
+}
+
+/* Signature - revealed by app.js a few seconds after the main message,
+   with a very slow, gentle twinkle once visible (never a pulse/flash). */
+#stage-final .final-signature{
+  margin:0;
+  margin-top:34px;
+  opacity:0;
+  font-size:clamp(14px,1.5vw,17px);
+  font-weight:500;
+  color:#e8cf8a;
+  text-shadow:0 0 10px rgba(232,207,138,.3);
+  transition:opacity 2.4s ease;
+}
+#stage-final .final-signature.visible{
+  opacity:.78;
+  animation:signatureTwinkle 6s ease-in-out 2.4s infinite;
+}
+@keyframes signatureTwinkle{
+  0%,100%{opacity:.78; text-shadow:0 0 8px rgba(232,207,138,.22)}
+  50%{opacity:.95; text-shadow:0 0 14px rgba(232,207,138,.4)}
 }
 
 /* Only runs when the existing app makes the final stage active. */
@@ -154,9 +184,18 @@
   #stage-final .scene-text{
     width:88vw;
   }
-  #stage-final .final-message{
-    font-size:clamp(20px,5.6vw,29px);
-    line-height:1.95;
+  #stage-final .final-message-main{
+    font-size:clamp(22px,6vw,30px);
+    line-height:1.45;
+  }
+  #stage-final .final-message-sub{
+    margin-top:16px;
+    font-size:clamp(16px,4.4vw,20px);
+    line-height:1.8;
+  }
+  #stage-final .final-signature{
+    margin-top:26px;
+    font-size:13px;
   }
   #stage-final::after{
     letter-spacing:1.15em;
@@ -170,6 +209,13 @@
   #stage-final.active .final-message{
     animation-duration:.01ms !important;
     animation-delay:0ms !important;
+  }
+  #stage-final .final-signature{
+    transition-duration:.01ms;
+  }
+  #stage-final .final-signature.visible{
+    animation:none;
+    opacity:.85;
   }
 }
 </style>
@@ -293,6 +339,16 @@
   color:rgba(238,241,232,.74) !important;
   letter-spacing:.01em;
   text-shadow:0 0 18px rgba(202,228,184,.07);
+}
+
+/* Reserve a fixed-width slot for the dots so "در حال ارسال" itself never
+   shifts as they cycle - only the dots grow/shrink inside this slot,
+   right-aligned within it so they always sit flush against the phrase
+   (its RTL-isolated sibling) and grow away from it. */
+#stage-countdown .countdown-dots{
+  display:inline-block;
+  min-width:1.6em;
+  text-align:right;
 }
 
 #stage-countdown.active .countdown-label{
@@ -424,10 +480,10 @@
   <!-- 1. INTRO -->
   <section class="stage active" id="stage-intro" data-stage>
     <div class="scene-text">
-      <p class="greeting">درود <bdi class="handle" id="introHandle">@ArioPlay</bdi></p>
-      <p>قبل از شروع، در صفحه‌ی بعد نامه‌ای برای تو نوشته شده.</p>
-      <p>برای شکل گرفتن این مسیر، روزها وقت گذاشته شده؛ ازت می‌خوام با حوصله و صبر بازش کنی و بخونیش.</p>
-      <p>اگر به هر دلیلی الان زمان خوبی نیست، لطفاً همین‌جا این صفحه را رها کن.</p>
+      <p class="greeting">درود <bdi class="handle" id="introHandle">ArioPlay</bdi></p>
+      <p>در صفحه‌ی بعد نامه‌ ای برای تو نوشته شده</p>
+      <p>برای شکل گرفتن این مسیر، روزها وقت گذاشته شده؛ ازت می‌خوام با حوصله و صبر بازش کنی و بخونیش</p>
+      <p>اگر به هر دلیلی الان زمان خوبی نیست، لطفاً همین‌جا این صفحه را رها کن!</p>
     </div>
     <div class="scene-actions">
       <button class="btn btn-primary" id="toBeforeOpen">ادامه می‌دم</button>
@@ -445,7 +501,7 @@
   <!-- 2. BEFORE OPENING -->
   <section class="stage" id="stage-before-open" data-stage>
     <div class="scene-text small">
-      <p class="greeting">خوش اومدی <bdi class="handle" id="beforeOpenHandle">@ArioPlay</bdi> عزیز</p>
+      <p class="greeting">خوش اومدی <bdi class="handle" id="beforeOpenHandle">ArioPlay</bdi> عزیز</p>
       <p>یک قدم با نامه‌ات فاصله داری؛ کلیک کن وسط نامه تا برات باز بشه</p>
     </div>
     <div class="floating-scene" id="openEnvelope" role="button" tabindex="0" aria-label="باز کردن نامه">
@@ -478,13 +534,15 @@
   <section class="stage" id="stage-countdown" data-stage>
     <div class="countdown-glow" aria-hidden="true"></div>
     <div class="countdown-number" id="countdownNumber">30</div>
-    <div class="countdown-label">در حال ارسال...</div>
+    <div class="countdown-label"><bdi>در حال ارسال</bdi><bdi class="countdown-dots" id="countdownDots" aria-hidden="true"></bdi></div>
   </section>
 
   <!-- FINAL -->
   <section class="stage" id="stage-final" data-stage>
     <div class="scene-text">
-      <p class="final-message">باید تا الان دریافتش کرده باشی، ممنون که همراهی کردی و امیدوارم مسیر نور را ادامه بدی رفیق، مراقب خودت باش ;)💚</p>
+      <p class="final-message final-message-main">این نور حالا پیش توئه🌠</p>
+      <p class="final-message final-message-sub">ممنون که همراه این مسیر شدی، امیدوارم وقتی وقتش رسید، تو هم دلیل روشن شدن شب یکی دیگه باشی❤️</p>
+      <p class="final-signature" id="finalSignature">درست شده با عشق توسط دال‌وی</p>
     </div>
   </section>
 

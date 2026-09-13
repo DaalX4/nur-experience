@@ -188,7 +188,7 @@ body::before{
   font-weight:700;
   margin-bottom:22px;
 }
-.scene-text.small{margin-bottom:26px}
+.scene-text.small{margin-bottom:16px}
 .scene-text.small p{
   font-size:clamp(18px,2.2vw,22px);
   line-height:1.65;
@@ -348,7 +348,7 @@ body::before{
    like the rest of the note-field overlays. */
 .field-name-overlay{
   right:5%;
-  top:6.8%;
+  top:11%;
   font-family:"DigiDerakhshandeh",Tahoma,Arial,sans-serif;
   font-weight:700;
   font-size:clamp(34px,8.4vw,62px);

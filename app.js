@@ -51,7 +51,7 @@
     const nameOverlay = document.getElementById("letterNameOverlay");
     const bdi = document.createElement("bdi");
     bdi.className = "handle";
-    bdi.textContent = "@" + name.replace(/^@/, "");
+    bdi.textContent = name.replace(/^@/, "");
     nameOverlay.appendChild(bdi);
     nameOverlay.append(" عزیز");
   });
@@ -151,10 +151,44 @@
   const COUNTDOWN_SECONDS = 30;
   let countdownTimer = null;
 
+  /* Calm "typing" dots next to "در حال ارسال" - the phrase itself lives
+     in its own RTL-isolated <bdi> and never moves; only this sibling
+     <bdi>'s content cycles through a fixed-width slot (see styles.css
+     .countdown-dots) so nothing shifts as the dots grow. */
+  const DOTS_FRAMES = ["", ".", "..", "..."];
+  const DOTS_STEP_MS = 550;
+  let dotsTimer = null;
+
+  function startDots() {
+    const dotsEl = document.getElementById("countdownDots");
+    let i = 0;
+    dotsEl.textContent = DOTS_FRAMES[0];
+    clearInterval(dotsTimer);
+    dotsTimer = setInterval(() => {
+      i = (i + 1) % DOTS_FRAMES.length;
+      dotsEl.textContent = DOTS_FRAMES[i];
+    }, DOTS_STEP_MS);
+  }
+
+  function stopDots() {
+    clearInterval(dotsTimer);
+  }
+
+  /* The "درست شده با عشق..." signature fades in a few seconds after the
+     final message appears, then twinkles very gently forever after -
+     see the .final-signature / .visible rules in index.html. */
+  const SIGNATURE_DELAY_MS = 3800;
+
+  function revealSignature() {
+    const signature = document.getElementById("finalSignature");
+    setTimeout(() => signature.classList.add("visible"), SIGNATURE_DELAY_MS);
+  }
+
   function startCountdown() {
     const numberEl = document.getElementById("countdownNumber");
     let remaining = COUNTDOWN_SECONDS;
     numberEl.textContent = remaining;
+    startDots();
 
     clearInterval(countdownTimer);
     countdownTimer = setInterval(() => {
@@ -162,7 +196,11 @@
       numberEl.textContent = Math.max(remaining, 0);
       if (remaining <= 0) {
         clearInterval(countdownTimer);
-        setTimeout(() => show("stage-final"), 600);
+        stopDots();
+        setTimeout(() => {
+          show("stage-final");
+          revealSignature();
+        }, 600);
       }
     }, 1000);
   }
