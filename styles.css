@@ -34,6 +34,33 @@
 
   --font-display:"DigiSarve",Tahoma,Arial,sans-serif;
   --font-body:"DigiSarve",Tahoma,Arial,sans-serif;
+
+  /* ---- Admin-panel-controlled values (config.js / admin-panel.js) ----
+     Defaults here reproduce the shipped design exactly; the panel only
+     overrides them (via documentElement.style.setProperty) once someone
+     actually moves a control. Keep these in sync with config.js's
+     DEFAULT_CONFIG if either ever changes. */
+  --nur-intro-x:0px;
+  --nur-intro-y:0px;
+  --nur-intro-font-size:20px;
+  --nur-intro-line-height:1.7;
+  --nur-intro-gap:10px;
+
+  --nur-envelope-y:0px;
+  --nur-envelope-line-gap:9px;
+  --nur-envelope-gap-to-envelope:10px;
+  --nur-envelope-font-size:20px;
+
+  --nur-letter-name-x:6%;
+  --nur-letter-name-y:16%;
+  --nur-letter-name-font-size:48px;
+  --nur-letter-name-rotation:0deg;
+  --nur-letter-name-gap:8px;
+
+  --nur-final-y:0px;
+  --nur-final-font-size:34px;
+  --nur-final-sig-y:96px;
+  --nur-final-sig-font-size:15px;
 }
 
 *{box-sizing:border-box}
@@ -148,7 +175,15 @@ body::before{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  position:absolute;
+  /* fixed, not absolute: `.stage.active` sizes itself with
+     min-height:100vh (viewport-relative). `position:absolute;inset:0`
+     instead sizes against `.wrap`'s own height, which can grow the
+     instant the incoming stage activates - the outgoing stage would
+     then re-center inside a taller box than the one it was centered in
+     a moment ago, visibly jumping. `position:fixed` stays
+     viewport-relative like `.active` was, so the box never changes
+     size mid-exit. */
+  position:fixed;
   inset:0;
   pointer-events:none;
   animation:sceneOut .85s ease forwards;
@@ -198,6 +233,36 @@ body::before{
   font-size:clamp(26px,3.8vw,34px);
   font-weight:700;
   margin-bottom:9px;
+}
+
+/* ---- Admin-panel position/text hooks -------------------------------- */
+/* Intro: the body copy is rendered as one paragraph per blank-line-
+   separated block (config.intro.body), each with white-space:pre-line so
+   a SINGLE manual line break the admin typed is preserved verbatim. */
+#stage-intro .scene-text{
+  transform:translate(var(--nur-intro-x),var(--nur-intro-y));
+}
+#stage-intro .scene-body p{
+  white-space:pre-line;
+  font-size:var(--nur-intro-font-size);
+  line-height:var(--nur-intro-line-height);
+  margin:0 0 var(--nur-intro-gap);
+  color:var(--text);
+}
+#stage-intro .scene-body p:last-child{margin-bottom:0}
+
+/* Envelope (before-open): greeting + instruction, plus the gap to the
+   envelope image below them. */
+#stage-before-open .scene-text.small{
+  margin-bottom:var(--nur-envelope-gap-to-envelope);
+  transform:translateY(var(--nur-envelope-y));
+}
+#stage-before-open .scene-text.small p.greeting{
+  margin-bottom:var(--nur-envelope-line-gap);
+}
+#stage-before-open .scene-text.small p:not(.greeting){
+  white-space:pre-line;
+  font-size:var(--nur-envelope-font-size);
 }
 
 .scene-actions{
@@ -347,13 +412,22 @@ body::before{
    size is expressed relatively so it scales with the image exactly
    like the rest of the note-field overlays. */
 .field-name-overlay{
-  right:6%;
-  top:16%;
+  right:var(--nur-letter-name-x);
+  top:var(--nur-letter-name-y);
   font-family:"DigiDerakhshandeh",Tahoma,Arial,sans-serif;
   font-weight:700;
-  font-size:clamp(34px,8.4vw,62px);
+  font-size:var(--nur-letter-name-font-size);
   color:#241f16;
   white-space:nowrap;
+  transform:rotate(var(--nur-letter-name-rotation));
+  transform-origin:right top;
+}
+/* the gap between the name and "عزیز" - physical (not logical) margin,
+   since .handle forces direction:ltr for the Latin name regardless of
+   the surrounding RTL flow, and we always want space on its visual left
+   (toward "عزیز", which follows it in the markup). */
+.field-name-overlay .handle{
+  margin-left:var(--nur-letter-name-gap);
 }
 
 /* small in-paper control, sitting right under a page's baked-in text
@@ -395,6 +469,16 @@ body::before{
    ========================================================================== */
 #stage-countdown{
   position:relative;
+}
+/* BUGFIX: an ID selector always outranks a class selector, so the base
+   `#stage-countdown{position:relative}` above was silently overriding
+   `.stage.leaving{position:fixed}` (see .stage.leaving) - the countdown
+   stage never actually left normal document flow while exiting, so it
+   collided with the incoming final stage and the number visibly jumped.
+   This re-asserts fixed positioning with a selector specific enough to
+   win. */
+#stage-countdown.leaving{
+  position:fixed;
 }
 .countdown-glow{
   position:absolute;

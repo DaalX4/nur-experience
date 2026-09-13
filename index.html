@@ -72,8 +72,11 @@
     0 1px 0 rgba(0,0,0,.12),
     0 0 22px rgba(212,231,197,.08);
 }
+#stage-final .scene-text{
+  transform:translateY(var(--nur-final-y));
+}
 #stage-final .final-message-main{
-  font-size:clamp(27px,3.1vw,44px);
+  font-size:var(--nur-final-font-size);
   font-weight:700;
   line-height:1.5;
 }
@@ -89,9 +92,9 @@
    with a very slow, gentle twinkle once visible (never a pulse/flash). */
 #stage-final .final-signature{
   margin:0;
-  margin-top:96px;
+  margin-top:var(--nur-final-sig-y);
   opacity:0;
-  font-size:clamp(14px,1.5vw,17px);
+  font-size:var(--nur-final-sig-font-size);
   font-weight:500;
   color:#e8cf8a;
   text-shadow:0 0 10px rgba(232,207,138,.3);
@@ -229,6 +232,25 @@
   position:relative;
   isolation:isolate;
   overflow:hidden;
+}
+
+/* Controlled exit: app.js adds this class the instant the countdown
+   reaches 1 and freezes the number - the stage stays fully active,
+   centered and laid out exactly as before, and ONLY opacity/blur/scale
+   animate. Only once this finishes does app.js hand off to the normal
+   stage-swap (show()), so the final stage never enters while this is
+   still visible and the number never has a frame without full centering. */
+#stage-countdown.exiting{
+  animation:countdownExit 900ms ease forwards;
+}
+@keyframes countdownExit{
+  from{opacity:1; filter:blur(0); transform:scale(1)}
+  to{opacity:0; filter:blur(20px); transform:scale(.97)}
+}
+@media (prefers-reduced-motion:reduce){
+  #stage-countdown.exiting{
+    animation-duration:.01ms;
+  }
 }
 
 /* Wide, very soft magical aura */
@@ -481,9 +503,7 @@
   <section class="stage active" id="stage-intro" data-stage>
     <div class="scene-text">
       <p class="greeting">درود <bdi class="handle" id="introHandle">ArioPlay</bdi></p>
-      <p>در صفحه‌ی بعد نامه‌ ای برای تو نوشته شده</p>
-      <p>برای شکل گرفتن این مسیر، روزها وقت گذاشته شده؛ ازت می‌خوام با حوصله و صبر بازش کنی و بخونیش</p>
-      <p>اگر به هر دلیلی الان زمان خوبی نیست، لطفاً همین‌جا این صفحه را رها کن!</p>
+      <div class="scene-body" id="introBody"></div>
     </div>
     <div class="scene-actions">
       <button class="btn btn-primary" id="toBeforeOpen">ادامه می‌دم</button>
@@ -501,8 +521,8 @@
   <!-- 2. BEFORE OPENING -->
   <section class="stage" id="stage-before-open" data-stage>
     <div class="scene-text small">
-      <p class="greeting">خوش اومدی <bdi class="handle" id="beforeOpenHandle">ArioPlay</bdi> عزیز</p>
-      <p>یک قدم با نامه‌ات فاصله داری؛ کلیک کن وسط نامه تا برات باز بشه</p>
+      <p class="greeting" id="envelopeGreeting"></p>
+      <p id="envelopeInstruction"></p>
     </div>
     <div class="floating-scene" id="openEnvelope" role="button" tabindex="0" aria-label="باز کردن نامه">
       <img class="envelope-img" src="assets/envelope.webp" alt="پاکت نامه دست‌ساز دال‌وی">
@@ -540,15 +560,17 @@
   <!-- FINAL -->
   <section class="stage" id="stage-final" data-stage>
     <div class="scene-text">
-      <p class="final-message final-message-main">این نور حالا پیش توئه🌠</p>
-      <p class="final-message final-message-sub">ممنون که همراه این مسیر شدی، امیدوارم وقتی وقتش رسید، تو هم دلیل روشن شدن شب یکی دیگه باشی❤️</p>
-      <p class="final-signature" id="finalSignature">درست شده با عشق توسط دال‌وی</p>
+      <p class="final-message final-message-main" id="finalMain"></p>
+      <p class="final-message final-message-sub" id="finalSub"></p>
+      <p class="final-signature" id="finalSignature"></p>
     </div>
   </section>
 
 </main>
 
+<script src="config.js"></script>
 <script src="app.js"></script>
+<script src="admin-panel.js"></script>
 
 <script>
 /* Countdown-number animation enhancer.
