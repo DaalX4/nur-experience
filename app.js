@@ -73,14 +73,17 @@
     }
   }
 
-  /* Splits free text on blank lines into paragraphs, each rendered with
-     white-space:pre-line (see styles.css) so a SINGLE manual line break
-     within a paragraph is preserved exactly as typed in the admin panel -
-     nothing here re-flows or strips the admin's own line breaks. */
+  /* Splits free text on EVERY manual line break into its own paragraph
+     (a blank line just means "no paragraph here", it's not rendered as
+     an empty one) - so a line break the admin typed is preserved exactly,
+     one-to-one, and the "gap" control has a real, visible margin to
+     apply between every one of them, whether it was a single or double
+     newline in the source. Nothing here re-flows or merges the admin's
+     own line breaks. */
   function renderParagraphs(container, text) {
     container.textContent = "";
     String(text || "")
-      .split(/\n\s*\n/)
+      .split(/\n/)
       .forEach((para) => {
         if (!para.trim()) return;
         const p = document.createElement("p");
@@ -116,6 +119,8 @@
     root.setProperty("--nur-intro-font-size", config.intro.fontSize + "px");
     root.setProperty("--nur-intro-line-height", config.intro.lineHeight);
     root.setProperty("--nur-intro-gap", config.intro.gap + "px");
+    root.setProperty("--nur-intro-greeting-font-size", config.intro.greetingFontSize + "px");
+    root.setProperty("--nur-intro-greeting-gap", config.intro.greetingGap + "px");
     renderParagraphs(document.getElementById("introBody"), config.intro.body);
 
     root.setProperty("--nur-envelope-y", config.envelope.offsetY + "px");
@@ -299,35 +304,104 @@
   }
 
   const COUNTDOWN_EXIT_MS = 900; // must match @keyframes countdownExit's duration
+  const numberEl = document.getElementById("countdownNumber");
+  const countdownStage = document.getElementById("stage-countdown");
+
+  /* Tick flourish: a small replay-able animation on the number, retriggered
+     whenever its text changes, plus once when the stage first enters (so
+     "30" gets the same entrance as every later tick). This USED TO be a
+     separate <script> block in index.html, observing #stage-countdown's
+     class attribute unconditionally - it replayed the animation on ANY
+     class change while "active" was still present, which includes the
+     ".exiting" class this file adds a few lines below. That meant the
+     controlled exit was retriggering the tick flourish on the FROZEN "1"
+     at the exact moment it was supposed to just fade away - the actual
+     root cause of the reported flicker/re-render-looking glitch. Moved
+     here, fixed to only fire on a genuine not-active -> active transition,
+     and hard-disconnected the instant the exit sequence begins so NOTHING
+     can touch the number again after that point. */
+  function replayTick() {
+    numberEl.classList.remove("tick-magic");
+    void numberEl.offsetWidth; // force reflow so the animation restarts
+    numberEl.classList.add("tick-magic");
+  }
+
+  const numberObserver = new MutationObserver(replayTick);
+  numberObserver.observe(numberEl, { childList: true, characterData: true, subtree: true });
+
+  let countdownStageWasActive = countdownStage.classList.contains("active");
+  const stageObserver = new MutationObserver(() => {
+    const isActive = countdownStage.classList.contains("active");
+    // Only a real entrance (was inactive, just became active) replays the
+    // flourish - NOT every subsequent class change while already active
+    // (that "while already active" case is exactly what caused the bug).
+    if (isActive && !countdownStageWasActive) replayTick();
+    countdownStageWasActive = isActive;
+  });
+  stageObserver.observe(countdownStage, { attributes: true, attributeFilter: ["class"] });
 
   function startCountdown() {
-    const numberEl = document.getElementById("countdownNumber");
-    const countdownStage = document.getElementById("stage-countdown");
     let remaining = COUNTDOWN_SECONDS;
+    let isEnding = false; // one-time guard: the end sequence below can only ever run once per countdown
     numberEl.textContent = remaining;
     startDots();
 
     clearInterval(countdownTimer);
     countdownTimer = setInterval(() => {
+      if (isEnding) return; // extra safety net - should be unreachable since the interval is cleared below
       remaining -= 1;
+
       if (remaining <= 0) {
-        // Never write "0" into the number - it stays frozen on "1" (its
-        // last real value) for the rest of this sequence, so 0 never
-        // renders even for a single frame.
+        isEnding = true;
         clearInterval(countdownTimer);
         stopDots();
 
+        // Hard stop: disconnect both observers so it is not just
+        // "unlikely" but IMPOSSIBLE for anything to touch the number's
+        // text, classes, or animation again after this point. The "1"
+        // stays exactly as it is - frozen, centered, untouched.
+        numberObserver.disconnect();
+        stageObserver.disconnect();
+        // Never write "0" into the number - it stays frozen on "1" (its
+        // last real value) for the rest of this sequence, so 0 never
+        // renders even for a single frame.
+
+        // Defensive: the "1" tick's own magicalTick flourish (.82s) is
+        // NORMALLY finished well before the next 1000ms tick fires, but
+        // that's a timing assumption, not a guarantee - setInterval can
+        // drift under load. If it were still mid-flight here, its own
+        // transform/filter would fight with the exit animation's
+        // transform/filter on the very next frame, reading as a glitch.
+        // Cancelling it outright removes that possibility entirely,
+        // regardless of timing.
+        numberEl.classList.remove("tick-magic");
+
         const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
         // Controlled exit: the countdown stage fades/blurs itself out as
-        // a self-contained animation, fully centered and in `.active`
+        // ONE self-contained animation, fully centered and in `.active`
         // layout the entire time (see #stage-countdown.exiting in
         // index.html). Only once THAT finishes do we hand off to the
         // normal stage-swap - the final stage never starts entering
-        // while the countdown is still visible, and the countdown never
-        // loses its centering mid-exit (the bug this replaces).
+        // while the countdown is still visible, and (now that the
+        // observers above are disconnected) nothing can re-animate the
+        // number mid-exit.
         countdownStage.classList.add("exiting");
         const goToFinal = () => {
+          // Remove "active" here too, not just "exiting": show() looks for
+          // whatever stage currently has "active" and puts IT through the
+          // generic .leaving/sceneOut crossfade. The countdown stage kept
+          // "active" the whole time the custom exit animation played, so
+          // without this, show("stage-final") would find it, strip
+          // "exiting" (snapping it back to full opacity - .exiting holds
+          // opacity:0 only via fill:forwards, which is cancelled the
+          // instant the class is removed), and immediately start a SECOND,
+          // generic fade on top of the one that already finished. That
+          // opacity 0 -> 1 -> 0 snap was the visible flicker on/around "1".
+          // Clearing "active" first means show() sees no current stage to
+          // exit, so stage-final just becomes active directly - one exit
+          // animation, not two.
           countdownStage.classList.remove("exiting");
+          countdownStage.classList.remove("active");
           show("stage-final");
           revealSignature();
         };

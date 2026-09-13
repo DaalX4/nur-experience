@@ -45,6 +45,8 @@
   --nur-intro-font-size:20px;
   --nur-intro-line-height:1.7;
   --nur-intro-gap:10px;
+  --nur-intro-greeting-font-size:36px;
+  --nur-intro-greeting-gap:22px;
 
   --nur-envelope-y:0px;
   --nur-envelope-line-gap:9px;
@@ -236,11 +238,16 @@ body::before{
 }
 
 /* ---- Admin-panel position/text hooks -------------------------------- */
-/* Intro: the body copy is rendered as one paragraph per blank-line-
-   separated block (config.intro.body), each with white-space:pre-line so
-   a SINGLE manual line break the admin typed is preserved verbatim. */
+/* Intro: the body copy is rendered as one paragraph per manual line
+   break in config.intro.body - every line break the admin typed becomes
+   a real paragraph boundary, so the "gap" control always has something
+   real to space out. */
 #stage-intro .scene-text{
   transform:translate(var(--nur-intro-x),var(--nur-intro-y));
+}
+#stage-intro .scene-text p.greeting{
+  font-size:var(--nur-intro-greeting-font-size);
+  margin-bottom:var(--nur-intro-greeting-gap);
 }
 #stage-intro .scene-body p{
   white-space:pre-line;

@@ -36,7 +36,9 @@
         { type: "textarea", path: ["intro", "body"], label: "متن اینترو (خط خالی = پاراگراف جدید)" },
         { type: "slider", path: ["intro", "offsetX"], label: "جابجایی چپ/راست", min: -200, max: 200, step: 1, unit: "px" },
         { type: "slider", path: ["intro", "offsetY"], label: "جابجایی بالا/پایین", min: -200, max: 200, step: 1, unit: "px" },
-        { type: "slider", path: ["intro", "fontSize"], label: "اندازه فونت", min: 12, max: 36, step: 1, unit: "px" },
+        { type: "slider", path: ["intro", "greetingFontSize"], label: "اندازه فونت خوش‌آمد (درود...)", min: 18, max: 60, step: 1, unit: "px" },
+        { type: "slider", path: ["intro", "greetingGap"], label: "فاصله خوش‌آمد تا متن اصلی", min: 0, max: 80, step: 1, unit: "px" },
+        { type: "slider", path: ["intro", "fontSize"], label: "اندازه فونت متن اصلی", min: 12, max: 36, step: 1, unit: "px" },
         { type: "slider", path: ["intro", "lineHeight"], label: "فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
         { type: "slider", path: ["intro", "gap"], label: "فاصله بین پاراگراف‌ها", min: 0, max: 60, step: 1, unit: "px" }
       ]

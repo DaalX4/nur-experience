@@ -34,7 +34,9 @@
       offsetY: 0,
       fontSize: 20,
       lineHeight: 1.7,
-      gap: 10
+      gap: 10,
+      greetingFontSize: 36,
+      greetingGap: 22
     },
 
     envelope: {

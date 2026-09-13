@@ -572,37 +572,5 @@
 <script src="app.js"></script>
 <script src="admin-panel.js"></script>
 
-<script>
-/* Countdown-number animation enhancer.
-   Does not change the timer or app state; it only animates the number
-   whenever the existing app.js updates its text. */
-(() => {
-  const number = document.getElementById('countdownNumber');
-  if (!number) return;
-
-  const replayTick = () => {
-    number.classList.remove('tick-magic');
-    void number.offsetWidth; // restart animation without touching countdown logic
-    number.classList.add('tick-magic');
-  };
-
-  const observer = new MutationObserver(replayTick);
-  observer.observe(number, {
-    childList: true,
-    characterData: true,
-    subtree: true
-  });
-
-  /* Give 30 the same entrance animation when the countdown stage first appears. */
-  const stage = document.getElementById('stage-countdown');
-  if (stage) {
-    const stageObserver = new MutationObserver(() => {
-      if (stage.classList.contains('active')) replayTick();
-    });
-    stageObserver.observe(stage, { attributes: true, attributeFilter: ['class'] });
-  }
-})();
-</script>
-
 </body>
 </html>
