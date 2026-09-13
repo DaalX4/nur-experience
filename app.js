@@ -12,6 +12,12 @@
   const configApi = window.NUR_CONFIG_API;
   let currentConfig = configApi.loadConfig();
 
+  /* Each letter page's own nav button has a different id (they do
+     different things - advance vs. start the countdown) but the same
+     config.letterPageN.button shape - this is the one place that maps
+     page number to the actual button element. */
+  const LETTER_BUTTON_IDS = { 1: "toPage2", 2: "toPage3", 3: "toCountdown" };
+
   /* ------------------------------------------------------------------ *
    *  Global config — the public URL is always the same (daalvi.com/nur),
    *  so every visitor fetches the SAME config from one tiny public Wix
@@ -72,14 +78,25 @@
      apply between every one of them, whether it was a single or double
      newline in the source. Nothing here re-flows or merges the admin's
      own line breaks. */
+  /* Every line becomes its own <p>, blank lines included - a blank line
+     gets a non-breaking space so it still has real height instead of
+     collapsing to nothing, so its own paragraph-gap margin still applies
+     and a double Enter reads as a visibly bigger break than a single one,
+     with no special-casing needed. Multiple spaces within a line survive
+     because the paragraph CSS uses white-space:pre-wrap - this function
+     never trims/collapses whitespace itself. */
   function renderParagraphs(container, text) {
     container.textContent = "";
     String(text || "")
       .split(/\n/)
       .forEach((para) => {
-        if (!para.trim()) return;
         const p = document.createElement("p");
-        p.textContent = para;
+        if (para.trim() === "") {
+          p.textContent = " ";
+          p.setAttribute("aria-hidden", "true");
+        } else {
+          p.textContent = para;
+        }
         container.appendChild(p);
       });
   }
@@ -137,6 +154,16 @@
       root.setProperty(`--nur-letter${n}-gap`, section.paragraphGap + "px");
       root.setProperty(`--nur-letter${n}-word-spacing`, section.wordSpacing + "px");
       renderParagraphs(document.getElementById("letterBody" + n), section.body);
+
+      const btn = section.button;
+      root.setProperty(`--nur-btn${n}-x`, btn.x + "%");
+      root.setProperty(`--nur-btn${n}-y`, btn.y + "%");
+      root.setProperty(`--nur-btn${n}-width`, btn.width + "px");
+      root.setProperty(`--nur-btn${n}-height`, btn.height + "px");
+      root.setProperty(`--nur-btn${n}-font-size`, btn.fontSize + "px");
+      root.setProperty(`--nur-btn${n}-radius`, btn.borderRadius + "px");
+      root.setProperty(`--nur-btn${n}-scale`, btn.scale);
+      document.getElementById(LETTER_BUTTON_IDS[n]).textContent = btn.label;
     });
 
     root.setProperty("--nur-final-y", config.final.offsetY + "px");
@@ -185,7 +212,8 @@
     applyConfig: (config) => {
       currentConfig = config;
       applyConfig(config);
-    }
+    },
+    LETTER_BUTTON_IDS
   };
 
   /* ------------------------------------------------------------------ *

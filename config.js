@@ -74,7 +74,15 @@
        scales as one image at every viewport width - a fixed px position
        would overflow the card on narrow screens. fontSize/lineHeight/
        paragraphGap/wordSpacing are px/unitless, same as every other text
-       control in this file. */
+       control in this file.
+
+       `button` is that page's own "صفحه‌ی بعد"/"دریافت نور" control -
+       x/y are its CENTER point in % (matches drag semantics: a drag
+       tracks a point, and centering makes width/height changes not
+       shift the button's anchor), width/height/fontSize/borderRadius
+       are px (scaled the same way as the text above via
+       --nur-card-scale, see styles.css), scale is an optional extra
+       multiplier, label is the button's own text. */
     letterPage1: {
       body:
         "اول از همه باید ازت تشکر کنم؛\n" +
@@ -97,7 +105,8 @@
       fontSize: 17,
       lineHeight: 1.55,
       paragraphGap: 8,
-      wordSpacing: 0
+      wordSpacing: 0,
+      button: { x: 50, y: 87, width: 96, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "صفحه‌ی بعد" }
     },
 
     letterPage2: {
@@ -121,7 +130,8 @@
       fontSize: 17,
       lineHeight: 1.55,
       paragraphGap: 8,
-      wordSpacing: 0
+      wordSpacing: 0,
+      button: { x: 50, y: 88, width: 96, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "صفحه‌ی بعد" }
     },
 
     letterPage3: {
@@ -143,7 +153,8 @@
       fontSize: 17,
       lineHeight: 1.55,
       paragraphGap: 8,
-      wordSpacing: 0
+      wordSpacing: 0,
+      button: { x: 50, y: 82, width: 88, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "دریافت نور" }
     },
 
     final: {

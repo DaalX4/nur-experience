@@ -58,6 +58,7 @@
     {
       id: "letter",
       label: "نامه - صفحه ۱",
+      dragTarget: { path: ["letterPage1", "button"], elementId: "toPage2" },
       fields: [
         { type: "slider", path: ["letterName", "x"], label: "X (فاصله از راست)", min: 0, max: 45, step: 0.5, unit: "%" },
         { type: "slider", path: ["letterName", "y"], label: "Y (فاصله از بالا)", min: 0, max: 55, step: 0.5, unit: "%" },
@@ -71,12 +72,21 @@
         { type: "slider", path: ["letterPage1", "fontSize"], label: "متن: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage1", "lineHeight"], label: "متن: فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
         { type: "slider", path: ["letterPage1", "paragraphGap"], label: "متن: فاصله پاراگراف‌ها", min: 0, max: 40, step: 1, unit: "px" },
-        { type: "slider", path: ["letterPage1", "wordSpacing"], label: "متن: فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
+        { type: "slider", path: ["letterPage1", "wordSpacing"], label: "متن: فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" },
+        { type: "text", path: ["letterPage1", "button", "label"], label: "متن دکمه" },
+        { type: "slider", path: ["letterPage1", "button", "x"], label: "دکمه: X (مرکز)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "button", "y"], label: "دکمه: Y (مرکز)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "button", "width"], label: "دکمه: عرض", min: 50, max: 260, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage1", "button", "height"], label: "دکمه: ارتفاع", min: 28, max: 90, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage1", "button", "fontSize"], label: "دکمه: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage1", "button", "borderRadius"], label: "دکمه: گردی گوشه‌ها", min: 0, max: 999, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage1", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" }
       ]
     },
     {
       id: "letter2",
       label: "نامه - صفحه ۲",
+      dragTarget: { path: ["letterPage2", "button"], elementId: "toPage3" },
       fields: [
         { type: "textarea", path: ["letterPage2", "body"], label: "متن نامه - صفحه ۲ (خط خالی = پاراگراف جدید)" },
         { type: "slider", path: ["letterPage2", "x"], label: "X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
@@ -85,12 +95,21 @@
         { type: "slider", path: ["letterPage2", "fontSize"], label: "اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage2", "lineHeight"], label: "فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
         { type: "slider", path: ["letterPage2", "paragraphGap"], label: "فاصله پاراگراف‌ها", min: 0, max: 40, step: 1, unit: "px" },
-        { type: "slider", path: ["letterPage2", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
+        { type: "slider", path: ["letterPage2", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" },
+        { type: "text", path: ["letterPage2", "button", "label"], label: "متن دکمه" },
+        { type: "slider", path: ["letterPage2", "button", "x"], label: "دکمه: X (مرکز)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "button", "y"], label: "دکمه: Y (مرکز)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "button", "width"], label: "دکمه: عرض", min: 50, max: 260, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage2", "button", "height"], label: "دکمه: ارتفاع", min: 28, max: 90, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage2", "button", "fontSize"], label: "دکمه: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage2", "button", "borderRadius"], label: "دکمه: گردی گوشه‌ها", min: 0, max: 999, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage2", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" }
       ]
     },
     {
       id: "letter3",
       label: "نامه - صفحه ۳",
+      dragTarget: { path: ["letterPage3", "button"], elementId: "toCountdown" },
       fields: [
         { type: "textarea", path: ["letterPage3", "body"], label: "متن نامه - صفحه ۳ (خط خالی = پاراگراف جدید)" },
         { type: "slider", path: ["letterPage3", "x"], label: "X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
@@ -99,7 +118,15 @@
         { type: "slider", path: ["letterPage3", "fontSize"], label: "اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage3", "lineHeight"], label: "فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
         { type: "slider", path: ["letterPage3", "paragraphGap"], label: "فاصله پاراگراف‌ها", min: 0, max: 40, step: 1, unit: "px" },
-        { type: "slider", path: ["letterPage3", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
+        { type: "slider", path: ["letterPage3", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" },
+        { type: "text", path: ["letterPage3", "button", "label"], label: "متن دکمه" },
+        { type: "slider", path: ["letterPage3", "button", "x"], label: "دکمه: X (مرکز)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "button", "y"], label: "دکمه: Y (مرکز)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "button", "width"], label: "دکمه: عرض", min: 50, max: 260, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage3", "button", "height"], label: "دکمه: ارتفاع", min: 28, max: 90, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage3", "button", "fontSize"], label: "دکمه: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage3", "button", "borderRadius"], label: "دکمه: گردی گوشه‌ها", min: 0, max: 999, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage3", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" }
       ]
     },
     {
@@ -224,6 +251,107 @@
     return row;
   }
 
+  /* -------------------------------------------------------------------- *
+   *  Drag-to-position — lets the admin click+drag a nav button directly
+   *  on the live page (visible next to the panel) instead of only using
+   *  sliders. Only one button can be in drag mode at a time; switching
+   *  tabs or closing the panel always turns it off (see stopDrag calls
+   *  in renderTabs/closePanel below).
+   * ---------------------------------------------------------------------*/
+  let activeDrag = null; // { tabId, cleanup() } | null
+
+  function isDragActive(tab) {
+    return !!activeDrag && activeDrag.tabId === tab.id;
+  }
+
+  function stopDrag() {
+    if (activeDrag) activeDrag.cleanup();
+    activeDrag = null;
+  }
+
+  function startDrag(tab) {
+    stopDrag();
+    const el = document.getElementById(tab.dragTarget.elementId);
+    const face = el && el.closest(".letter-face");
+    if (!el || !face) return;
+
+    function onPointerDown(e) {
+      e.preventDefault();
+      const startClientX = e.clientX;
+      const startClientY = e.clientY;
+      const faceRect = face.getBoundingClientRect();
+      const startX = getPath(draft, [...tab.dragTarget.path, "x"]);
+      const startY = getPath(draft, [...tab.dragTarget.path, "y"]);
+      let moved = false;
+      let rafPending = false;
+      let dx = 0;
+      let dy = 0;
+
+      function applyMove() {
+        rafPending = false;
+        if (Math.hypot(dx, dy) > 4) moved = true;
+        const newX = Math.min(100, Math.max(0, startX + (dx / faceRect.width) * 100));
+        const newY = Math.min(100, Math.max(0, startY + (dy / faceRect.height) * 100));
+        setPath(draft, [...tab.dragTarget.path, "x"], Number(newX.toFixed(1)));
+        setPath(draft, [...tab.dragTarget.path, "y"], Number(newY.toFixed(1)));
+        livePreview();
+      }
+
+      function onMove(ev) {
+        dx = ev.clientX - startClientX;
+        dy = ev.clientY - startClientY;
+        if (!rafPending) {
+          rafPending = true;
+          requestAnimationFrame(applyMove);
+        }
+      }
+
+      function onUp() {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        if (moved) {
+          // The click that follows this same press/release would normally
+          // navigate the page - swallow exactly that one click so dragging
+          // never also "clicks through" to the next stage. A plain click
+          // (drag mode on, but never actually moved) is left alone, so the
+          // button still works normally when the admin isn't dragging it.
+          const blockClick = (ce) => {
+            ce.preventDefault();
+            ce.stopImmediatePropagation();
+            el.removeEventListener("click", blockClick, true);
+          };
+          el.addEventListener("click", blockClick, true);
+        }
+        refreshAllFields();
+      }
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp, { once: true });
+    }
+
+    el.addEventListener("pointerdown", onPointerDown);
+    activeDrag = { tabId: tab.id, cleanup: () => el.removeEventListener("pointerdown", onPointerDown) };
+  }
+
+  function dragToggleRow(tab) {
+    const row = document.createElement("div");
+    row.className = "nurap-row";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    const active = isDragActive(tab);
+    btn.className = "nurap-btn " + (active ? "nurap-btn--primary" : "nurap-btn--ghost");
+    btn.textContent = active
+      ? "جابجایی با ماوس فعال است - روی دکمه در صفحه بکش (برای خاموش کردن دوباره بزن)"
+      : "فعال‌سازی جابجایی با ماوس برای این دکمه";
+    btn.addEventListener("click", () => {
+      if (isDragActive(tab)) stopDrag();
+      else startDrag(tab);
+      renderTabContent();
+    });
+    row.appendChild(btn);
+    return row;
+  }
+
   function renderTabContent() {
     const body = panelEl.querySelector(".nurap-body");
     body.textContent = "";
@@ -235,6 +363,7 @@
       body.appendChild(empty);
       return;
     }
+    if (tab.dragTarget) body.appendChild(dragToggleRow(tab));
     tab.fields.forEach((field) => body.appendChild(fieldRow(field)));
   }
 
@@ -247,6 +376,7 @@
       btn.className = "nurap-tab" + (tab.id === activeTab ? " nurap-tab--active" : "");
       btn.textContent = tab.label;
       btn.addEventListener("click", () => {
+        stopDrag();
         activeTab = tab.id;
         renderTabs();
         renderTabContent();
@@ -505,6 +635,7 @@
   }
 
   function closePanel() {
+    stopDrag();
     if (panelEl) panelEl.classList.remove("nurap-open");
     /* Discard any unsaved live-preview edits, reverting the page back to
        the last actually-saved config - "Save" is the only thing that

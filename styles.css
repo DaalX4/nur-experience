@@ -102,6 +102,35 @@
   --nur-letter3-line-height:1.55;
   --nur-letter3-gap:8px;
   --nur-letter3-word-spacing:0px;
+
+  /* Each page's own nav button - x/y are the button's CENTER point in %
+     (so drag-to-position and width/height changes both stay anchored to
+     the same point); width/height/font-size/border-radius are px, scaled
+     by --nur-card-scale in .note-next-btn below exactly like the letter
+     text above. */
+  --nur-btn1-x:50%;
+  --nur-btn1-y:87%;
+  --nur-btn1-width:96px;
+  --nur-btn1-height:47px;
+  --nur-btn1-font-size:14px;
+  --nur-btn1-radius:999px;
+  --nur-btn1-scale:1;
+
+  --nur-btn2-x:50%;
+  --nur-btn2-y:88%;
+  --nur-btn2-width:96px;
+  --nur-btn2-height:47px;
+  --nur-btn2-font-size:14px;
+  --nur-btn2-radius:999px;
+  --nur-btn2-scale:1;
+
+  --nur-btn3-x:50%;
+  --nur-btn3-y:82%;
+  --nur-btn3-width:88px;
+  --nur-btn3-height:47px;
+  --nur-btn3-font-size:14px;
+  --nur-btn3-radius:999px;
+  --nur-btn3-scale:1;
 }
 
 *{box-sizing:border-box}
@@ -289,7 +318,7 @@ body::before{
   margin-bottom:var(--nur-intro-greeting-gap);
 }
 #stage-intro .scene-body p{
-  white-space:pre-line;
+  white-space:pre-wrap;
   font-size:var(--nur-intro-font-size);
   line-height:var(--nur-intro-line-height);
   margin:0 0 var(--nur-intro-gap);
@@ -491,6 +520,10 @@ body::before{
    differ slightly per page. */
 .letter-body p{
   color:#241f16;
+  /* preserves runs of multiple spaces exactly as typed (unlike pre-line,
+     which still collapses them) - line breaks are already one <p> per
+     line via renderParagraphs(), this is purely for mid-line spacing. */
+  white-space:pre-wrap;
 }
 /* font-size/word-spacing/margin-bottom are all scaled by --nur-card-scale
    (same reasoning as .field-name-overlay above) - without this, a fixed
@@ -532,21 +565,26 @@ body::before{
   margin:0 0 calc(var(--nur-letter3-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
 }
 
-/* small in-paper control, sitting right under a page's baked-in text
-   rather than as a full-size pill below the whole card - both letter
-   faces are now baked images (assets/note-page1.png, note-page3.png)
-   with just this button overlaid; each face sets its own `top` since
-   the text ends at a different height in each image. */
+/* small in-paper control, sitting right under a page's text rather than
+   as a full-size pill below the whole card. x/y/width/height/font-size/
+   border-radius all come from that page's config.letterPageN.button
+   (set as --nur-btnN-* below) so position/size/label are fully editable
+   from the admin panel, including drag-to-position; x/y are the
+   button's CENTER (hence translate(-50%,-50%)) so resizing or dragging
+   never shifts its anchor point. Everything px-sized is scaled by
+   --nur-card-scale, same as the letter text, so the button stays
+   proportional to the card instead of the old fixed-px mobile override
+   this replaces. Colors/hover/shadow are untouched - only placement and
+   size are configurable. */
 .note-next-btn{
   position:absolute;
   z-index:4;
-  left:50%;
-  transform:translateX(-50%);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   border:0;
-  border-radius:999px;
-  padding:9px 26px;
+  padding:0;
   font-family:var(--font-display);
-  font-size:clamp(15px,1.9vw,18px);
   font-weight:700;
   text-shadow:0 1px 1px rgba(0,0,0,.18);
   color:var(--accent-ink);
@@ -559,11 +597,39 @@ body::before{
   background:var(--accent-bright);
   box-shadow:0 0 18px rgba(174,224,180,.5);
 }
-.note-next-btn:active{transform:translateX(-50%) scale(.96)}
 
-.letter-face.page1 .note-next-btn{top:85%}
-.letter-face.page2 .note-next-btn{top:86%}
-.letter-face.page3 .note-next-btn{top:80%}
+.letter-face.page1 .note-next-btn{
+  left:var(--nur-btn1-x);
+  top:var(--nur-btn1-y);
+  width:calc(var(--nur-btn1-width) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  height:calc(var(--nur-btn1-height) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-btn1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  border-radius:calc(var(--nur-btn1-radius) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  transform:translate(-50%,-50%) scale(var(--nur-btn1-scale));
+}
+.letter-face.page1 .note-next-btn:active{transform:translate(-50%,-50%) scale(calc(var(--nur-btn1-scale) * .96))}
+
+.letter-face.page2 .note-next-btn{
+  left:var(--nur-btn2-x);
+  top:var(--nur-btn2-y);
+  width:calc(var(--nur-btn2-width) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  height:calc(var(--nur-btn2-height) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-btn2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  border-radius:calc(var(--nur-btn2-radius) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  transform:translate(-50%,-50%) scale(var(--nur-btn2-scale));
+}
+.letter-face.page2 .note-next-btn:active{transform:translate(-50%,-50%) scale(calc(var(--nur-btn2-scale) * .96))}
+
+.letter-face.page3 .note-next-btn{
+  left:var(--nur-btn3-x);
+  top:var(--nur-btn3-y);
+  width:calc(var(--nur-btn3-width) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  height:calc(var(--nur-btn3-height) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-btn3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  border-radius:calc(var(--nur-btn3-radius) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  transform:translate(-50%,-50%) scale(var(--nur-btn3-scale));
+}
+.letter-face.page3 .note-next-btn:active{transform:translate(-50%,-50%) scale(calc(var(--nur-btn3-scale) * .96))}
 
 /* ==========================================================================
    Countdown — the light being sent. Kept deliberately bare: a number, a
@@ -626,11 +692,9 @@ body::before{
   .scene-text.small p{font-size:16px;margin-bottom:8px}
 
   /* The letter card scales as a whole picture at every width, and the
-     name overlay/letter-body text already scale with it via
-     --nur-card-scale (see :root and the .letter-body/.field-name-overlay
-     rules) - only the button's OWN font-size doesn't derive from that
-     and needs an explicit smaller size here. */
-  .note-next-btn{font-size:14px;padding:8px 22px}
+     name overlay/letter-body text/nav buttons already scale with it via
+     --nur-card-scale (see :root and the .letter-body/.field-name-overlay/
+     .note-next-btn rules) - nothing extra needed here for them. */
 
   #stage-letter.active{padding-top:36px}
 }
