@@ -42,7 +42,8 @@
         { type: "slider", path: ["intro", "greetingGap"], label: "فاصله خوش‌آمد تا متن اصلی", min: 0, max: 80, step: 1, unit: "px" },
         { type: "slider", path: ["intro", "fontSize"], label: "اندازه فونت متن اصلی", min: 12, max: 36, step: 1, unit: "px" },
         { type: "slider", path: ["intro", "lineHeight"], label: "فاصله خطوط", min: 1, max: 2.6, step: 0.05, unit: "" },
-        { type: "slider", path: ["intro", "gap"], label: "فاصله بین پاراگراف‌ها", min: 0, max: 60, step: 1, unit: "px" }
+        { type: "slider", path: ["intro", "gap"], label: "فاصله بین پاراگراف‌ها", min: 0, max: 60, step: 1, unit: "px" },
+        { type: "slider", path: ["intro", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
       ]
     },
     {
@@ -55,7 +56,8 @@
         { type: "slider", path: ["envelope", "offsetY"], label: "جابجایی بالا/پایین", min: -200, max: 200, step: 1, unit: "px" },
         { type: "slider", path: ["envelope", "lineGap"], label: "فاصله بین دو خط", min: 0, max: 60, step: 1, unit: "px" },
         { type: "slider", path: ["envelope", "gapToEnvelope"], label: "فاصله تا پاکت", min: 0, max: 80, step: 1, unit: "px" },
-        { type: "slider", path: ["envelope", "fontSize"], label: "اندازه فونت راهنما", min: 12, max: 32, step: 1, unit: "px" }
+        { type: "slider", path: ["envelope", "fontSize"], label: "اندازه فونت راهنما", min: 12, max: 32, step: 1, unit: "px" },
+        { type: "slider", path: ["envelope", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" }
       ]
     },
     {
@@ -69,6 +71,7 @@
         { type: "slider", path: ["letterName", "fontSize"], label: "اندازه فونت", min: 16, max: 90, step: 1, unit: "px" },
         { type: "slider", path: ["letterName", "rotation"], label: "چرخش (Rotation)", min: -30, max: 30, step: 1, unit: "deg" },
         { type: "slider", path: ["letterName", "gapToAziz"], label: "فاصله تا «عزیز»", min: 0, max: 40, step: 1, unit: "px" },
+        { type: "slider", path: ["letterName", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" },
         { type: "textarea", path: ["letterPage1", "body"], label: "متن نامه - صفحه ۱ (خط خالی = پاراگراف جدید)" },
         { type: "slider", path: ["letterPage1", "x"], label: "متن: X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
         { type: "slider", path: ["letterPage1", "y"], label: "متن: Y (فاصله از بالا)", min: 0, max: 70, step: 1, unit: "%" },
@@ -150,9 +153,11 @@
         { type: "textarea", path: ["final", "sub"], label: "خط دوم" },
         { type: "slider", path: ["final", "offsetY"], label: "جابجایی بالا/پایین", min: -200, max: 200, step: 1, unit: "px" },
         { type: "slider", path: ["final", "mainFontSize"], label: "اندازه فونت خط اول", min: 20, max: 60, step: 1, unit: "px" },
+        { type: "slider", path: ["final", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" },
         { type: "text", path: ["final", "signature"], label: "امضای دال‌وی" },
         { type: "slider", path: ["final", "signatureOffsetY"], label: "فاصله امضا تا متن اصلی", min: 20, max: 240, step: 2, unit: "px" },
-        { type: "slider", path: ["final", "signatureFontSize"], label: "اندازه فونت امضا", min: 10, max: 24, step: 1, unit: "px" }
+        { type: "slider", path: ["final", "signatureFontSize"], label: "اندازه فونت امضا", min: 10, max: 24, step: 1, unit: "px" },
+        { type: "slider", path: ["final", "signatureWordSpacing"], label: "فاصله کلمات امضا", min: 0, max: 20, step: 1, unit: "px" }
       ]
     }
   ];

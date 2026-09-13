@@ -32,6 +32,9 @@
     version: 1,
     streamerName: "ArioPlay",
 
+    /* wordSpacing (px) exists on every text section below, same as the
+       letter pages already had - defaults to 0 everywhere so nothing
+       visually changes until the admin actually moves that slider. */
     intro: {
       body:
         "در صفحه‌ی بعد نامه‌ ای برای تو نوشته شده\n\n" +
@@ -43,7 +46,8 @@
       lineHeight: 1.7,
       gap: 10,
       greetingFontSize: 36,
-      greetingGap: 22
+      greetingGap: 22,
+      wordSpacing: 0
     },
 
     envelope: {
@@ -52,7 +56,8 @@
       offsetY: 0,
       lineGap: 9,
       gapToEnvelope: 10,
-      fontSize: 20
+      fontSize: 20,
+      wordSpacing: 0
     },
 
     letterName: {
@@ -60,7 +65,8 @@
       y: 16,
       fontSize: 48,
       rotation: 0,
-      gapToAziz: 8
+      gapToAziz: 8,
+      wordSpacing: 0
     },
 
     /* The three letter pages used to be baked-text PNGs; the artwork is now
@@ -162,9 +168,11 @@
       sub: "ممنون که همراه این مسیر شدی، امیدوارم وقتی وقتش رسید، تو هم دلیل روشن شدن شب یکی دیگه باشی❤️",
       offsetY: 0,
       mainFontSize: 34,
+      wordSpacing: 0,
       signature: "درست شده با عشق توسط دال‌وی",
       signatureOffsetY: 96,
-      signatureFontSize: 15
+      signatureFontSize: 15,
+      signatureWordSpacing: 0
     }
   };
 

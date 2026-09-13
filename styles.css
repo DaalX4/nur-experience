@@ -47,11 +47,13 @@
   --nur-intro-gap:10px;
   --nur-intro-greeting-font-size:36px;
   --nur-intro-greeting-gap:22px;
+  --nur-intro-word-spacing:0px;
 
   --nur-envelope-y:0px;
   --nur-envelope-line-gap:9px;
   --nur-envelope-gap-to-envelope:10px;
   --nur-envelope-font-size:20px;
+  --nur-envelope-word-spacing:0px;
 
   /* The letter card renders as one scaling image (.letter-stage-inner's
      width below); every px-sized thing overlaid on it needs to shrink at
@@ -67,11 +69,14 @@
   --nur-letter-name-font-size:48px;
   --nur-letter-name-rotation:0deg;
   --nur-letter-name-gap:8px;
+  --nur-letter-name-word-spacing:0px;
 
   --nur-final-y:0px;
   --nur-final-font-size:34px;
+  --nur-final-word-spacing:0px;
   --nur-final-sig-y:96px;
   --nur-final-sig-font-size:15px;
+  --nur-final-sig-word-spacing:0px;
 
   /* Letter pages 1-3 - real HTML text laid over the now-blank paper
      artwork (assets/note-page1/2/3.png). x/y/width are % (same reasoning
@@ -316,6 +321,7 @@ body::before{
 #stage-intro .scene-text p.greeting{
   font-size:var(--nur-intro-greeting-font-size);
   margin-bottom:var(--nur-intro-greeting-gap);
+  word-spacing:var(--nur-intro-word-spacing);
 }
 #stage-intro .scene-body p{
   white-space:pre-wrap;
@@ -323,6 +329,7 @@ body::before{
   line-height:var(--nur-intro-line-height);
   margin:0 0 var(--nur-intro-gap);
   color:var(--text);
+  word-spacing:var(--nur-intro-word-spacing);
 }
 #stage-intro .scene-body p:last-child{margin-bottom:0}
 
@@ -334,10 +341,12 @@ body::before{
 }
 #stage-before-open .scene-text.small p.greeting{
   margin-bottom:var(--nur-envelope-line-gap);
+  word-spacing:var(--nur-envelope-word-spacing);
 }
 #stage-before-open .scene-text.small p:not(.greeting){
   white-space:pre-line;
   font-size:var(--nur-envelope-font-size);
+  word-spacing:var(--nur-envelope-word-spacing);
 }
 
 .scene-actions{
@@ -499,6 +508,7 @@ body::before{
      name stays proportional to the card instead of a fixed size that
      looks huge once the card shrinks on a narrow screen. */
   font-size:calc(var(--nur-letter-name-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  word-spacing:calc(var(--nur-letter-name-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
   color:#241f16;
   white-space:nowrap;
   transform:rotate(var(--nur-letter-name-rotation));

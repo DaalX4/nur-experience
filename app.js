@@ -130,12 +130,14 @@
     root.setProperty("--nur-intro-gap", config.intro.gap + "px");
     root.setProperty("--nur-intro-greeting-font-size", config.intro.greetingFontSize + "px");
     root.setProperty("--nur-intro-greeting-gap", config.intro.greetingGap + "px");
+    root.setProperty("--nur-intro-word-spacing", config.intro.wordSpacing + "px");
     renderParagraphs(document.getElementById("introBody"), config.intro.body);
 
     root.setProperty("--nur-envelope-y", config.envelope.offsetY + "px");
     root.setProperty("--nur-envelope-line-gap", config.envelope.lineGap + "px");
     root.setProperty("--nur-envelope-gap-to-envelope", config.envelope.gapToEnvelope + "px");
     root.setProperty("--nur-envelope-font-size", config.envelope.fontSize + "px");
+    root.setProperty("--nur-envelope-word-spacing", config.envelope.wordSpacing + "px");
     document.getElementById("envelopeInstruction").textContent = config.envelope.instruction;
 
     root.setProperty("--nur-letter-name-x", config.letterName.x + "%");
@@ -143,6 +145,7 @@
     root.setProperty("--nur-letter-name-font-size", config.letterName.fontSize + "px");
     root.setProperty("--nur-letter-name-rotation", config.letterName.rotation + "deg");
     root.setProperty("--nur-letter-name-gap", config.letterName.gapToAziz + "px");
+    root.setProperty("--nur-letter-name-word-spacing", config.letterName.wordSpacing + "px");
 
     [1, 2, 3].forEach((n) => {
       const section = config["letterPage" + n];
@@ -168,8 +171,10 @@
 
     root.setProperty("--nur-final-y", config.final.offsetY + "px");
     root.setProperty("--nur-final-font-size", config.final.mainFontSize + "px");
+    root.setProperty("--nur-final-word-spacing", config.final.wordSpacing + "px");
     root.setProperty("--nur-final-sig-y", config.final.signatureOffsetY + "px");
     root.setProperty("--nur-final-sig-font-size", config.final.signatureFontSize + "px");
+    root.setProperty("--nur-final-sig-word-spacing", config.final.signatureWordSpacing + "px");
     document.getElementById("finalMain").textContent = config.final.main;
     document.getElementById("finalSub").textContent = config.final.sub;
     document.getElementById("finalSignature").textContent = config.final.signature;
