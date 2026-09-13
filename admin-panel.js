@@ -25,6 +25,7 @@
     {
       id: "general",
       label: "کلی",
+      screen: { stage: "stage-intro" },
       fields: [
         { type: "text", path: ["streamerName"], label: "نام استریمر (Streamer Name)" }
       ]
@@ -32,6 +33,7 @@
     {
       id: "intro",
       label: "اینترو",
+      screen: { stage: "stage-intro" },
       fields: [
         { type: "textarea", path: ["intro", "body"], label: "متن اینترو (خط خالی = پاراگراف جدید)" },
         { type: "slider", path: ["intro", "offsetX"], label: "جابجایی چپ/راست", min: -200, max: 200, step: 1, unit: "px" },
@@ -46,6 +48,7 @@
     {
       id: "envelope",
       label: "صفحه پاکت",
+      screen: { stage: "stage-before-open" },
       fields: [
         { type: "text", path: ["envelope", "greeting"], label: "خوش‌آمد (از {name} برای اسم استفاده کن)" },
         { type: "textarea", path: ["envelope", "instruction"], label: "متن راهنما" },
@@ -58,6 +61,7 @@
     {
       id: "letter",
       label: "نامه - صفحه ۱",
+      screen: { stage: "stage-letter", letterPage: 1 },
       dragTarget: { path: ["letterPage1", "button"], elementId: "toPage2" },
       fields: [
         { type: "slider", path: ["letterName", "x"], label: "X (فاصله از راست)", min: 0, max: 45, step: 0.5, unit: "%" },
@@ -86,6 +90,7 @@
     {
       id: "letter2",
       label: "نامه - صفحه ۲",
+      screen: { stage: "stage-letter", letterPage: 2 },
       dragTarget: { path: ["letterPage2", "button"], elementId: "toPage3" },
       fields: [
         { type: "textarea", path: ["letterPage2", "body"], label: "متن نامه - صفحه ۲ (خط خالی = پاراگراف جدید)" },
@@ -109,6 +114,7 @@
     {
       id: "letter3",
       label: "نامه - صفحه ۳",
+      screen: { stage: "stage-letter", letterPage: 3 },
       dragTarget: { path: ["letterPage3", "button"], elementId: "toCountdown" },
       fields: [
         { type: "textarea", path: ["letterPage3", "body"], label: "متن نامه - صفحه ۳ (خط خالی = پاراگراف جدید)" },
@@ -132,11 +138,13 @@
     {
       id: "countdown",
       label: "شمارش معکوس",
+      screen: { stage: "stage-countdown" },
       fields: []
     },
     {
       id: "final",
       label: "پایانی",
+      screen: { stage: "stage-final" },
       fields: [
         { type: "textarea", path: ["final", "main"], label: "خط اول (تاکید بیشتر)" },
         { type: "textarea", path: ["final", "sub"], label: "خط دوم" },
@@ -267,6 +275,7 @@
   function stopDrag() {
     if (activeDrag) activeDrag.cleanup();
     activeDrag = null;
+    panelEl.classList.remove("nurap-drag-mode");
   }
 
   function startDrag(tab) {
@@ -274,6 +283,10 @@
     const el = document.getElementById(tab.dragTarget.elementId);
     const face = el && el.closest(".letter-face");
     if (!el || !face) return;
+    // Let real mouse events reach the button underneath instead of being
+    // swallowed by the full-viewport backdrop - see the CSS comment on
+    // .nurap-drag-mode above for why this was the actual blocker.
+    panelEl.classList.add("nurap-drag-mode");
 
     function onPointerDown(e) {
       e.preventDefault();
@@ -380,6 +393,11 @@
         activeTab = tab.id;
         renderTabs();
         renderTabContent();
+        // Jump the live preview behind the panel to match this tab, so
+        // editing doesn't require manually clicking through the whole
+        // flow every time - admin/preview only, never wired to anything
+        // a normal visitor can trigger.
+        if (tab.screen) window.NUR_APP.previewStage(tab.screen.stage, tab.screen.letterPage);
       });
       tabsEl.appendChild(btn);
     });
@@ -513,6 +531,18 @@
           position:absolute; inset:0;
           background:rgba(6,10,22,.55);
         }
+        /* The backdrop covers the WHOLE viewport (inset:0) so clicking
+           anywhere outside the panel closes it - but that also means it
+           sits on top of the live page everywhere except the panel's own
+           360px strip, silently swallowing real mouse events aimed at a
+           nav button during drag mode (this was the actual reason drag
+           never worked for real mouse input, even though it worked fine
+           when tested by dispatching events directly at the button in
+           script - dispatchEvent bypasses hit-testing, a real click does
+           not). While drag mode is on, let clicks pass straight through
+           the backdrop to the page underneath; the panel sidebar itself
+           is a separate element and keeps working normally. */
+        #nurAdminPanel.nurap-drag-mode .nurap-backdrop{pointer-events:none}
         #nurAdminPanel .nurap-panel{
           position:absolute; top:0; left:0; bottom:0;
           width:min(360px,92vw);

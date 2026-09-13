@@ -213,7 +213,8 @@
       currentConfig = config;
       applyConfig(config);
     },
-    LETTER_BUTTON_IDS
+    LETTER_BUTTON_IDS,
+    previewStage: (stageId, letterPage) => previewStage(stageId, letterPage)
   };
 
   /* ------------------------------------------------------------------ *
@@ -461,4 +462,20 @@
     show("stage-countdown");
     startCountdown();
   });
+
+  /* Admin-only: jump the live preview straight to any stage (and, for
+     the letter, straight to a specific page) when a panel tab is
+     clicked - called exclusively from admin-panel.js, never wired to
+     anything a normal visitor can trigger, so the public flow is
+     unaffected. Clears any in-flight real countdown first so jumping
+     away from a countdown the admin was just testing can't silently
+     pop the final screen up later while they're editing another tab. */
+  function previewStage(stageId, letterPage) {
+    clearInterval(countdownTimer);
+    stopDots();
+    show(stageId);
+    if (stageId === "stage-letter" && letterPage) {
+      letterFlipper.dataset.active = String(letterPage);
+    }
+  }
 })();
