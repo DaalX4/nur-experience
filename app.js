@@ -158,6 +158,25 @@
       root.setProperty(`--nur-letter${n}-word-spacing`, section.wordSpacing + "px");
       renderParagraphs(document.getElementById("letterBody" + n), section.body);
 
+      /* section.paperImage is "" (use the bundled default asset) or a Wix
+         Media Manager URL from an admin-panel upload. data-applied tracks
+         what's currently showing so this is a no-op on every other
+         applyConfig call. Before the deferred first load has happened yet
+         (data-loaded unset), just update the pending target so the normal
+         deferred-load mechanism picks it up; afterward (live preview of a
+         fresh upload, or a remote-config value arriving after boot),
+         update src directly so the change is visible immediately. */
+      const imgEl = document.getElementById("notePage" + n + "Img");
+      const desiredImageUrl = section.paperImage || imgEl.dataset.defaultSrc;
+      if (imgEl.dataset.applied !== desiredImageUrl) {
+        imgEl.dataset.applied = desiredImageUrl;
+        if (imgEl.dataset.loaded === "1") {
+          imgEl.src = desiredImageUrl;
+        } else {
+          imgEl.dataset.src = desiredImageUrl;
+        }
+      }
+
       const btn = section.button;
       root.setProperty(`--nur-btn${n}-x`, btn.x + "%");
       root.setProperty(`--nur-btn${n}-y`, btn.y + "%");
@@ -198,6 +217,7 @@
   function preloadStageImages() {
     document.querySelectorAll("img[data-src]").forEach((img) => {
       img.src = img.dataset.src;
+      img.dataset.loaded = "1";
     });
   }
   if ("requestIdleCallback" in window) {

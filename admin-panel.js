@@ -73,6 +73,7 @@
         { type: "slider", path: ["letterName", "gapToAziz"], label: "فاصله تا «عزیز»", min: 0, max: 40, step: 1, unit: "px" },
         { type: "slider", path: ["letterName", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" },
         { type: "textarea", path: ["letterPage1", "body"], label: "متن نامه - صفحه ۱ (خط خالی = پاراگراف جدید)" },
+        { type: "image", path: ["letterPage1", "paperImage"], label: "تصویر کاغذ (خالی = تصویر پیش‌فرض)", defaultSrc: "assets/note-page1.webp" },
         { type: "slider", path: ["letterPage1", "x"], label: "متن: X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
         { type: "slider", path: ["letterPage1", "y"], label: "متن: Y (فاصله از بالا)", min: 0, max: 70, step: 1, unit: "%" },
         { type: "slider", path: ["letterPage1", "width"], label: "متن: عرض بلوک", min: 40, max: 95, step: 1, unit: "%" },
@@ -97,6 +98,7 @@
       dragTarget: { path: ["letterPage2", "button"], elementId: "toPage3" },
       fields: [
         { type: "textarea", path: ["letterPage2", "body"], label: "متن نامه - صفحه ۲ (خط خالی = پاراگراف جدید)" },
+        { type: "image", path: ["letterPage2", "paperImage"], label: "تصویر کاغذ (خالی = تصویر پیش‌فرض)", defaultSrc: "assets/note-page2.webp" },
         { type: "slider", path: ["letterPage2", "x"], label: "X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
         { type: "slider", path: ["letterPage2", "y"], label: "Y (فاصله از بالا)", min: 0, max: 70, step: 1, unit: "%" },
         { type: "slider", path: ["letterPage2", "width"], label: "عرض بلوک", min: 40, max: 95, step: 1, unit: "%" },
@@ -121,6 +123,7 @@
       dragTarget: { path: ["letterPage3", "button"], elementId: "toCountdown" },
       fields: [
         { type: "textarea", path: ["letterPage3", "body"], label: "متن نامه - صفحه ۳ (خط خالی = پاراگراف جدید)" },
+        { type: "image", path: ["letterPage3", "paperImage"], label: "تصویر کاغذ (خالی = تصویر پیش‌فرض)", defaultSrc: "assets/note-page3.webp" },
         { type: "slider", path: ["letterPage3", "x"], label: "X (فاصله از راست)", min: 0, max: 40, step: 1, unit: "%" },
         { type: "slider", path: ["letterPage3", "y"], label: "Y (فاصله از بالا)", min: 0, max: 70, step: 1, unit: "%" },
         { type: "slider", path: ["letterPage3", "width"], label: "عرض بلوک", min: 40, max: 95, step: 1, unit: "%" },
@@ -259,6 +262,52 @@
 
       sliderWrap.append(minusBtn, slider, plusBtn, valueLabel);
       row.appendChild(sliderWrap);
+    } else if (field.type === "image") {
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "display:flex; align-items:center; gap:10px; flex-wrap:wrap;";
+
+      const preview = document.createElement("img");
+      preview.alt = "";
+      preview.style.cssText = "width:56px; height:auto; max-height:90px; border-radius:6px; border:1px solid rgba(255,255,255,.15); background:#1c2238; object-fit:cover;";
+      preview.src = value || field.defaultSrc;
+
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "image/png,image/jpeg,image/webp";
+      fileInput.style.display = "none";
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nurap-btn nurap-btn--ghost";
+      btn.textContent = "انتخاب و جایگزینی تصویر کاغذ";
+      btn.addEventListener("click", () => fileInput.click());
+
+      const status = document.createElement("span");
+      status.className = "nurap-value";
+
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files[0];
+        fileInput.value = "";
+        if (!file) return;
+        btn.disabled = true;
+        try {
+          status.textContent = "در حال بهینه‌سازی...";
+          const { blob, mimeType } = await optimizeImageForUpload(file);
+          status.textContent = "در حال آپلود...";
+          const url = await uploadPaperImage(blob, mimeType);
+          setPath(draft, field.path, url);
+          preview.src = url;
+          livePreview();
+          status.textContent = "آپلود شد ✓ (برای انتشار سراسری «ذخیره تغییرات» را بزن)";
+        } catch (err) {
+          status.textContent = "ناموفق: " + (err && err.message ? err.message : "خطای نامشخص");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      wrap.append(preview, btn, fileInput, status);
+      row.appendChild(wrap);
     }
 
     return row;
@@ -415,23 +464,31 @@
 
   const ADMIN_PW_KEY = "nurAdminPw";
 
-  /* Pushes the saved config to the shared Wix endpoint so every future
-     visitor gets it, not just this browser. The password is never stored
-     anywhere but this tab's sessionStorage (cleared when the tab closes) -
-     it is typed in at Save time, not shipped in this file, and the Wix
-     backend is what actually checks it (see DEPLOY.md). If this fails for
-     any reason, the local save above has already happened, so the admin
-     never loses their edit - they just get told the global publish didn't
-     go through, instead of a false "done". */
-  async function pushConfigGlobal(config) {
+  /* Shared by pushConfigGlobal (below) and the paper-image upload flow -
+     one password, cached in this tab's sessionStorage only (cleared when
+     the tab closes), never shipped in this file. Returns null if the
+     admin cancels the prompt. */
+  function getAdminPassword() {
     let password = sessionStorage.getItem(ADMIN_PW_KEY);
     if (!password) {
-      password = window.prompt("رمز مدیریت برای انتشار سراسری تغییرات را وارد کن:");
-      if (!password) {
-        setStatus("فقط به‌صورت محلی ذخیره شد (رمز وارد نشد)");
-        return;
-      }
+      password = window.prompt("رمز مدیریت را وارد کن:");
+      if (!password) return null;
       sessionStorage.setItem(ADMIN_PW_KEY, password);
+    }
+    return password;
+  }
+
+  /* Pushes the saved config to the shared Wix endpoint so every future
+     visitor gets it, not just this browser. The Wix backend is what
+     actually checks the password (see DEPLOY.md). If this fails for any
+     reason, the local save above has already happened, so the admin never
+     loses their edit - they just get told the global publish didn't go
+     through, instead of a false "done". */
+  async function pushConfigGlobal(config) {
+    const password = getAdminPassword();
+    if (!password) {
+      setStatus("فقط به‌صورت محلی ذخیره شد (رمز وارد نشد)");
+      return;
     }
     try {
       const controller = new AbortController();
@@ -453,6 +510,72 @@
     } catch (err) {
       setStatus("ذخیره محلی شد، اما انتشار سراسری ناموفق بود");
     }
+  }
+
+  /* Paper-image upload (letterPage1/2/3's "Paper Image" control). Runs
+     entirely in the admin's own browser except the final upload call -
+     never touches configJson with image bytes, only the resulting Wix
+     Media Manager URL ends up in config, via the normal Save flow. */
+
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result).split(",")[1]);
+      reader.onerror = () => reject(new Error("خواندن فایل ناموفق بود"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  /* WebP files are assumed already optimized (e.g. re-uploading a paper
+     that was itself exported as WebP) and pass through untouched, so they
+     are never re-compressed a second time. PNG/JPG go through a canvas at
+     quality 0.93 - within the requested 90-95 range - sized to the
+     source image's own natural pixel dimensions (never resized/cropped,
+     since a taller or shorter paper is the whole point of this control)
+     and with the canvas's normal transparent background, so alpha carries
+     straight through for images that have it. */
+  async function optimizeImageForUpload(file) {
+    if (file.type === "image/webp") {
+      return { blob: file, mimeType: "image/webp" };
+    }
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0);
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("تبدیل تصویر به WebP ناموفق بود"))), "image/webp", 0.93);
+    });
+    return { blob, mimeType: "image/webp" };
+  }
+
+  async function uploadPaperImage(blob, mimeType) {
+    const password = getAdminPassword();
+    if (!password) throw new Error("رمز وارد نشد");
+    const base64 = await blobToBase64(blob);
+    const ext = mimeType === "image/webp" ? "webp" : mimeType === "image/png" ? "png" : "jpg";
+    const fileName = "nur-paper-" + Date.now() + "." + ext;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    let res;
+    try {
+      res = await fetch(api.REMOTE_UPLOAD_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, fileName, mimeType, base64 }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (res.status === 401) {
+      sessionStorage.removeItem(ADMIN_PW_KEY);
+      throw new Error("رمز اشتباه است");
+    }
+    if (!res.ok) throw new Error("آپلود ناموفق (" + res.status + ")");
+    const data = await res.json();
+    if (!data.ok || !data.url) throw new Error(data.error || "پاسخ نامعتبر از سرور");
+    return data.url;
   }
 
   function doSave() {

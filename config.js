@@ -25,6 +25,13 @@
      from here so there is exactly one URL to ever change. */
   const REMOTE_CONFIG_URL = "https://www.daalvi.com/_functions/nurConfig";
 
+  /* Password-gated endpoint that uploads an (already client-side WebP-
+     optimized) paper image to the Wix Media Manager and returns its public
+     URL - see admin-panel.js's image field type. Only that URL is ever
+     saved into config/NurConfig; the image bytes themselves never pass
+     through REMOTE_CONFIG_URL or get stored there. */
+  const REMOTE_UPLOAD_URL = "https://www.daalvi.com/_functions/nurUploadImage";
+
   /* Every value here reproduces the CURRENT shipped design exactly - the
      admin panel starts out changing nothing until the user actually moves
      something. */
@@ -112,6 +119,11 @@
       lineHeight: 1.55,
       paragraphGap: 8,
       wordSpacing: 0,
+      /* "" = use the bundled default asset (assets/note-page1.webp). Any
+         other value is a Wix Media Manager URL from an admin-panel upload
+         (see admin-panel.js's image field type) - set only via that flow,
+         never hand-edited. */
+      paperImage: "",
       button: { x: 50, y: 87, width: 96, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "صفحه‌ی بعد" }
     },
 
@@ -137,6 +149,7 @@
       lineHeight: 1.55,
       paragraphGap: 8,
       wordSpacing: 0,
+      paperImage: "",
       button: { x: 50, y: 88, width: 96, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "صفحه‌ی بعد" }
     },
 
@@ -160,6 +173,7 @@
       lineHeight: 1.55,
       paragraphGap: 8,
       wordSpacing: 0,
+      paperImage: "",
       button: { x: 50, y: 82, width: 88, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "دریافت نور" }
     },
 
@@ -227,6 +241,7 @@
   global.NUR_CONFIG_API = {
     STORAGE_KEY: NUR_STORAGE_KEY,
     REMOTE_CONFIG_URL,
+    REMOTE_UPLOAD_URL,
     DEFAULT_CONFIG,
     deepClone,
     mergeWithDefaults,
