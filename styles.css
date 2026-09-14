@@ -142,6 +142,26 @@
 
 html{-webkit-tap-highlight-color:transparent}
 
+/* The document's own scrollbar - thin and muted instead of the browser's
+   bright default gray/white bar, since it sits directly against this dark
+   night-sky theme. Purely cosmetic (color/width of the scrollbar chrome),
+   so it doesn't change what scrolls or when - the letter pages' genuine
+   need to scroll (their content is taller than one screen) is untouched,
+   and this is independent of dir="rtl" on <html> (which side the bar sits
+   on is a layout-direction effect; this only restyles its own colors).
+   rgba(167,176,201,...) is --muted's RGB value at low opacity. */
+html{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(167,176,201,.35) transparent;
+}
+html::-webkit-scrollbar{width:6px}
+html::-webkit-scrollbar-track{background:transparent}
+html::-webkit-scrollbar-thumb{
+  background-color:rgba(167,176,201,.35);
+  border-radius:999px;
+}
+html::-webkit-scrollbar-thumb:hover{background-color:rgba(167,176,201,.55)}
+
 body{
   margin:0;
   min-height:100vh;
