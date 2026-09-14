@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نوبت توئه</title>
+<!-- DigiSarve is the body/heading font for every stage including the very
+     first paint (intro) - preloaded so the browser fetches it in parallel
+     with CSS parsing instead of discovering it only after styles.css is
+     parsed. DigiDerakhshandeh (page-1 name overlay only) is intentionally
+     NOT preloaded - it isn't needed until much later. crossorigin is
+     required here even though the file is same-origin: font fetches are
+     always made in anonymous CORS mode, so omitting it would make the
+     browser fetch the file a second time for actual use. -->
+<link rel="preload" href="assets/fonts/DigiSarve.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="stylesheet" href="styles.css">
 
 <style>
@@ -528,7 +537,7 @@
       <p id="envelopeInstruction"></p>
     </div>
     <div class="floating-scene" id="openEnvelope" role="button" tabindex="0" aria-label="باز کردن نامه">
-      <img class="envelope-img" src="assets/envelope.webp" alt="پاکت نامه دست‌ساز دال‌وی">
+      <img class="envelope-img" data-src="assets/envelope.webp" width="1448" height="1086" decoding="async" alt="پاکت نامه دست‌ساز دال‌وی">
     </div>
   </section>
 
@@ -537,18 +546,18 @@
     <div class="letter-stage-inner">
       <div class="letter-flipper" id="letterFlipper" data-active="1">
         <div class="letter-face page1">
-          <img class="note-img" src="assets/note-page1.png" alt="نامه - صفحه ۱">
+          <img class="note-img" data-src="assets/note-page1.webp" width="653" height="1080" decoding="async" alt="نامه - صفحه ۱">
           <div class="note-field field-name-overlay" id="letterNameOverlay"></div>
           <div class="note-field letter-body" id="letterBody1"></div>
           <button class="note-next-btn" id="toPage2">صفحه‌ی بعد</button>
         </div>
         <div class="letter-face page2">
-          <img class="note-img" src="assets/note-page2.png" alt="نامه - صفحه ۲">
+          <img class="note-img" data-src="assets/note-page2.webp" width="653" height="1080" decoding="async" alt="نامه - صفحه ۲">
           <div class="note-field letter-body" id="letterBody2"></div>
           <button class="note-next-btn" id="toPage3">صفحه‌ی بعد</button>
         </div>
         <div class="letter-face page3">
-          <img class="note-img" src="assets/note-page3.png" alt="نامه - صفحه ۳">
+          <img class="note-img" data-src="assets/note-page3.webp" width="653" height="1080" decoding="async" alt="نامه - صفحه ۳">
           <div class="note-field letter-body" id="letterBody3"></div>
           <button class="note-next-btn" id="toCountdown">دریافت نور</button>
         </div>

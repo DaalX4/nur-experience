@@ -184,6 +184,28 @@
 
   applyConfig(currentConfig);
 
+  /* The envelope + all 3 letter-page images belong to LATER stages - the
+     intro screen (the only thing a visitor sees at first) uses none of
+     them. Left as plain eager <img src>, all ~1MB+ of them would compete
+     on the wire with the CSS/JS/font the intro actually needs for first
+     paint, which matters a lot on slow/high-latency mobile connections.
+     Their real URL is deferred to data-src and swapped in here, kicked
+     off right after the first paint via requestIdleCallback (not on
+     click) - the intro takes several seconds to read, so by the time a
+     visitor actually reaches the envelope or letter pages these have
+     normally finished downloading in the background already, with no
+     visible delay at the actual transition. */
+  function preloadStageImages() {
+    document.querySelectorAll("img[data-src]").forEach((img) => {
+      img.src = img.dataset.src;
+    });
+  }
+  if ("requestIdleCallback" in window) {
+    requestIdleCallback(preloadStageImages, { timeout: 2000 });
+  } else {
+    setTimeout(preloadStageImages, 300);
+  }
+
   const nameOverride = new URLSearchParams(location.search).get("u");
   if (nameOverride) {
     // Local-testing convenience only - skips the network fetch entirely.
