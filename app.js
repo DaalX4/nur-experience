@@ -11,6 +11,10 @@
    * ------------------------------------------------------------------ */
   const configApi = window.NUR_CONFIG_API;
   let currentConfig = configApi.loadConfig();
+  // Set once the admin commits a local edit (Save/Reset/Import - see
+  // window.NUR_APP.applyConfig below) - guards the one-time boot fetch
+  // below against clobbering that edit if it resolves late.
+  let localConfigCommitted = false;
 
   /* Each letter page's own nav button has a different id (they do
      different things - advance vs. start the countdown) but the same
@@ -234,6 +238,15 @@
   } else {
     fetchRemoteConfig().then((remoteConfig) => {
       if (!remoteConfig) return; // fetch failed/timed out - keep the local cache/defaults already rendered
+      // If the admin has committed a local edit (Save/Reset/Import) while
+      // this boot-time fetch was still in flight, that edit must win - this
+      // fetch reflects server state from BEFORE that edit, so applying it
+      // now would silently revert what was just saved. Confirmed as a real
+      // bug: uploading a paper image (read+encode+upload takes a few real
+      // seconds) gives this fetch plenty of time to still be pending when
+      // Save is clicked, and it was unconditionally overwriting currentConfig
+      // when it resolved afterward.
+      if (localConfigCommitted) return;
       const merged = configApi.mergeWithDefaults(remoteConfig);
       configApi.saveConfig(merged); // refresh the local cache so the next load starts from this
       currentConfig = merged;
@@ -258,6 +271,7 @@
     },
     applyConfig: (config) => {
       currentConfig = config;
+      localConfigCommitted = true;
       applyConfig(config);
     },
     LETTER_BUTTON_IDS,
