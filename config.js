@@ -128,7 +128,7 @@
       /* Small subtle watermark and a separate page-number label, each with
          its own independent position/size (and opacity, for the
          signature only) so every page can be tuned on its own. */
-      signature: { text: "Daalvi", x: 8, y: 94, fontSize: 12, opacity: 0.55 },
+      signature: { text: "Daalvi", x: 8, y: 94, fontSize: 12, opacity: 0.55, rotation: 0 },
       pageNumber: { text: "1", x: 90, y: 5, fontSize: 12 }
     },
 
@@ -156,7 +156,7 @@
       wordSpacing: 0,
       paperImage: "",
       button: { x: 50, y: 88, width: 96, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "صفحه‌ی بعد" },
-      signature: { text: "Daalvi", x: 8, y: 94, fontSize: 12, opacity: 0.55 },
+      signature: { text: "Daalvi", x: 8, y: 94, fontSize: 12, opacity: 0.55, rotation: 0 },
       pageNumber: { text: "2", x: 90, y: 5, fontSize: 12 }
     },
 
@@ -182,7 +182,7 @@
       wordSpacing: 0,
       paperImage: "",
       button: { x: 50, y: 82, width: 88, height: 47, fontSize: 14, borderRadius: 999, scale: 1, label: "دریافت نور" },
-      signature: { text: "Daalvi", x: 8, y: 94, fontSize: 12, opacity: 0.55 },
+      signature: { text: "Daalvi", x: 8, y: 94, fontSize: 12, opacity: 0.55, rotation: 0 },
       pageNumber: { text: "3", x: 90, y: 5, fontSize: 12 }
     },
 

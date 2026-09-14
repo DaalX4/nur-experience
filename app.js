@@ -196,6 +196,7 @@
       root.setProperty(`--nur-sig${n}-y`, sig.y + "%");
       root.setProperty(`--nur-sig${n}-font-size`, sig.fontSize + "px");
       root.setProperty(`--nur-sig${n}-opacity`, sig.opacity);
+      root.setProperty(`--nur-sig${n}-rotation`, sig.rotation + "deg");
       document.getElementById("letterSignature" + n).textContent = sig.text;
 
       const pageNum = section.pageNumber;

@@ -144,14 +144,17 @@
   --nur-sig1-y:94%;
   --nur-sig1-font-size:12px;
   --nur-sig1-opacity:0.55;
+  --nur-sig1-rotation:0deg;
   --nur-sig2-x:8%;
   --nur-sig2-y:94%;
   --nur-sig2-font-size:12px;
   --nur-sig2-opacity:0.55;
+  --nur-sig2-rotation:0deg;
   --nur-sig3-x:8%;
   --nur-sig3-y:94%;
   --nur-sig3-font-size:12px;
   --nur-sig3-opacity:0.55;
+  --nur-sig3-rotation:0deg;
 
   --nur-pagenum1-x:90%;
   --nur-pagenum1-y:5%;
@@ -598,18 +601,24 @@ body::before{
   top:var(--nur-sig1-y);
   font-size:calc(var(--nur-sig1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
   opacity:var(--nur-sig1-opacity);
+  transform:rotate(var(--nur-sig1-rotation));
+  transform-origin:right top;
 }
 .page2 .letter-signature{
   right:var(--nur-sig2-x);
   top:var(--nur-sig2-y);
   font-size:calc(var(--nur-sig2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
   opacity:var(--nur-sig2-opacity);
+  transform:rotate(var(--nur-sig2-rotation));
+  transform-origin:right top;
 }
 .page3 .letter-signature{
   right:var(--nur-sig3-x);
   top:var(--nur-sig3-y);
   font-size:calc(var(--nur-sig3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
   opacity:var(--nur-sig3-opacity);
+  transform:rotate(var(--nur-sig3-rotation));
+  transform-origin:right top;
 }
 
 .letter-pagenum{
