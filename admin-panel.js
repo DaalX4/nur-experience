@@ -618,12 +618,6 @@
           transition:opacity .3s ease; opacity:0;
         }
         #nurAdminPanel .nurap-status--show{height:auto; opacity:1; padding-top:6px}
-        #nurAdminToggle{
-          position:fixed; bottom:10px; left:10px; width:14px; height:14px; border-radius:50%;
-          background:rgba(255,255,255,.06); border:0; cursor:pointer; z-index:99998;
-          opacity:0; transition:opacity .2s ease;
-        }
-        #nurAdminToggle:hover, #nurAdminToggle:focus-visible{opacity:1}
       </style>
       <div class="nurap-backdrop"></div>
       <div class="nurap-panel">

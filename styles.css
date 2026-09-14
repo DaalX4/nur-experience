@@ -154,12 +154,36 @@ body{
   overflow-x:hidden;
 }
 
+/* Hidden admin-panel toggle dot (admin-panel.js). Styled here, in the
+   always-loaded stylesheet, rather than in the panel's own lazily-built
+   markup - the button itself is created and appended to <body> right away
+   on page load, but the panel markup (and its styles) used to only get
+   built the first time it's opened. Until then this button rendered with
+   default button layout (static position, in normal flow), adding stray
+   height to the document on every page load - which is what was showing
+   up as a persistent scrollbar and a sliver of the Wix page's own
+   background at the bottom of the embed, on every screen, from the start. */
+#nurAdminToggle{
+  position:fixed; bottom:10px; left:10px; width:14px; height:14px; border-radius:50%;
+  background:rgba(255,255,255,.06); border:0; cursor:pointer; z-index:99998;
+  opacity:0; transition:opacity .2s ease;
+}
+#nurAdminToggle:hover, #nurAdminToggle:focus-visible{opacity:1}
+
 /* a very slow, almost imperceptible drift behind everything, so the sky
-   reads as a soft painted scene rather than a flat, static gradient */
+   reads as a soft painted scene rather than a flat, static gradient.
+   inset:0 (not a negative inset) deliberately - a fixed-position box sized
+   past the viewport still enlarges the *document's* scrollable area even
+   though nothing is visually cut off (nothing renders past the window
+   edges either way), which was the real source of the stray scrollbar and
+   the sliver of the Wix page's own background showing at the bottom of the
+   embed on screens that otherwise fit in one viewport. The blur below
+   already softens this box's own edges, so the visual difference from the
+   old -10% bleed is imperceptible. */
 body::before{
   content:"";
   position:fixed;
-  inset:-10%;
+  inset:0;
   z-index:0;
   pointer-events:none;
   background:radial-gradient(ellipse 45% 35% at 30% 20%, rgba(143,193,154,.06), transparent 60%),
