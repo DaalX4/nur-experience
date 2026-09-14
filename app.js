@@ -190,6 +190,19 @@
       root.setProperty(`--nur-btn${n}-radius`, btn.borderRadius + "px");
       root.setProperty(`--nur-btn${n}-scale`, btn.scale);
       document.getElementById(LETTER_BUTTON_IDS[n]).textContent = btn.label;
+
+      const sig = section.signature;
+      root.setProperty(`--nur-sig${n}-x`, sig.x + "%");
+      root.setProperty(`--nur-sig${n}-y`, sig.y + "%");
+      root.setProperty(`--nur-sig${n}-font-size`, sig.fontSize + "px");
+      root.setProperty(`--nur-sig${n}-opacity`, sig.opacity);
+      document.getElementById("letterSignature" + n).textContent = sig.text;
+
+      const pageNum = section.pageNumber;
+      root.setProperty(`--nur-pagenum${n}-x`, pageNum.x + "%");
+      root.setProperty(`--nur-pagenum${n}-y`, pageNum.y + "%");
+      root.setProperty(`--nur-pagenum${n}-font-size`, pageNum.fontSize + "px");
+      document.getElementById("letterPageNum" + n).textContent = pageNum.text;
     });
 
     root.setProperty("--nur-final-y", config.final.offsetY + "px");

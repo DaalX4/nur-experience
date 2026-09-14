@@ -88,7 +88,16 @@
         { type: "slider", path: ["letterPage1", "button", "height"], label: "دکمه: ارتفاع", min: 28, max: 90, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage1", "button", "fontSize"], label: "دکمه: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage1", "button", "borderRadius"], label: "دکمه: گردی گوشه‌ها", min: 0, max: 999, step: 1, unit: "px" },
-        { type: "slider", path: ["letterPage1", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" }
+        { type: "slider", path: ["letterPage1", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" },
+        { type: "text", path: ["letterPage1", "signature", "text"], label: "امضا/واترمارک" },
+        { type: "slider", path: ["letterPage1", "signature", "x"], label: "امضا: X (فاصله از راست)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "signature", "y"], label: "امضا: Y (فاصله از بالا)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "signature", "fontSize"], label: "امضا: اندازه فونت", min: 8, max: 30, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage1", "signature", "opacity"], label: "امضا: شفافیت", min: 0.1, max: 1, step: 0.05, unit: "" },
+        { type: "text", path: ["letterPage1", "pageNumber", "text"], label: "شماره صفحه" },
+        { type: "slider", path: ["letterPage1", "pageNumber", "x"], label: "شماره صفحه: X (فاصله از راست)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "pageNumber", "y"], label: "شماره صفحه: Y (فاصله از بالا)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage1", "pageNumber", "fontSize"], label: "شماره صفحه: اندازه فونت", min: 8, max: 30, step: 1, unit: "px" }
       ]
     },
     {
@@ -113,7 +122,16 @@
         { type: "slider", path: ["letterPage2", "button", "height"], label: "دکمه: ارتفاع", min: 28, max: 90, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage2", "button", "fontSize"], label: "دکمه: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage2", "button", "borderRadius"], label: "دکمه: گردی گوشه‌ها", min: 0, max: 999, step: 1, unit: "px" },
-        { type: "slider", path: ["letterPage2", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" }
+        { type: "slider", path: ["letterPage2", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" },
+        { type: "text", path: ["letterPage2", "signature", "text"], label: "امضا/واترمارک" },
+        { type: "slider", path: ["letterPage2", "signature", "x"], label: "امضا: X (فاصله از راست)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "signature", "y"], label: "امضا: Y (فاصله از بالا)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "signature", "fontSize"], label: "امضا: اندازه فونت", min: 8, max: 30, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage2", "signature", "opacity"], label: "امضا: شفافیت", min: 0.1, max: 1, step: 0.05, unit: "" },
+        { type: "text", path: ["letterPage2", "pageNumber", "text"], label: "شماره صفحه" },
+        { type: "slider", path: ["letterPage2", "pageNumber", "x"], label: "شماره صفحه: X (فاصله از راست)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "pageNumber", "y"], label: "شماره صفحه: Y (فاصله از بالا)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage2", "pageNumber", "fontSize"], label: "شماره صفحه: اندازه فونت", min: 8, max: 30, step: 1, unit: "px" }
       ]
     },
     {
@@ -138,7 +156,16 @@
         { type: "slider", path: ["letterPage3", "button", "height"], label: "دکمه: ارتفاع", min: 28, max: 90, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage3", "button", "fontSize"], label: "دکمه: اندازه فونت", min: 10, max: 28, step: 1, unit: "px" },
         { type: "slider", path: ["letterPage3", "button", "borderRadius"], label: "دکمه: گردی گوشه‌ها", min: 0, max: 999, step: 1, unit: "px" },
-        { type: "slider", path: ["letterPage3", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" }
+        { type: "slider", path: ["letterPage3", "button", "scale"], label: "دکمه: مقیاس", min: 0.5, max: 1.5, step: 0.05, unit: "" },
+        { type: "text", path: ["letterPage3", "signature", "text"], label: "امضا/واترمارک" },
+        { type: "slider", path: ["letterPage3", "signature", "x"], label: "امضا: X (فاصله از راست)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "signature", "y"], label: "امضا: Y (فاصله از بالا)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "signature", "fontSize"], label: "امضا: اندازه فونت", min: 8, max: 30, step: 1, unit: "px" },
+        { type: "slider", path: ["letterPage3", "signature", "opacity"], label: "امضا: شفافیت", min: 0.1, max: 1, step: 0.05, unit: "" },
+        { type: "text", path: ["letterPage3", "pageNumber", "text"], label: "شماره صفحه" },
+        { type: "slider", path: ["letterPage3", "pageNumber", "x"], label: "شماره صفحه: X (فاصله از راست)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "pageNumber", "y"], label: "شماره صفحه: Y (فاصله از بالا)", min: 0, max: 100, step: 1, unit: "%" },
+        { type: "slider", path: ["letterPage3", "pageNumber", "fontSize"], label: "شماره صفحه: اندازه فونت", min: 8, max: 30, step: 1, unit: "px" }
       ]
     },
     {

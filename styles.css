@@ -136,6 +136,32 @@
   --nur-btn3-font-size:14px;
   --nur-btn3-radius:999px;
   --nur-btn3-scale:1;
+
+  /* Small subtle per-page watermark + a separate page-number label -
+     positioned/scaled the same way as --nur-letter-name-* above (right/
+     top %, font-size run through --nur-card-scale). */
+  --nur-sig1-x:8%;
+  --nur-sig1-y:94%;
+  --nur-sig1-font-size:12px;
+  --nur-sig1-opacity:0.55;
+  --nur-sig2-x:8%;
+  --nur-sig2-y:94%;
+  --nur-sig2-font-size:12px;
+  --nur-sig2-opacity:0.55;
+  --nur-sig3-x:8%;
+  --nur-sig3-y:94%;
+  --nur-sig3-font-size:12px;
+  --nur-sig3-opacity:0.55;
+
+  --nur-pagenum1-x:90%;
+  --nur-pagenum1-y:5%;
+  --nur-pagenum1-font-size:12px;
+  --nur-pagenum2-x:90%;
+  --nur-pagenum2-y:5%;
+  --nur-pagenum2-font-size:12px;
+  --nur-pagenum3-x:90%;
+  --nur-pagenum3-y:5%;
+  --nur-pagenum3-font-size:12px;
 }
 
 *{box-sizing:border-box}
@@ -558,6 +584,54 @@ body::before{
   transform:rotate(var(--nur-letter-name-rotation));
   transform-origin:right top;
 }
+
+/* Small subtle per-page watermark and a separate page-number label - each
+   independently positioned/sized (and, for the signature, opacity'd) per
+   page, same right/top % + --nur-card-scale approach as every other
+   overlay above. Plain single-line labels, same as .field-name-overlay. */
+.letter-signature{
+  font-family:"DigiSarve",Tahoma,Arial,sans-serif;
+  white-space:nowrap;
+}
+.page1 .letter-signature{
+  right:var(--nur-sig1-x);
+  top:var(--nur-sig1-y);
+  font-size:calc(var(--nur-sig1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  opacity:var(--nur-sig1-opacity);
+}
+.page2 .letter-signature{
+  right:var(--nur-sig2-x);
+  top:var(--nur-sig2-y);
+  font-size:calc(var(--nur-sig2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  opacity:var(--nur-sig2-opacity);
+}
+.page3 .letter-signature{
+  right:var(--nur-sig3-x);
+  top:var(--nur-sig3-y);
+  font-size:calc(var(--nur-sig3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  opacity:var(--nur-sig3-opacity);
+}
+
+.letter-pagenum{
+  font-family:"DigiSarve",Tahoma,Arial,sans-serif;
+  white-space:nowrap;
+}
+.page1 .letter-pagenum{
+  right:var(--nur-pagenum1-x);
+  top:var(--nur-pagenum1-y);
+  font-size:calc(var(--nur-pagenum1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+}
+.page2 .letter-pagenum{
+  right:var(--nur-pagenum2-x);
+  top:var(--nur-pagenum2-y);
+  font-size:calc(var(--nur-pagenum2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+}
+.page3 .letter-pagenum{
+  right:var(--nur-pagenum3-x);
+  top:var(--nur-pagenum3-y);
+  font-size:calc(var(--nur-pagenum3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+}
+
 /* the gap between the name and "عزیز" - physical (not logical) margin,
    since .handle forces direction:ltr for the Latin name regardless of
    the surrounding RTL flow, and we always want space on its visual left
