@@ -197,6 +197,17 @@
 
         { type: "youtubeSource", path: ["projector", "youtubeUrl"], label: "لینک ویدیو یوتیوب", help: "فرمت‌های watch؟v=، youtu.be و shorts پشتیبانی می‌شوند. برای بررسی سریع، از بخش «پیش‌نمایش حالت‌ها» پایین همین صفحه استفاده کن.", showIf: { path: ["projector", "source"], equals: "youtube" }, group: "یوتیوب" },
 
+        { type: "buttons", path: ["projector", "audio", "enabled"], label: "پخش صدا", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "volume"], label: "بلندی صدا", min: 0, max: 100, step: 5, unit: "%", group: "صدا" },
+        { type: "buttons", path: ["projector", "audio", "hintEnabled"], label: "نمایش یادآور صدا", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "صدا" },
+        { type: "text", path: ["projector", "audio", "hintText"], label: "متن یادآور صدا", group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "hintDuration"], label: "مدت نمایش", min: 2, max: 10, step: 0.5, unit: " ثانیه", group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "hintIconSize"], label: "اندازه آیکون", min: 14, max: 32, step: 1, unit: "px", group: "صدا" },
+        { type: "color", path: ["projector", "audio", "hintColor"], label: "رنگ آیکون / متن", group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "hintOpacity"], label: "شفافیت", min: 40, max: 100, step: 5, unit: "%", group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "hintGlow"], label: "شدت درخشش", min: 0, max: 100, step: 5, unit: "%", group: "صدا" },
+        { type: "buttons", path: ["projector", "audio", "hintPosition"], label: "جایگاه", options: [{ label: "پایین راست", value: "br" }, { label: "پایین چپ", value: "bl" }, { label: "بالا راست", value: "tr" }, { label: "بالا چپ", value: "tl" }], group: "صدا" },
+
         /* Video/media size+position - own group, moved out of "پیشرفته"
            (a real complaint: these are basic, commonly-needed controls to
            fit an uploaded video inside the paper frame, not advanced/rare

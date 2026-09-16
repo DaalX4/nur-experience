@@ -577,6 +577,70 @@
   outline:none;
 }
 .proj-action-btn.show{display:inline-block}
+
+/* Audio reminder/fallback - small corner badge, deliberately NOT a
+   center card (Module 3-4: "do not block the video, no large card in
+   the center"). Position is one of 4 corner classes set by
+   projector.js from config.projector.audio.hintPosition; everything
+   else (color/size/opacity/glow) is a plain CSS var so the admin's
+   compact "صدا" controls apply instantly with no extra JS per field. */
+.proj-audio-hint{
+  position:absolute;
+  z-index:6;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  border:0;
+  border-radius:999px;
+  padding:6px 12px;
+  margin:14px;
+  font:inherit;
+  font-family:var(--font-display);
+  cursor:default;
+  background:rgba(20,16,10,.4);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  opacity:0;
+  transform:translateY(4px);
+  pointer-events:none;
+  transition:opacity .5s ease, transform .5s ease;
+}
+.proj-audio-hint.show{
+  opacity:var(--proj-audio-hint-opacity,.9);
+  transform:translateY(0);
+}
+/* Only the fallback "فعال کردن صدا" state is actually clickable - the
+   plain reminder is purely informational and never intercepts a tap
+   meant for the frame underneath it. */
+.proj-audio-hint--action{
+  cursor:pointer;
+  pointer-events:auto;
+}
+.proj-audio-hint-icon{
+  font-size:var(--proj-audio-hint-size,20px);
+  line-height:1;
+  filter:drop-shadow(0 0 var(--proj-audio-hint-glow,6px) var(--proj-audio-hint-color,#f6efe0));
+}
+.proj-audio-hint-text{
+  font-size:calc(var(--proj-audio-hint-size,20px) * .6);
+  color:var(--proj-audio-hint-color,#f6efe0);
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+  white-space:nowrap;
+}
+.proj-audio-hint-text:empty{display:none}
+/* Physical left/right, deliberately not the logical inset-inline/inset-
+   block properties - this page is RTL, where the inline-end side
+   resolves to the visual LEFT, not right. The admin's position labels
+   ("پایین راست"/"پایین چپ") describe a literal screen side, so the CSS
+   must use the same literal sides or "bottom right" would silently
+   render at bottom-left. */
+.proj-audio-hint--br{bottom:0; right:0;}
+.proj-audio-hint--bl{bottom:0; left:0;}
+.proj-audio-hint--tr{top:0; right:0;}
+.proj-audio-hint--tl{top:0; left:0;}
+@media (prefers-reduced-motion: reduce){
+  .proj-audio-hint{transition:none}
+}
 @media (prefers-reduced-motion: reduce){
   .proj-gate{transition:none}
 }

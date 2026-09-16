@@ -764,6 +764,20 @@
           </div>
         </div>
       </div>
+      <!-- Audio reminder/fallback (projector.js's showAudioReminder()/
+           showAudioFallbackAction()) - a SIBLING of .frame-media, NOT a
+           child of it. .frame-media has the torn-paper CSS mask applied
+           to itself (memory-frame-mask.png), which also clips every
+           descendant - a corner badge placed literally inside it would
+           sit right where the deckled edge is masked to transparent.
+           Living on the frame border instead (like the tape/flower
+           decorations already do) keeps it always visible, and it still
+           needs to show DURING active playback, exactly when .proj-gate
+           itself is hidden. -->
+      <button type="button" class="proj-audio-hint" id="projAudioHint">
+        <span class="proj-audio-hint-icon" aria-hidden="true">🔊</span>
+        <span class="proj-audio-hint-text" id="projAudioHintText"></span>
+      </button>
       <img class="frame-overlay" id="projFrameOverlay" alt="">
     </figure>
     <p class="proj-caption" id="projCaption"></p>

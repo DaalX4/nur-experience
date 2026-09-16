@@ -296,6 +296,35 @@
          the active one is ever read/loaded (Module 17). */
       source: "upload",
       youtubeUrl: "",
+      /* Audio - uploaded-media videos were previously hard-muted with no
+         way to turn them on. enabled/volume apply ONLY to the real
+         foreground video the viewer sees (never the blurred background
+         "bgFillIntensity" twin, which must always stay muted - two audio
+         sources for the same clip would double/echo the sound). The
+         intentional Play click is the user gesture that makes audible
+         playback allowed by every browser's autoplay policy - see
+         projector.js's applyAudioSettings()/loadItem(). If audible
+         playback is ever rejected anyway (a real, known edge case on some
+         mobile browsers when the click-to-play() gap is too long),
+         playback falls back to muted rather than breaking the memory,
+         and a small "فعال کردن صدا" action appears (Module 7) - never
+         shown when normal audible playback already worked.
+         hint* fields are the small, temporary "صدا روشنه" corner
+         reminder (Module 3-5) - purely cosmetic, shown for hintDuration
+         seconds after playback starts (and again after Replay), never
+         blocking the video. position is one of "br"/"bl"/"tr"/"tl". */
+      audio: {
+        enabled: true,
+        volume: 100,
+        hintEnabled: true,
+        hintText: "صدا روشنه",
+        hintDuration: 5,
+        hintIconSize: 20,
+        hintColor: "#f6efe0",
+        hintOpacity: 90,
+        hintGlow: 30,
+        hintPosition: "br"
+      },
       /* Media blur/dim behind the gate, and the status message's own
          text/plate color - see projector.js's setOverlayActive() (blur/
          dim, toggled per gate state) and applyProjectorConfig() (tint/

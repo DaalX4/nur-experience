@@ -81,9 +81,11 @@
 
   let frameEl, layers, frameMediaEl, captionEl, titleEl, ambientGlowEl, posterEl, previewBadgeEl, youtubeFrameEl, youtubeMountEl;
   let gateEl, gateTextEl, playBtn, gateActionsEl, retryBtn, skipBtn, endedActionsEl, replayBtn, continueBtn;
+  let audioHintEl, audioHintTextEl;
 
   let loadingTimeoutId = null;
   let stallTimeoutId = null;
+  let audioHintTimeoutId = null;
   let preloadEl = null;   // the hidden warm-up <video> from preload(), reused for real item-0 playback if it matches
   let preloadUrl = null;
 
@@ -102,6 +104,7 @@
   let ytPendingPlay = false;
   let ytHeartbeatId = null;
   let ytLastTime = -1;
+  let ytAudioHintShown = false;
 
   /* A <video> element fires "timeupdate" continuously during playback,
      which is what armStallWatchdog() naturally leans on. YT.Player's
@@ -263,6 +266,63 @@
   }
 
   /* -------------------------------------------------------------------- *
+   *  Audio - applies to the real foreground video ONLY. The blurred
+   *  background twin (bgFillIntensity) and the preload() warm-up element
+   *  stay hard-muted no matter what - either would double/echo the same
+   *  clip's audio if ever unmuted. Called right before every real play()
+   *  attempt (fresh load AND Replay's reused-element fast path), so a
+   *  volume/mute change in admin takes effect the next time playback
+   *  actually starts.
+   *  ---------------------------------------------------------------------*/
+  function applyAudioSettings(el) {
+    const audio = (cfgCache && cfgCache.audio) || {};
+    el.muted = audio.enabled === false;
+    el.volume = typeof audio.volume === "number" ? Math.max(0, Math.min(100, audio.volume)) / 100 : 1;
+  }
+
+  function hideAudioHint() {
+    if (!audioHintEl) return;
+    clearTimeout(audioHintTimeoutId);
+    audioHintTimeoutId = null;
+    audioHintEl.classList.remove("show", "proj-audio-hint--action");
+    audioHintEl.onclick = null;
+  }
+
+  /* Small temporary "صدا روشنه" corner reminder (Module 3-5) - purely
+     informational, auto-hides itself after hintDuration seconds. Never
+     shown if the admin turned it off, or if audio itself is off (nothing
+     to remind anyone of). */
+  function showAudioReminder() {
+    if (!audioHintEl) return;
+    const audio = (cfgCache && cfgCache.audio) || {};
+    if (audio.enabled === false || audio.hintEnabled === false) return;
+    hideAudioHint();
+    audioHintTextEl.textContent = audio.hintText || "صدا روشنه";
+    audioHintEl.classList.add("show");
+    const durationMs = Math.max(1, typeof audio.hintDuration === "number" ? audio.hintDuration : 5) * 1000;
+    audioHintTimeoutId = setTimeout(() => audioHintEl.classList.remove("show"), durationMs);
+  }
+
+  /* Module 7 - audible autoplay got rejected by browser policy and
+     playback fell back to muted. A persistent (no auto-hide timer),
+     clickable action instead of the plain reminder above - clicking it
+     is itself a fresh user gesture, which is exactly what's needed to
+     unlock audible playback on the ALREADY-playing element. */
+  function showAudioFallbackAction(el) {
+    if (!audioHintEl) return;
+    hideAudioHint();
+    audioHintEl.classList.add("show", "proj-audio-hint--action");
+    audioHintTextEl.textContent = "فعال کردن صدا";
+    audioHintEl.onclick = () => {
+      try {
+        applyAudioSettings(el);
+        el.play().catch(() => {});
+      } catch (err) { /* ignore */ }
+      hideAudioHint();
+    };
+  }
+
+  /* -------------------------------------------------------------------- *
    *  Overlay visual state (Module 1-3, 19-20) - whenever a gate state
    *  carries message text (loading/long-loading/stalled/ended), the media
    *  behind it gently blurs/dims/desaturates via CSS vars already wired
@@ -347,8 +407,10 @@
     clearTimeout(loadingTimeoutId);
     clearTimeout(stallTimeoutId);
     clearTimeout(advanceTimer);
+    clearTimeout(audioHintTimeoutId);
     loadingTimeoutId = null;
     stallTimeoutId = null;
+    audioHintTimeoutId = null;
     stopYoutubeHeartbeat();
   }
 
@@ -367,6 +429,7 @@
 
   function showPreplayGate() {
     hideGate();
+    hideAudioHint();
     setCoverOverlay();
     applyPoster(currentPosterUrl());
     gateEl.classList.add("show");
@@ -377,6 +440,7 @@
 
   function showLoadingGate(withEscape) {
     hideGate();
+    hideAudioHint();
     setOverlayActive(true);
     gateEl.classList.add("show");
     gateTextEl.textContent = withEscape
@@ -393,6 +457,7 @@
 
   function showStalledGate() {
     hideGate();
+    hideAudioHint();
     setOverlayActive(true);
     gateEl.classList.add("show");
     gateTextEl.textContent = cfgCache.stalledText || "هنوز آماده نشده";
@@ -414,6 +479,7 @@
      (Module 16). */
   function showEndedGate() {
     hideGate();
+    hideAudioHint();
     setOverlayActive(true);
     gateEl.classList.add("show");
     endedActionsEl.classList.add("show");
@@ -537,7 +603,7 @@
         el = preloadEl;
       } else {
         el = document.createElement("video");
-        el.muted = true;
+        el.muted = true; // safe initial default only - applyAudioSettings() sets the real value right before play()
         el.playsInline = true;
         el.preload = "auto";
         el.src = item.src;
@@ -570,7 +636,28 @@
 
       el.addEventListener("loadeddata", () => {
         if (item.trimStart) { try { el.currentTime = item.trimStart; } catch (err) { /* ignore */ } }
-        el.play().then(() => reveal(el)).catch(() => {
+        applyAudioSettings(el);
+        const wantedAudible = !el.muted;
+        el.play().then(() => {
+          reveal(el);
+          if (wantedAudible) showAudioReminder();
+        }).catch(() => {
+          if (wantedAudible) {
+            // Audible autoplay was rejected by the browser's autoplay
+            // policy (a real, known edge case when the gap between the
+            // Play click and this loadeddata event runs long enough for
+            // the user-gesture flag to lapse, mostly on mobile). Fall
+            // back to muted rather than breaking the memory entirely
+            // (Module 7), and offer a one-tap way back to sound.
+            el.muted = true;
+            el.play().then(() => {
+              reveal(el);
+              showAudioFallbackAction(el);
+            }).catch(() => {
+              if (requestToken === showRequestSeq) onItemError();
+            });
+            return;
+          }
           // Muted autoplay only fails in genuinely broken environments -
           // treat exactly like a load error rather than silently hanging.
           if (requestToken === showRequestSeq) onItemError();
@@ -695,7 +782,18 @@
       setOverlayActive(false);
       hidePoster();
       try { currentEl.currentTime = first.trimStart || 0; } catch (err) { /* ignore */ }
-      currentEl.play().then(armStallWatchdog).catch(() => loadItem(0));
+      applyAudioSettings(currentEl);
+      const wantedAudible = !currentEl.muted;
+      currentEl.play().then(() => {
+        armStallWatchdog();
+        // Module 6 - show the reminder again on Replay (only if audio is
+        // actually on) rather than assuming the viewer remembers from the
+        // first play - a fresh watch-through deserves its own reminder.
+        if (wantedAudible) showAudioReminder();
+      }).catch(() => {
+        if (wantedAudible) { currentEl.muted = true; currentEl.play().then(() => showAudioFallbackAction(currentEl)).catch(() => loadItem(0)); return; }
+        loadItem(0);
+      });
     } else {
       loadItem(0);
     }
@@ -742,7 +840,28 @@
     });
   }
 
+  // Same audio settings as the upload path, applied through the IFrame
+  // API's own mute()/unMute()/setVolume() instead of a <video> element's
+  // properties - YouTube has no equivalent of the upload path's "audible
+  // autoplay got rejected" failure mode to fall back from (the player
+  // handles its own autoplay policy internally), so this is the simpler
+  // one-shot version of applyAudioSettings().
+  function applyYoutubeAudioSettings() {
+    if (!ytPlayer) return;
+    const audio = (cfgCache && cfgCache.audio) || {};
+    try {
+      if (audio.enabled === false) {
+        ytPlayer.mute();
+      } else {
+        ytPlayer.unMute();
+        ytPlayer.setVolume(typeof audio.volume === "number" ? Math.max(0, Math.min(100, audio.volume)) : 100);
+      }
+    } catch (err) { /* ignore */ }
+  }
+
   function playYoutube() {
+    applyYoutubeAudioSettings();
+    ytAudioHintShown = false;
     try { ytPlayer.playVideo(); } catch (err) { showStalledGate(); }
   }
 
@@ -756,6 +875,14 @@
       hidePoster();
       armStallWatchdog();
       startYoutubeHeartbeat();
+      // onStateChange can re-fire PLAYING after buffering resumes mid-
+      // watch - only show the reminder once per play/replay, not every
+      // time playback resumes.
+      if (!ytAudioHintShown) {
+        ytAudioHintShown = true;
+        const audio = (cfgCache && cfgCache.audio) || {};
+        if (audio.enabled !== false) showAudioReminder();
+      }
     } else if (e.data === S.BUFFERING) {
       armStallWatchdog(); // generous - normal mid-playback buffering shouldn't instantly read as broken
     } else if (e.data === S.ENDED) {
@@ -786,7 +913,15 @@
     hidePoster();
     ytPendingPlay = true;
     if (ytPlayer && ytReady) {
-      try { ytPlayer.seekTo(0); ytPlayer.playVideo(); armStallWatchdog(); } catch (err) { beginPlaybackYoutube(); }
+      try {
+        ytPlayer.seekTo(0);
+        applyYoutubeAudioSettings();
+        ytAudioHintShown = false; // Module 6 - reminder shows again on Replay
+        ytPlayer.playVideo();
+        armStallWatchdog();
+        const audio = (cfgCache && cfgCache.audio) || {};
+        if (audio.enabled !== false) { ytAudioHintShown = true; showAudioReminder(); }
+      } catch (err) { beginPlaybackYoutube(); }
     } else {
       beginPlaybackYoutube();
     }
@@ -798,6 +933,7 @@
      exists yet (the common case: nothing has ever played). */
   function resetYoutubePlayback() {
     ytPendingPlay = false;
+    ytAudioHintShown = false;
     stopYoutubeHeartbeat();
     if (ytPlayer && ytReady) {
       try { ytPlayer.pauseVideo(); } catch (err) { /* ignore */ }
@@ -903,6 +1039,18 @@
     const tintStrong = hexToRgba(ov.tint, typeof ov.tintOpacity === "number" ? ov.tintOpacity : 55);
     root.setProperty("--proj-overlay-tint-strong", tintStrong || "rgba(17,13,8,.42)");
     root.setProperty("--proj-overlay-text", ov.textColor || "#f6efe0");
+
+    // Audio reminder/fallback appearance + corner placement (Module 5).
+    const audio = cfg.audio || {};
+    root.setProperty("--proj-audio-hint-size", (typeof audio.hintIconSize === "number" ? audio.hintIconSize : 20) + "px");
+    root.setProperty("--proj-audio-hint-color", audio.hintColor || "#f6efe0");
+    root.setProperty("--proj-audio-hint-opacity", (typeof audio.hintOpacity === "number" ? Math.max(0, Math.min(100, audio.hintOpacity)) : 90) / 100);
+    root.setProperty("--proj-audio-hint-glow", (typeof audio.hintGlow === "number" ? Math.max(0, Math.min(100, audio.hintGlow)) * 0.12 : 3.6).toFixed(1) + "px");
+    if (audioHintEl) {
+      const pos = ["br", "bl", "tr", "tl"].includes(audio.hintPosition) ? audio.hintPosition : "br";
+      audioHintEl.classList.remove("proj-audio-hint--br", "proj-audio-hint--bl", "proj-audio-hint--tr", "proj-audio-hint--tl");
+      audioHintEl.classList.add("proj-audio-hint--" + pos);
+    }
   }
 
   /* -------------------------------------------------------------------- *
@@ -932,6 +1080,8 @@
     continueBtn = document.getElementById("projContinueBtn");
     youtubeFrameEl = document.getElementById("projYouTubeFrame");
     youtubeMountEl = document.getElementById("projYouTube");
+    audioHintEl = document.getElementById("projAudioHint");
+    audioHintTextEl = document.getElementById("projAudioHintText");
 
     const overlay = document.getElementById("projFrameOverlay");
     if (overlay) {
