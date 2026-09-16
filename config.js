@@ -250,7 +250,33 @@
       centerX: 50,
       centerY: 50,
       bgFillIntensity: 0,
-      items: []
+      items: [],
+      /* Pre-play reveal (see projector.js's state machine): the title
+         shown above the frame before the viewer taps play, and the play
+         button's own label. Kept to just these two text surfaces - a
+         third floating hint line was considered and dropped as
+         redundant with the title. */
+      title: {
+        text: "چند تکه از خاطراتی که با هم ساختیم",
+        fontSize: 18,
+        color: "#c9cddc",
+        opacity: 0.85
+      },
+      playButtonText: "بذار ببینمش",
+      /* What happens once the last memory finishes: hold the last frame
+         for continueDelaySec (the "brief emotional pause"), then either
+         auto-advance to Final (autoContinue true, the default) or wait
+         for a manual tap (false - projector.js shows a small Continue
+         action in that case). showSkip controls whether a "ادامه بدون
+         فیلم" escape hatch appears during loading/stalled states - kept
+         on by default per the "Final must always be reachable" rule.
+         loop is OFF by default (no more forever-looping single item) -
+         an advanced/rare opt-in to replay the sequence instead of
+         ending, exposed under Projector's "تنظیمات پیشرفته" disclosure. */
+      autoContinue: true,
+      continueDelaySec: 1.3,
+      showSkip: true,
+      loop: false
     }
   };
 

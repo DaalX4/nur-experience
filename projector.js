@@ -9,17 +9,30 @@
    - Never touches the DOM or fetches any media until start() is actually
      called - app.js only calls that when config.projector.enabled is true,
      so a visitor with the feature off never loads a single byte of this
-     stage's media.
+     stage's media. preload() (see bottom) is the one deliberate exception -
+     app.js calls it near the end of the countdown, and even then it only
+     warms the FIRST item, never the whole list.
    - Memory items are persistent: they live in config.projector.items
      (each { id, type, url, caption, pace, trimStart, trimEnd }), uploaded
      via admin-panel.js's media-manager field and saved through the normal
      config Save flow, so every visitor and every future admin session
      sees the same memories - never session-local blob URLs.
+
+   State machine (the actual architecture change from the first cut of this
+   stage): preplay -> loading -> playing -> (stalled <-> playing/loading) ->
+   ended-hold -> ended-manual | done. Every path that can go wrong (missing
+   media, network error, decode error, stall, timeout, explicit skip) funnels
+   into the SAME "stalled" gate with Retry/Skip - there is exactly one way
+   out of trouble, not a different dead end for each failure mode. "done"
+   always calls the same onDone callback app.js already wires to
+   stage-final, so Final is reachable from every single one of those paths.
    ============================================================================ */
 (() => {
   "use strict";
 
   const PACE_MS = { quick: 900, normal: 2000, hold: 4000 };
+  const LOADING_TIMEOUT_MS = 6000;  // no progress on the very first load -> reveal retry/skip
+  const STALL_TIMEOUT_MS = 9000;    // no timeupdate progress mid-playback -> reveal retry/skip
 
   const PROJECTOR_PRESETS = {
     soft:     { vignette: 0.5, blurPx: 0.15 },
@@ -35,8 +48,15 @@
   let advanceTimer = null;
   let showRequestSeq = 0;
   let onDoneCallback = null;
+  let cfgCache = null;
 
-  let layers, frameMediaEl, captionEl;
+  let layers, frameMediaEl, captionEl, titleEl, ambientGlowEl;
+  let gateEl, gateTextEl, playBtn, gateActionsEl, retryBtn, skipBtn, continueBtn;
+
+  let loadingTimeoutId = null;
+  let stallTimeoutId = null;
+  let preloadEl = null;   // the hidden warm-up <video> from preload(), reused for real item-0 playback if it matches
+  let preloadUrl = null;
 
   function makeItem(id, type, src, caption, pace, trimStart, trimEnd) {
     return { id, type, src, caption: caption || "", pace: pace || "normal", trimStart: trimStart || 0, trimEnd: trimEnd || null };
@@ -45,25 +65,20 @@
   /* Rebuilds the playable list from the persisted config every time
      start()/applyLive() runs, so both a real visitor and the admin's
      live-preview always reflect whatever was last saved - never a stale
-     in-memory list. Only re-renders (onMemoriesChanged) once the stage
-     has actually been started at least once - applyLive() also fires
-     while the projector stage has never been shown yet (e.g. editing
-     other tabs), before layers/frameMediaEl/captionEl exist to render
-     into. */
+     in-memory list. Never auto-plays anything by itself - see resetGate(). */
   function syncMemoriesFromConfig(items) {
     const list = Array.isArray(items) ? items : [];
     memories = list
       .filter((it) => it && it.url && (it.type === "video" || it.type === "image"))
       .map((it) => makeItem(it.id, it.type, it.url, it.caption, it.pace, it.trimStart, it.trimEnd));
-    if (currentIndex() === -1) currentId = null;
-    if (started) onMemoriesChanged();
+    if (memories.findIndex((m) => m.id === currentId) === -1) currentId = null;
   }
 
   function currentIndex() {
     return memories.findIndex((m) => m.id === currentId);
   }
 
-  function preload(item) {
+  function preloadImage(item) {
     if (!item || item.type === "video") return;
     const img = new Image();
     img.src = item.src;
@@ -79,8 +94,80 @@
     }
   }
 
-  function show(index) {
-    if (memories.length === 0) { setFrameEmpty(true); return; }
+  /* -------------------------------------------------------------------- *
+   *  The gate - one overlay, one function per state. Every state clears
+   *  whatever the previous one showed instead of layering flags, so there
+   *  is never a stuck "loading text + play button both visible" glitch.
+   *  ---------------------------------------------------------------------*/
+  function clearTimers() {
+    clearTimeout(loadingTimeoutId);
+    clearTimeout(stallTimeoutId);
+    clearTimeout(advanceTimer);
+    loadingTimeoutId = null;
+    stallTimeoutId = null;
+  }
+
+  function hideGate() {
+    gateEl.classList.remove("show");
+    gateTextEl.classList.remove("show");
+    playBtn.classList.remove("show");
+    gateActionsEl.classList.remove("show");
+    continueBtn.classList.remove("show");
+    ambientGlowEl.classList.remove("show");
+  }
+
+  function showPreplayGate() {
+    hideGate();
+    gateEl.classList.add("show");
+    playBtn.classList.add("show");
+    ambientGlowEl.classList.add("show");
+    titleEl.classList.add("show");
+  }
+
+  function showLoadingGate(withEscape) {
+    hideGate();
+    gateEl.classList.add("show");
+    gateTextEl.textContent = "دارم چند تکه‌ی قدیمی رو پیدا می‌کنم...";
+    gateTextEl.classList.add("show");
+    ambientGlowEl.classList.add("show");
+    if (withEscape) gateActionsEl.classList.add("show");
+  }
+
+  function showStalledGate() {
+    hideGate();
+    gateEl.classList.add("show");
+    gateTextEl.textContent = "انگار بعضی خاطره‌ها کمی دیرتر می‌رسن.";
+    gateTextEl.classList.add("show");
+    gateActionsEl.classList.add("show");
+    ambientGlowEl.classList.add("show");
+  }
+
+  function showManualContinueGate() {
+    hideGate();
+    gateEl.classList.add("show");
+    continueBtn.classList.add("show");
+    ambientGlowEl.classList.add("show");
+  }
+
+  /* -------------------------------------------------------------------- *
+   *  Playback core.
+   *  ---------------------------------------------------------------------*/
+  function armLoadingTimeout() {
+    clearTimeout(loadingTimeoutId);
+    loadingTimeoutId = setTimeout(() => {
+      if (cfgCache.showSkip !== false) showLoadingGate(true);
+    }, LOADING_TIMEOUT_MS);
+  }
+
+  function armStallWatchdog() {
+    clearTimeout(stallTimeoutId);
+    stallTimeoutId = setTimeout(() => {
+      showStalledGate();
+    }, STALL_TIMEOUT_MS);
+  }
+
+  function loadItem(index) {
+    if (memories.length === 0) { setFrameEmpty(true); showManualContinueGate(); return; }
     setFrameEmpty(false);
     const item = memories[index];
     currentId = item.id;
@@ -90,9 +177,12 @@
 
     layer.innerHTML = "";
     clearTimeout(advanceTimer);
+    armLoadingTimeout();
 
     function reveal(el) {
       if (requestToken !== showRequestSeq) return;
+      clearTimeout(loadingTimeoutId);
+      hideGate();
       layer.classList.add("active");
       other.classList.remove("active");
       currentEl = el;
@@ -103,7 +193,9 @@
       captionEl.classList.add("show");
 
       if (item.type === "video") {
-        el.addEventListener("ended", advance);
+        armStallWatchdog();
+        el.addEventListener("timeupdate", armStallWatchdog);
+        el.addEventListener("ended", () => { clearTimeout(stallTimeoutId); advance(); });
         if (item.trimEnd) {
           el.addEventListener("timeupdate", () => {
             if (el.currentTime >= item.trimEnd) advance();
@@ -112,6 +204,12 @@
       } else {
         advanceTimer = setTimeout(advance, PACE_MS[item.pace] || PACE_MS.normal);
       }
+    }
+
+    function onItemError() {
+      if (requestToken !== showRequestSeq) return;
+      clearTimeout(loadingTimeoutId);
+      showStalledGate();
     }
 
     const wantBg = window.NUR_PROJECTOR._bgEnabled;
@@ -127,11 +225,22 @@
 
     let el;
     if (item.type === "video") {
-      el = document.createElement("video");
-      el.muted = true;
-      el.playsInline = true;
-      el.preload = "auto";
-      el.src = item.src;
+      // Reuse the exact element preload() already started fetching for
+      // item 0, instead of creating a second <video> with the same src -
+      // two elements pointed at the same URL can each trigger their own
+      // network request depending on cache headers; one shared element
+      // guarantees exactly one request no matter what.
+      if (index === 0 && preloadEl && preloadUrl === item.src) {
+        el = preloadEl;
+      } else {
+        el = document.createElement("video");
+        el.muted = true;
+        el.playsInline = true;
+        el.preload = "auto";
+        el.src = item.src;
+      }
+      preloadEl = null;
+      preloadUrl = null;
       fgSlot.appendChild(el);
       el.load();
 
@@ -158,11 +267,14 @@
 
       el.addEventListener("loadeddata", () => {
         if (item.trimStart) { try { el.currentTime = item.trimStart; } catch (err) { /* ignore */ } }
-        el.play().catch(() => {});
+        el.play().then(() => reveal(el)).catch(() => {
+          // Muted autoplay only fails in genuinely broken environments -
+          // treat exactly like a load error rather than silently hanging.
+          if (requestToken === showRequestSeq) onItemError();
+        });
         syncBgStart();
-        reveal(el);
       });
-      el.addEventListener("error", () => reveal(el));
+      el.addEventListener("error", onItemError);
       el.addEventListener("timeupdate", () => {
         if (bgEl && bgEl.readyState >= 2 && Math.abs(bgEl.currentTime - el.currentTime) > 0.25) {
           try { bgEl.currentTime = el.currentTime; } catch (err) { /* ignore */ }
@@ -179,6 +291,7 @@
         bgImg.src = item.src;
         bgSlot.appendChild(bgImg);
       }
+      el.addEventListener("error", onItemError);
       if (el.decode) {
         el.decode().then(() => reveal(el)).catch(() => reveal(el));
       } else {
@@ -186,32 +299,62 @@
       }
     }
     nextLayer = 1 - nextLayer;
-    preload(memories[(index + 1) % memories.length]);
+    preloadImage(memories[(index + 1) % memories.length]);
   }
 
   function advance() {
-    if (memories.length === 0) { setFrameEmpty(true); return; }
     const idx = currentIndex();
-    const nextIdx = idx === -1 ? 0 : (idx + 1) % memories.length;
-    show(nextIdx);
-  }
-
-  function onMemoriesChanged() {
-    if (memories.length === 0) {
-      currentId = null;
-      clearTimeout(advanceTimer);
-      setFrameEmpty(true);
+    const nextIdx = idx === -1 ? 0 : idx + 1;
+    if (nextIdx >= memories.length) {
+      if (cfgCache.loop) {
+        loadItem(0);
+      } else {
+        endSequence();
+      }
       return;
     }
-    if (currentIndex() === -1) show(0);
+    loadItem(nextIdx);
+  }
+
+  /* Last frame/ambience lingers briefly ("something settling"), then
+     either moves on by itself or waits for one manual tap - never loops
+     forever by default (the actual bug this whole pass exists to fix). */
+  function endSequence() {
+    clearTimeout(advanceTimer);
+    const delayMs = Math.max(0, (typeof cfgCache.continueDelaySec === "number" ? cfgCache.continueDelaySec : 1.3) * 1000);
+    advanceTimer = setTimeout(() => {
+      if (cfgCache.autoContinue === false) {
+        showManualContinueGate();
+      } else {
+        callFinish();
+      }
+    }, delayMs);
+  }
+
+  function callFinish() {
+    clearTimers();
+    if (onDoneCallback) onDoneCallback();
+  }
+
+  function beginPlayback() {
+    hideGate();
+    titleEl.classList.remove("show");
+    if (memories.length === 0) { setFrameEmpty(true); showManualContinueGate(); return; }
+    showLoadingGate(false);
+    loadItem(0);
+  }
+
+  function retryCurrent() {
+    const idx = currentIndex();
+    loadItem(idx === -1 ? 0 : idx);
   }
 
   /* -------------------------------------------------------------------- *
    *  Config application - reads config.projector (the real config object,
    *  same one every other stage uses) and drives the same CSS vars the
    *  prototype's applyMemoryConfig did, just for a much smaller control
-   *  set (Preset/Media Size/Edge Fade/Center/Background Fill - see
-   *  admin-panel.js's "projector" tab).
+   *  set (Preset/Media Size/Edge Fade/Center - see admin-panel.js's
+   *  "projector" tab), plus the title text block.
    *  ---------------------------------------------------------------------*/
   function applyProjectorConfig(cfg) {
     const root = document.documentElement.style;
@@ -245,6 +388,13 @@
     root.setProperty("--proj-bg-brightness", (1 - bgI * 0.5).toFixed(2));
     root.setProperty("--proj-bg-opacity", (1 - bgI * 0.35).toFixed(2));
     window.NUR_PROJECTOR._bgEnabled = bgI > 0;
+
+    const title = cfg.title || {};
+    root.setProperty("--proj-title-font-size", (typeof title.fontSize === "number" ? title.fontSize : 18) + "px");
+    root.setProperty("--proj-title-color", title.color || "var(--muted)");
+    root.setProperty("--proj-title-opacity", typeof title.opacity === "number" ? title.opacity : 0.85);
+    if (titleEl) titleEl.textContent = title.text || "";
+    if (playBtn) playBtn.textContent = cfg.playButtonText || "بذار ببینمش";
   }
 
   /* -------------------------------------------------------------------- *
@@ -252,14 +402,27 @@
    *  is true, and only once the countdown finishes (never eagerly, never
    *  when the feature is off) - that single call site is what guarantees
    *  no media for this stage ever loads unless it is actually needed.
+   *  Each call resets fully to the pre-play gate - it never resumes
+   *  mid-sequence, so re-entering (or the admin's live-preview) always
+   *  starts from the same deliberate beginning.
    *  ---------------------------------------------------------------------*/
   function start(cfg, onDone) {
     onDoneCallback = onDone;
+    cfgCache = cfg || {};
     if (!started) {
       started = true;
       layers = Array.from(document.querySelectorAll("#stage-projector .media-layer"));
       frameMediaEl = document.querySelector("#stage-projector .frame-media");
       captionEl = document.getElementById("projCaption");
+      titleEl = document.getElementById("projTitle");
+      ambientGlowEl = document.querySelector("#stage-projector .proj-ambient-glow");
+      gateEl = document.getElementById("projGate");
+      gateTextEl = document.getElementById("projGateText");
+      playBtn = document.getElementById("projPlayBtn");
+      gateActionsEl = document.getElementById("projGateActions");
+      retryBtn = document.getElementById("projRetryBtn");
+      skipBtn = document.getElementById("projSkipBtn");
+      continueBtn = document.getElementById("projContinueBtn");
 
       const overlay = document.getElementById("projFrameOverlay");
       if (overlay) {
@@ -267,25 +430,66 @@
         overlay.src = "assets/memory-frame.png";
       }
 
-      document.getElementById("projContinue").addEventListener("click", finish);
+      playBtn.addEventListener("click", beginPlayback);
+      retryBtn.addEventListener("click", retryCurrent);
+      skipBtn.addEventListener("click", callFinish);
+      continueBtn.addEventListener("click", callFinish);
     }
-    applyProjectorConfig(cfg || {});
-    syncMemoriesFromConfig(cfg && cfg.items); // started is now true - this renders directly
+    clearTimers();
+    applyProjectorConfig(cfgCache);
+    syncMemoriesFromConfig(cfgCache.items);
+    setFrameEmpty(memories.length === 0);
+    // Nothing uploaded yet (Projector turned on before any memory was
+    // added) - skip the "بذار ببینمش" prompt entirely rather than
+    // inviting a tap that leads nowhere; go straight to the one control
+    // that's actually meaningful here (see Module 5: Final must always
+    // stay reachable, including when media is simply missing).
+    if (memories.length === 0) {
+      showManualContinueGate();
+    } else {
+      showPreplayGate();
+    }
   }
 
-  function finish() {
-    clearTimeout(advanceTimer);
-    if (onDoneCallback) onDoneCallback();
-  }
-
+  /* Live-preview only (admin panel sliders/color pickers) - appearance +
+     title text update instantly; never touches playback state, so it is
+     safe to call on every keystroke without interrupting anything. */
   function applyLive(cfg) {
-    applyProjectorConfig(cfg || {});
-    syncMemoriesFromConfig(cfg && cfg.items);
+    cfgCache = cfg || {};
+    applyProjectorConfig(cfgCache);
+    syncMemoriesFromConfig(cfgCache.items);
+  }
+
+  /* Called by app.js near the end of the countdown (only when Projector
+     is enabled) - the ONE deliberate exception to "never load media until
+     start()". Warms exactly the first item, nothing more: a hidden
+     <video preload="auto"> (browsers fetch enough to start smoothly, not
+     the whole file) or a plain Image() prefetch for a photo. If start()
+     later plays that same first item, loadItem() reuses this exact
+     element instead of creating a second one, so there is never a
+     duplicate request. */
+  function preload(cfg) {
+    if (!cfg || !cfg.enabled || preloadEl) return;
+    const items = Array.isArray(cfg.items) ? cfg.items : [];
+    const first = items[0];
+    if (!first || !first.url) return;
+    if (first.type === "video") {
+      preloadEl = document.createElement("video");
+      preloadEl.muted = true;
+      preloadEl.playsInline = true;
+      preloadEl.preload = "auto";
+      preloadEl.src = first.url;
+      preloadUrl = first.url;
+      preloadEl.load();
+    } else if (first.type === "image") {
+      preloadImage({ type: "image", src: first.url });
+    }
   }
 
   window.NUR_PROJECTOR = {
     start,
     applyLive,
+    preload,
     _bgEnabled: false
   };
 })();

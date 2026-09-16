@@ -190,12 +190,21 @@
       fields: [
         { type: "mediaManager", path: ["projector", "items"], label: "رسانه‌های پروژکتور / خاطرات" },
         { type: "buttons", path: ["projector", "enabled"], label: "صفحه پروژکتور / خاطرات", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
+        { type: "text", path: ["projector", "title", "text"], label: "عنوان بالای قاب" },
+        { type: "slider", path: ["projector", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 32, step: 1, unit: "px" },
+        { type: "color", path: ["projector", "title", "color"], label: "عنوان: رنگ" },
+        { type: "slider", path: ["projector", "title", "opacity"], label: "عنوان: شفافیت", min: 0.2, max: 1, step: 0.05, unit: "" },
+        { type: "text", path: ["projector", "playButtonText"], label: "متن دکمه شروع" },
         { type: "buttons", path: ["projector", "preset"], label: "پیش‌فرض ظاهری (Preset)", options: [{ label: "Soft", value: "soft" }, { label: "Balanced", value: "balanced" }, { label: "Deep", value: "deep" }] },
         { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%" },
         { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%" },
-        { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%" },
-        { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%" },
-        { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%" }
+        { type: "buttons", path: ["projector", "autoContinue"], label: "ادامه خودکار بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
+        { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه" },
+        { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
+        { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", advanced: true },
+        { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", advanced: true },
+        { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%", advanced: true },
+        { type: "buttons", path: ["projector", "loop"], label: "تکرار پیوسته (پیش‌فرض خاموش)", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], advanced: true }
       ]
     },
     {
@@ -239,6 +248,27 @@
     el.classList.add("nurap-status--show");
     clearTimeout(statusTimer);
     statusTimer = setTimeout(() => el.classList.remove("nurap-status--show"), 2200);
+  }
+
+  const FOCUS_PREVIEW_KEY = "nurAdminFocusPreview";
+
+  /* Purely a local admin preference (which browser/device is editing,
+     not which visitor sees what) - localStorage, not sessionStorage or
+     config, so it survives closing the tab but never touches the
+     Wix-synced config blob or any real visitor. Defaults OFF: the canvas
+     should show its true appearance unless the admin deliberately opts
+     into the dimmed comparison view. */
+  function getFocusPreviewPref() {
+    try { return localStorage.getItem(FOCUS_PREVIEW_KEY) === "1"; } catch (err) { return false; }
+  }
+
+  function setFocusPreview(on, targetEl) {
+    const el = targetEl || panelEl;
+    if (!el) return;
+    el.classList.toggle("nurap-focus-preview", on);
+    const btn = el.querySelector('[data-action="focus-preview"]');
+    if (btn) btn.textContent = "پیش‌نمایش با تمرکز: " + (on ? "روشن" : "خاموش");
+    try { localStorage.setItem(FOCUS_PREVIEW_KEY, on ? "1" : "0"); } catch (err) { /* ignore */ }
   }
 
   function fieldRow(field) {
@@ -642,6 +672,14 @@
     return row;
   }
 
+  // Fields marked `advanced:true` (rarely-needed tuning - Center X/Y,
+  // Background Fill, Loop) start collapsed behind a single disclosure
+  // button instead of always cluttering the tab - generic over any tab
+  // that uses the flag, not just Projector's. Resets closed on every tab
+  // switch (see renderTabs' click handler) rather than persisting, since
+  // this is a rare "I need one more dial" visit, not a mode to stay in.
+  let advancedOpen = false;
+
   function renderTabContent() {
     const body = panelEl.querySelector(".nurap-body");
     body.textContent = "";
@@ -654,7 +692,24 @@
       return;
     }
     if (tab.dragTarget) body.appendChild(dragToggleRow(tab));
-    tab.fields.forEach((field) => body.appendChild(fieldRow(field)));
+    const basicFields = tab.fields.filter((f) => !f.advanced);
+    const advancedFields = tab.fields.filter((f) => f.advanced);
+    basicFields.forEach((field) => body.appendChild(fieldRow(field)));
+    if (advancedFields.length > 0) {
+      const toggleRow = document.createElement("div");
+      toggleRow.className = "nurap-row";
+      const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "nurap-btn nurap-btn--ghost";
+      toggleBtn.textContent = advancedOpen ? "بستن تنظیمات پیشرفته ▴" : "تنظیمات پیشرفته ▾";
+      toggleBtn.addEventListener("click", () => {
+        advancedOpen = !advancedOpen;
+        renderTabContent();
+      });
+      toggleRow.appendChild(toggleBtn);
+      body.appendChild(toggleRow);
+      if (advancedOpen) advancedFields.forEach((field) => body.appendChild(fieldRow(field)));
+    }
   }
 
   function renderTabs() {
@@ -668,6 +723,7 @@
       btn.addEventListener("click", () => {
         stopDrag();
         activeTab = tab.id;
+        advancedOpen = false;
         renderTabs();
         renderTabContent();
         // Jump the live preview behind the panel to match this tab, so
@@ -947,9 +1003,26 @@
           direction:rtl;
         }
         #nurAdminPanel.nurap-open{display:block}
+        /* The backdrop covers the WHOLE viewport (inset:0) purely so a
+           click outside the 360px panel strip closes it - it does NOT
+           darken the live canvas by default. This is a live visual
+           editor, not a modal dialog: while editing Projector/Countdown/
+           Letters/Colors/Sky/Final, the canvas must render at its true
+           brightness or every visual judgment made while the panel is
+           open is wrong. See .nurap-focus-preview below for the one
+           opt-in exception. */
         #nurAdminPanel .nurap-backdrop{
           position:absolute; inset:0;
-          background:rgba(6,10,22,.55);
+          background:transparent;
+          transition:background .25s ease;
+        }
+        /* Optional "Focus Preview" (header toggle, OFF by default,
+           persisted in localStorage) - for the rare case a mild dim
+           actually helps judge the Projector/countdown glow against a
+           darker frame of reference. Even ON, this stays subtle (.35,
+           lighter than the old always-on .55) and is never forced. */
+        #nurAdminPanel.nurap-focus-preview .nurap-backdrop{
+          background:rgba(6,10,22,.35);
         }
         /* The backdrop covers the WHOLE viewport (inset:0) so clicking
            anywhere outside the panel closes it - but that also means it
@@ -968,15 +1041,23 @@
           width:min(360px,92vw);
           background:#12172a;
           color:#eef0f6;
-          box-shadow:2px 0 24px rgba(0,0,0,.4);
+          border-inline-end:1px solid rgba(255,255,255,.09);
+          box-shadow:6px 0 32px rgba(0,0,0,.5);
           display:flex; flex-direction:column;
           font-size:13px;
         }
         #nurAdminPanel .nurap-header{
           display:flex; align-items:center; justify-content:space-between;
+          gap:8px;
           padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.08);
         }
         #nurAdminPanel .nurap-title{font-size:14px; font-weight:700}
+        #nurAdminPanel .nurap-header-actions{display:flex; align-items:center; gap:10px}
+        #nurAdminPanel .nurap-focus-toggle{
+          background:rgba(255,255,255,.06); color:#aab0c4; border:0; border-radius:999px;
+          padding:5px 10px; font-size:11px; cursor:pointer; font-family:inherit; white-space:nowrap;
+        }
+        #nurAdminPanel.nurap-focus-preview .nurap-focus-toggle{background:#8fc19a; color:#0f2015; font-weight:700}
         #nurAdminPanel .nurap-close{
           background:none; border:0; color:#aab0c4; cursor:pointer; font-size:18px; line-height:1;
           padding:4px 8px;
@@ -1045,7 +1126,10 @@
       <div class="nurap-panel">
         <div class="nurap-header">
           <span class="nurap-title">پنل کنترل نور</span>
-          <button type="button" class="nurap-close" aria-label="بستن">✕</button>
+          <div class="nurap-header-actions">
+            <button type="button" class="nurap-focus-toggle" data-action="focus-preview">پیش‌نمایش با تمرکز: خاموش</button>
+            <button type="button" class="nurap-close" aria-label="بستن">✕</button>
+          </div>
         </div>
         <!-- TEMPORARY - remove once the local-vs-deployed mismatch is
              confirmed resolved. Proves which physical build a given
@@ -1065,6 +1149,12 @@
       </div>
     `;
     document.body.appendChild(el);
+
+    const focusToggleBtn = el.querySelector('[data-action="focus-preview"]');
+    focusToggleBtn.addEventListener("click", () => {
+      setFocusPreview(!el.classList.contains("nurap-focus-preview"));
+    });
+    setFocusPreview(getFocusPreviewPref(), el);
 
     el.querySelector(".nurap-close").addEventListener("click", closePanel);
     el.querySelector(".nurap-backdrop").addEventListener("click", closePanel);

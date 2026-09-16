@@ -539,6 +539,15 @@
     startDots();
     if (cd.pulseEnabled) pulseBackground(cd.pulseIntensity);
 
+    // Smart preloading (only when Projector is actually enabled): warm just
+    // the FIRST memory's metadata/initial buffer while the countdown runs,
+    // so a tap on "بذار ببینمش" starts fast - never the whole list, never
+    // eagerly for a visitor who will never reach this stage. See
+    // projector.js's preload() for exactly how light this is.
+    if (currentConfig.projector && currentConfig.projector.enabled && window.NUR_PROJECTOR) {
+      window.NUR_PROJECTOR.preload(currentConfig.projector);
+    }
+
     clearInterval(countdownTimer);
     countdownTimer = setInterval(() => {
       if (isEnding) return; // extra safety net - should be unreachable since the interval is cleared below
