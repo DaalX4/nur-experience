@@ -235,7 +235,19 @@
         { type: "color", path: ["projector", "title", "color"], label: "عنوان: رنگ", group: "متن‌ها: قبل از پخش" },
         { type: "slider", path: ["projector", "title", "opacity"], label: "عنوان: شفافیت", min: 0.2, max: 1, step: 0.05, unit: "", group: "متن‌ها: قبل از پخش" },
         { type: "text", path: ["projector", "playButtonText"], label: "متن دکمه شروع ویدیو", help: "روی پوستر، قبل از شروع پخش نمایش داده می‌شود.", group: "متن‌ها: قبل از پخش" },
-        { type: "slider", path: ["projector", "playButtonFontSize"], label: "اندازه فونت دکمه شروع", min: 12, max: 20, step: 1, unit: "px", group: "متن‌ها: قبل از پخش" },
+
+        /* Cover/pre-play CTA - the ONE exception to the global action
+           style below (Module 7/8): its own compact, fully independent
+           set of controls, since it belongs to a different visual moment
+           (an invitation painted over a still poster). */
+        { type: "slider", path: ["projector", "coverCta", "fontSize"], label: "اندازه متن", min: 12, max: 20, step: 1, unit: "px", group: "ظاهر دکمه شروع روی کاور" },
+        { type: "color", path: ["projector", "coverCta", "textColor"], label: "رنگ متن", group: "ظاهر دکمه شروع روی کاور" },
+        { type: "color", path: ["projector", "coverCta", "bgColor"], label: "رنگ پس‌زمینه", group: "ظاهر دکمه شروع روی کاور" },
+        { type: "slider", path: ["projector", "coverCta", "opacity"], label: "شفافیت پس‌زمینه", min: 10, max: 90, step: 5, unit: "%", group: "ظاهر دکمه شروع روی کاور" },
+        { type: "slider", path: ["projector", "coverCta", "glow"], label: "نور (Glow)", min: 0, max: 100, step: 5, unit: "%", group: "ظاهر دکمه شروع روی کاور" },
+        { type: "slider", path: ["projector", "coverCta", "blur"], label: "بلر پشت دکمه", min: 0, max: 14, step: 1, unit: "px", group: "ظاهر دکمه شروع روی کاور" },
+        { type: "slider", path: ["projector", "coverCta", "bgDim"], label: "تاریکی پشت کاور (اختیاری)", help: "جدا از تنظیمات بالا - فقط روی لحظه کاور/قبل از پخش اثر می‌گذارد.", min: 0, max: 60, step: 5, unit: "%", group: "ظاهر دکمه شروع روی کاور" },
+        { type: "slider", path: ["projector", "coverCta", "bgBlur"], label: "بلر پشت کاور (اختیاری)", min: 0, max: 10, step: 1, unit: "px", group: "ظاهر دکمه شروع روی کاور" },
 
         { type: "text", path: ["projector", "loadingText"], label: "متن هنگام آماده شدن ویدیو", help: "همون لحظه‌ای که کاربر دکمه شروع را زده و ویدیو در حال آماده شدن است.", group: "متن‌ها: هنگام آماده شدن" },
         { type: "text", path: ["projector", "longLoadingText"], label: "متن وقتی آماده شدن طول می‌کشد", help: "اگر آماده شدن بیشتر از حد معمول طول بکشد، جایگزین متن بالا می‌شود و دکمه‌های تلاش دوباره/ادامه بدون فیلم هم ظاهر می‌شوند.", group: "متن‌ها: هنگام آماده شدن" },
@@ -247,12 +259,21 @@
         { type: "text", path: ["projector", "replayText"], label: "متن دکمه پخش دوباره", group: "متن‌ها: بعد از پایان ویدیو" },
         { type: "text", path: ["projector", "continueText"], label: "متن دکمه رفتن به مرحله بعد", help: "اگر «ادامه خودکار» خاموش باشد، تنها راه رفتن به صفحه پایانی همین دکمه است.", group: "متن‌ها: بعد از پایان ویدیو" },
 
-        { type: "slider", path: ["projector", "overlay", "blur"], label: "میزان تار شدن ویدیو پشت پیام", min: 0, max: 16, step: 1, unit: "px", group: "ظاهر پیام‌های روی ویدیو" },
-        { type: "slider", path: ["projector", "overlay", "dim"], label: "میزان تیره شدن ویدیو پشت پیام", min: 0, max: 70, step: 5, unit: "%", group: "ظاهر پیام‌های روی ویدیو" },
-        { type: "color", path: ["projector", "overlay", "tint"], label: "رنگ پس‌زمینه پیام", group: "ظاهر پیام‌های روی ویدیو" },
-        { type: "slider", path: ["projector", "overlay", "tintOpacity"], label: "شفافیت پس‌زمینه پیام", min: 10, max: 90, step: 5, unit: "%", group: "ظاهر پیام‌های روی ویدیو" },
-        { type: "color", path: ["projector", "overlay", "textColor"], label: "رنگ متن پیام", group: "ظاهر پیام‌های روی ویدیو" },
-        { type: "color", path: ["projector", "overlay", "accentColor"], label: "رنگ دکمه/لینک اصلی", group: "ظاهر پیام‌های روی ویدیو" },
+        /* ONE global style for every normal action (Retry/Skip/Replay/
+           Continue) - Module 6/9/10/11: changing any of these updates all
+           four together, they can never end up looking different from
+           each other. */
+        { type: "color", path: ["projector", "action", "textColor"], label: "رنگ متن دکمه‌ها", group: "ظاهر دکمه‌های پروژکتور" },
+        { type: "color", path: ["projector", "action", "bgColor"], label: "رنگ پس‌زمینه دکمه‌ها", group: "ظاهر دکمه‌های پروژکتور" },
+        { type: "slider", path: ["projector", "action", "opacity"], label: "شفافیت دکمه‌ها", min: 40, max: 100, step: 5, unit: "%", group: "ظاهر دکمه‌های پروژکتور" },
+        { type: "slider", path: ["projector", "action", "fontSize"], label: "اندازه متن دکمه‌ها", min: 12, max: 20, step: 1, unit: "px", group: "ظاهر دکمه‌های پروژکتور" },
+        { type: "slider", path: ["projector", "action", "gap"], label: "فاصله بین دکمه‌ها", min: 6, max: 36, step: 1, unit: "px", group: "ظاهر دکمه‌های پروژکتور" },
+        { type: "slider", path: ["projector", "overlay", "blur"], label: "شدت بلر پشت پیام", min: 0, max: 16, step: 1, unit: "px", group: "ظاهر دکمه‌های پروژکتور" },
+        { type: "slider", path: ["projector", "overlay", "dim"], label: "میزان تاریکی پشت پیام", min: 0, max: 70, step: 5, unit: "%", group: "ظاهر دکمه‌های پروژکتور" },
+
+        { type: "color", path: ["projector", "overlay", "tint"], label: "رنگ پس‌زمینه پیام وضعیت", group: "ظاهر پیام وضعیت" },
+        { type: "slider", path: ["projector", "overlay", "tintOpacity"], label: "شفافیت پس‌زمینه پیام وضعیت", min: 10, max: 90, step: 5, unit: "%", group: "ظاهر پیام وضعیت" },
+        { type: "color", path: ["projector", "overlay", "textColor"], label: "رنگ متن پیام وضعیت", group: "ظاهر پیام وضعیت" },
 
         /* Edge Fade is a visual/layout effect (the vignette softening the
            media's edges into the frame), not playback behavior - moved
@@ -263,10 +284,6 @@
         { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه", group: "رفتار پایان ویدیو" },
         { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
         { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
-        { type: "slider", path: ["projector", "endActionFontSize"], label: "اندازه متن دکمه‌های پایان (پخش دوباره / صفحه بعد)", min: 12, max: 20, step: 1, unit: "px", group: "رفتار پایان ویدیو" },
-        { type: "color", path: ["projector", "endActionTextColor"], label: "رنگ متن دکمه‌های پایان", group: "رفتار پایان ویدیو" },
-        { type: "color", path: ["projector", "endActionBgColor"], label: "رنگ پس‌زمینه دکمه‌های پایان", group: "رفتار پایان ویدیو" },
-        { type: "slider", path: ["projector", "endActionGap"], label: "فاصله بین دو دکمه پایان", min: 6, max: 36, step: 1, unit: "px", group: "رفتار پایان ویدیو" },
 
         { type: "previewButtons", group: "پیش‌نمایش حالت‌ها" },
 

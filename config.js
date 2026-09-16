@@ -296,25 +296,44 @@
          the active one is ever read/loaded (Module 17). */
       source: "upload",
       youtubeUrl: "",
-      /* Visual language for every gate overlay (loading/stalled/ended) -
-         see projector.js's applyOverlayState()/showXGate(). Deliberately
-         6 controls, not the fuller list once considered: border-radius
-         and border-opacity are fixed in CSS at values already tuned to
-         match the frame, not exposed here, because good defaults matter
-         more than exhaustive customization for a field this narrow. */
+      /* Media blur/dim behind the gate, and the status message's own
+         text/plate color - see projector.js's setOverlayActive() (blur/
+         dim, toggled per gate state) and applyProjectorConfig() (tint/
+         tintOpacity/textColor, static). accentColor was removed - it
+         used to double as the border-tint for action buttons, which now
+         have their own independent `action` styling below (Module 6/9 -
+         one global action style, never borrowed from the message plate). */
       overlay: {
         blur: 6,
         dim: 30,
         tint: "#171008",
         tintOpacity: 55,
+        textColor: "#f6efe0"
+      },
+      /* ONE shared visual style for every "normal" Projector action -
+         Retry, Continue-Without-Video, Replay, Next Page (Module 6/9/10/
+         11). Changing these updates all four together; there is no way
+         for them to accidentally end up with different colors, since
+         they're all driven by exactly this one object. opacity is a
+         percent (0-100) applied to the whole pill. */
+      action: {
         textColor: "#f6efe0",
-        accentColor: "#f6efe0"
+        bgColor: "#e9e2d2",
+        opacity: 85,
+        fontSize: 15,
+        gap: 14
       },
       /* Pre-play reveal (see projector.js's state machine): the title
-         shown above the frame before the viewer taps play, and the play
-         button's own label. Kept to just these two text surfaces - a
-         third floating hint line was considered and dropped as
-         redundant with the title. */
+         shown above the frame before the viewer taps play, and the CTA
+         button's own label/appearance. The Cover CTA is the ONE
+         deliberate exception to the shared `action` style above (Module
+         7) - it belongs to a different visual moment (an invitation
+         painted over a still poster, not a response to a problem or an
+         end-of-sequence choice), so it gets its own fully independent
+         color/size/glow/blur. bgDim/bgBlur are OPTIONAL extra treatment
+         for the poster/backdrop behind the CTA specifically (Module 8) -
+         0 by default (no effect), never shared with the loading/stalled/
+         ended states' own overlay.blur/dim above. */
       title: {
         text: "چند تکه از خاطراتی که با هم ساختیم",
         fontSize: 18,
@@ -322,7 +341,16 @@
         opacity: 0.85
       },
       playButtonText: "ببینش",
-      playButtonFontSize: 15,
+      coverCta: {
+        fontSize: 15,
+        textColor: "#f6efe0",
+        bgColor: "#141009",
+        opacity: 45,
+        glow: 20,
+        blur: 5,
+        bgDim: 0,
+        bgBlur: 0
+      },
       /* "" = no uploaded poster, falls back to the frame's own warm
          parchment placeholder color (never a stark white hole) - see
          projector.js/projector.css. Any other value is a Wix Media
@@ -373,15 +401,7 @@
       continueDelaySec: 1.3,
       showSkip: true,
       showReplay: true,
-      loop: false,
-      /* End-state actions (Replay/Continue/Retry/Skip) - ONE shared style
-         for all of them (Module: "no accidental color mismatch"), applied
-         via CSS vars rather than per-button color fields, so Replay and
-         Continue can never accidentally drift into different colors. */
-      endActionFontSize: 15,
-      endActionTextColor: "#f6efe0",
-      endActionBgColor: "#e9e2d2",
-      endActionGap: 14
+      loop: false
     }
   };
 

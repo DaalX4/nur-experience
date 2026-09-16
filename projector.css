@@ -465,25 +465,22 @@
   opacity:1;
   pointer-events:auto;
 }
-/* One consistent, understated "analog text action" language for every
-   control this gate ever shows (Play/Retry/Skip/Replay/Continue) -
-   warm ivory on a soft dark-glass plate, no bright/glossy/pill-shaped
-   web-app chrome. The plate exists purely for guaranteed readability
-   (Module 8): the gate can sit over anything from the pale paper empty-
-   state to a dark video frame, and text-shadow alone isn't reliable
-   against arbitrary footage - a soft backing plate is. backdrop-filter
-   is cheap here specifically because it's never on-screen at the same
-   time as active playback (Play shows before playback starts; Retry/
-   Skip only appear when a video has stalled/errored; Replay/Continue
-   only appear after it has already ended) - it never competes with
-   video decode. */
-/* Colors here all read from --proj-overlay-* custom properties, set by
-   projector.js from config.projector.overlay (admin's "ظاهر پیام‌های روی
-   ویدیو" section) - --proj-overlay-tint-strong/soft are pre-mixed rgba()
-   strings (hex + opacity combined in JS, not CSS color-mix(), for wider
-   browser support), everything else falls back to the exact same warm
-   ivory-on-dark-glass values already tuned here if the vars are ever
-   unset (e.g. an old cached config without the overlay section yet). */
+/* Two independent visual languages, deliberately (Module 7's "Cover CTA
+   is the only exception"):
+   1. .proj-gate-btn - the COVER/pre-play CTA ("ببینش") - its own full set
+      of --proj-cover-* vars (text/bg/opacity/font-size/glow/blur), never
+      shared with anything below, because it belongs to a different
+      visual moment (a poster/still-image invitation to press play).
+   2. .proj-action-btn - EVERY other Projector action (Retry, Continue
+      Without Video, Replay, Next Page) - ONE shared class, ONE shared set
+      of --proj-action-* vars. These used to be split across two different
+      styles (.proj-gate-link for Retry/Skip, a separate .proj-end-btn for
+      Replay/Continue, which itself replaced an even older setup where
+      Continue alone carried a "--primary" accent class) - three
+      generations of accidental inconsistency. Collapsing them into one
+      class/one var set is what actually guarantees "no accidental black
+      text in one state and ivory in another" (Module 9) - there is
+      structurally only one place text color can come from now. */
 .proj-gate-text{
   margin:0;
   max-width:46ch;
@@ -500,35 +497,35 @@
   display:none;
 }
 .proj-gate-text.show{display:block}
+
+/* Cover / pre-play CTA - fully independent styling (Module 7/8). */
 .proj-gate-btn{
   display:none;
-  border:1px solid color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 40%, transparent);
+  border:1px solid color-mix(in srgb, var(--proj-cover-text,#f6efe0) 35%, transparent);
   border-radius:11px;
-  /* Slightly reduced from the original 13px/34px - the pill read as
-     oversized/bulky relative to a modest-sized frame (a real reported
-     complaint), especially at the frame's smaller end. Still comfortably
-     tappable, just less dominant. */
   padding:10px 26px;
   font-family:var(--font-display);
-  font-size:var(--proj-playbtn-font-size,15px);
+  font-size:var(--proj-cover-font-size,15px);
   letter-spacing:.02em;
   cursor:pointer;
-  background:var(--proj-overlay-tint-strong,rgba(20,16,10,.45));
-  color:var(--proj-overlay-text,#f6efe0);
-  box-shadow:0 0 26px color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 14%, transparent), 0 10px 24px rgba(0,0,0,.35);
-  backdrop-filter:blur(5px);
-  -webkit-backdrop-filter:blur(5px);
+  background:var(--proj-cover-bg,rgba(20,16,10,.45));
+  color:var(--proj-cover-text,#f6efe0);
+  box-shadow:0 0 var(--proj-cover-glow-blur,26px) var(--proj-cover-glow-color,rgba(246,239,224,.14)), 0 10px 24px rgba(0,0,0,.35);
+  backdrop-filter:blur(var(--proj-cover-blur,5px));
+  -webkit-backdrop-filter:blur(var(--proj-cover-blur,5px));
   transition:box-shadow .3s ease, border-color .3s ease, transform .25s ease, background .3s ease;
 }
 .proj-gate-btn:hover{
-  border-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 65%, transparent);
-  box-shadow:0 0 36px color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 22%, transparent), 0 12px 28px rgba(0,0,0,.4);
+  border-color:color-mix(in srgb, var(--proj-cover-text,#f6efe0) 60%, transparent);
+  box-shadow:0 0 calc(var(--proj-cover-glow-blur,26px) + 10px) var(--proj-cover-glow-color,rgba(246,239,224,.22)), 0 12px 28px rgba(0,0,0,.4);
   transform:translateY(-1px);
 }
 .proj-gate-btn.show{display:inline-block}
+
+/* Loading/stalled action row (Retry/Skip). */
 .proj-gate-actions{
   display:none;
-  gap:24px;
+  gap:var(--proj-action-gap,14px);
   flex-wrap:wrap;
   justify-content:center;
   padding:9px 18px;
@@ -538,64 +535,48 @@
   -webkit-backdrop-filter:blur(3px);
 }
 .proj-gate-actions.show{display:flex}
-.proj-gate-link{
-  border:0;
-  background:none;
-  padding:4px 2px;
-  font-family:var(--font-display);
-  font-size:14px;
-  color:var(--proj-overlay-text,#f6efe0);
-  opacity:.82;
-  text-shadow:0 1px 4px rgba(0,0,0,.5);
-  text-decoration:underline;
-  text-decoration-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 40%, transparent);
-  text-underline-offset:4px;
-  cursor:pointer;
-  transition:opacity .25s ease, text-decoration-color .25s ease;
-}
-.proj-gate-link:hover{ opacity:1; text-decoration-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 80%, transparent); }
 
-/* End-state actions (Replay / Continue) - two visually EQUAL, clearly
-   separate parchment pills, not underlined text links (the old shared
-   .proj-gate-link style read as one merged blob, and Continue's extra
-   --primary accent color could visually drift from Replay whenever the
-   admin's accent/text colors differed - a real reported inconsistency).
-   Deliberately its own warm ivory/dark-glass plate, matching proj-gate-btn's
-   language, not bright web-app chrome. One shared set of vars for both
-   buttons (font size/text color/background) - so they can never
-   accidentally end up looking different from each other. */
+/* End-state action row (Replay/Continue) - no extra background plate of
+   its own (the two pills already carry their own backing). */
 .proj-gate-actions--ended{
-  gap:var(--proj-end-gap,14px);
+  gap:var(--proj-action-gap,14px);
   background:none;
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
   padding:0;
 }
-.proj-end-btn{
+
+/* The ONE shared action-button style - Retry, Skip, Replay, Continue all
+   use exactly this class and read from exactly these vars (Module 6).
+   Two visually equal, clearly separate parchment pills, not underlined
+   text-link fragments (Module 5) - a soft ivory/dark-glass plate matching
+   the Cover CTA's general language without sharing any of its vars. */
+.proj-action-btn{
   display:none;
-  border:1px solid color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 30%, transparent);
+  border:1px solid color-mix(in srgb, var(--proj-action-text,#f6efe0) 30%, transparent);
   border-radius:10px;
   padding:9px 22px;
   font-family:var(--font-display);
-  font-size:var(--proj-end-font-size,15px);
+  font-size:var(--proj-action-font-size,15px);
   font-weight:500;
   letter-spacing:.01em;
   cursor:pointer;
-  background:var(--proj-end-bg-color,rgba(233,226,210,.14));
-  color:var(--proj-end-text-color,#f6efe0);
+  background:var(--proj-action-bg,rgba(233,226,210,.14));
+  color:var(--proj-action-text,#f6efe0);
+  opacity:var(--proj-action-opacity,1);
   text-shadow:0 1px 3px rgba(0,0,0,.4);
   backdrop-filter:blur(4px);
   -webkit-backdrop-filter:blur(4px);
-  transition:background .25s ease, border-color .25s ease, transform .2s ease;
+  transition:background .25s ease, border-color .25s ease, transform .2s ease, opacity .25s ease;
 }
-.proj-end-btn:hover,
-.proj-end-btn:focus-visible{
-  border-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 60%, transparent);
-  background:color-mix(in srgb, var(--proj-end-bg-color,rgba(233,226,210,.14)) 100%, white 8%);
+.proj-action-btn:hover,
+.proj-action-btn:focus-visible{
+  border-color:color-mix(in srgb, var(--proj-action-text,#f6efe0) 60%, transparent);
+  background:color-mix(in srgb, var(--proj-action-bg,rgba(233,226,210,.14)) 100%, white 8%);
   transform:translateY(-1px);
   outline:none;
 }
-.proj-end-btn.show{display:inline-block}
+.proj-action-btn.show{display:inline-block}
 @media (prefers-reduced-motion: reduce){
   .proj-gate{transition:none}
 }

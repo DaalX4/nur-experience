@@ -750,15 +750,17 @@
           <p class="proj-gate-text" id="projGateText"></p>
           <button type="button" class="proj-gate-btn" id="projPlayBtn"></button>
           <div class="proj-gate-actions" id="projGateActions">
-            <button type="button" class="proj-gate-link" id="projRetryBtn">دوباره تلاش کن</button>
-            <button type="button" class="proj-gate-link" id="projSkipBtn">ادامه بدون فیلم</button>
+            <button type="button" class="proj-action-btn" id="projRetryBtn">دوباره تلاش کن</button>
+            <button type="button" class="proj-action-btn" id="projSkipBtn">ادامه بدون فیلم</button>
           </div>
           <!-- The calm, indefinite-wait reaction state after the memory
                finishes - deliberately no headline copy here, just two
-               quiet actions once the hold ends (see projector.js). -->
+               quiet actions once the hold ends (see projector.js). Same
+               .proj-action-btn class as Retry/Skip above - ONE shared
+               visual language for every normal Projector action. -->
           <div class="proj-gate-actions proj-gate-actions--ended" id="projEndedActions">
-            <button type="button" class="proj-end-btn" id="projReplayBtn">پخش دوباره</button>
-            <button type="button" class="proj-end-btn" id="projContinueBtn">ادامه</button>
+            <button type="button" class="proj-action-btn" id="projReplayBtn">پخش دوباره</button>
+            <button type="button" class="proj-action-btn" id="projContinueBtn">ادامه</button>
           </div>
         </div>
       </div>

@@ -288,6 +288,22 @@
     }
   }
 
+  /* Cover/pre-play state's OWN optional blur/dim (Module 8) - deliberately
+     a separate function from setOverlayActive() above, never mixed with
+     the loading/stalled/ended overlay.blur/dim - a poster's backdrop
+     treatment is a different visual decision from "something needs your
+     attention". 0/0 by default (identical to setOverlayActive(false)),
+     so nothing changes for an admin who never touches these. */
+  function setCoverOverlay() {
+    const root = document.documentElement.style;
+    const c = (cfgCache && cfgCache.coverCta) || {};
+    const dim = Math.max(0, Math.min(100, typeof c.bgDim === "number" ? c.bgDim : 0));
+    const blur = typeof c.bgBlur === "number" ? c.bgBlur : 0;
+    root.setProperty("--proj-overlay-blur", blur + "px");
+    root.setProperty("--proj-overlay-dim", (1 - dim / 100).toFixed(2));
+    root.setProperty("--proj-overlay-desat", (1 - dim / 250).toFixed(2));
+  }
+
   /* -------------------------------------------------------------------- *
    *  Entrance - the whole framed composition (frame + mask + poster +
    *  decoration) fades/scales in as ONE object, gated on its own
@@ -351,7 +367,7 @@
 
   function showPreplayGate() {
     hideGate();
-    setOverlayActive(false);
+    setCoverOverlay();
     applyPoster(currentPosterUrl());
     gateEl.classList.add("show");
     playBtn.classList.add("show");
@@ -417,9 +433,28 @@
     loadingTimeoutId = setTimeout(() => showLoadingGate(true), LOADING_TIMEOUT_MS);
   }
 
+  /* Whether media is ACTIVELY trying to play right now - the missing
+     check behind a real, confirmed false-positive bug: the stall
+     watchdog fired purely on "timeupdate/state hasn't progressed
+     recently", with no check for WHY. A video that is simply paused
+     (a real user pause, a backgrounded/throttled tab, or any other
+     non-error reason `timeupdate` stops) would sit quietly for
+     STALL_TIMEOUT_MS and then show "internet is weak" despite nothing
+     being wrong. Module 3's explicit instruction - reliability over
+     clever detection - means: if the media isn't even trying to play,
+     don't warn about it stalling. */
+  function isActivelyPlaying() {
+    if (cfgCache && cfgCache.source === "youtube") {
+      if (!ytPlayer || !window.YT) return false;
+      try { return ytPlayer.getPlayerState() === window.YT.PlayerState.PLAYING; } catch (err) { return false; }
+    }
+    return !!(currentEl && currentEl.tagName === "VIDEO" && !currentEl.paused && !currentEl.ended);
+  }
+
   function armStallWatchdog() {
     clearTimeout(stallTimeoutId);
     stallTimeoutId = setTimeout(() => {
+      if (!isActivelyPlaying()) return; // not a stall - media simply isn't trying to play right now
       showStalledGate();
     }, STALL_TIMEOUT_MS);
   }
@@ -649,6 +684,16 @@
       currentEl && currentEl.tagName === "VIDEO" && currentEl.src === first.src;
     if (canReuse) {
       hideGate();
+      // The confirmed Replay bug: hideGate() only toggles the gate's own
+      // CSS classes (show/hide) - it never touched --proj-overlay-blur/
+      // dim/desat, which showEndedGate() had just turned ON. The normal
+      // loadItem()->reveal() path always calls setOverlayActive(false)
+      // when revealing media; this fast "reuse the existing element"
+      // path skipped reveal() entirely and so skipped that reset too,
+      // leaving the video visibly blurred/dimmed through the whole
+      // replay. Explicit reset here closes that gap.
+      setOverlayActive(false);
+      hidePoster();
       try { currentEl.currentTime = first.trimStart || 0; } catch (err) { /* ignore */ }
       currentEl.play().then(armStallWatchdog).catch(() => loadItem(0));
     } else {
@@ -732,6 +777,13 @@
 
   function replayYoutube() {
     hideGate();
+    // Same fix as the upload path's replayFromStart() - a seekTo() on an
+    // already-"playing" player does not reliably re-fire onStateChange,
+    // so onYoutubeStateChange's PLAYING branch (which normally resets the
+    // overlay) may never run here. Reset explicitly instead of assuming
+    // it will happen.
+    setOverlayActive(false);
+    hidePoster();
     ytPendingPlay = true;
     if (ytPlayer && ytReady) {
       try { ytPlayer.seekTo(0); ytPlayer.playVideo(); armStallWatchdog(); } catch (err) { beginPlaybackYoutube(); }
@@ -815,27 +867,40 @@
     if (skipBtn) skipBtn.textContent = cfg.skipText || "ادامه بدون فیلم";
     if (replayBtn) replayBtn.textContent = cfg.replayText || "پخش دوباره";
     if (continueBtn) continueBtn.textContent = cfg.continueText || "ادامه";
-    root.setProperty("--proj-playbtn-font-size", (typeof cfg.playButtonFontSize === "number" ? cfg.playButtonFontSize : 15) + "px");
 
-    // End-state actions (Replay/Continue) - ONE shared style for both, so
-    // they can never accidentally end up looking different from each
-    // other (a real reported inconsistency - Continue used to carry an
-    // extra "primary accent" class Replay didn't).
-    root.setProperty("--proj-end-font-size", (typeof cfg.endActionFontSize === "number" ? cfg.endActionFontSize : 15) + "px");
-    root.setProperty("--proj-end-text-color", cfg.endActionTextColor || "#f6efe0");
-    root.setProperty("--proj-end-bg-color", hexToRgba(cfg.endActionBgColor, 16) || "rgba(233,226,210,.16)");
-    root.setProperty("--proj-end-gap", (typeof cfg.endActionGap === "number" ? cfg.endActionGap : 14) + "px");
+    // ONE shared style for every normal action (Retry/Skip/Replay/
+    // Continue) - Module 6/9: these can no longer accidentally diverge,
+    // since there is exactly one set of vars driving all four.
+    const act = cfg.action || {};
+    root.setProperty("--proj-action-font-size", (typeof act.fontSize === "number" ? act.fontSize : 15) + "px");
+    root.setProperty("--proj-action-text", act.textColor || "#f6efe0");
+    root.setProperty("--proj-action-bg", hexToRgba(act.bgColor, 15) || "rgba(233,226,210,.15)");
+    root.setProperty("--proj-action-opacity", (typeof act.opacity === "number" ? act.opacity : 85) / 100);
+    root.setProperty("--proj-action-gap", (typeof act.gap === "number" ? act.gap : 14) + "px");
 
-    // Overlay appearance (Module 2/3 - admin's "ظاهر پیام‌های روی ویدیو").
-    // Static per-config, unlike --proj-overlay-blur/dim/desat above which
-    // toggle per gate state (see setOverlayActive()).
+    // Cover/pre-play CTA - fully independent styling (Module 7/8), never
+    // shares a var with the action style above.
+    const cover = cfg.coverCta || {};
+    root.setProperty("--proj-cover-font-size", (typeof cover.fontSize === "number" ? cover.fontSize : 15) + "px");
+    root.setProperty("--proj-cover-text", cover.textColor || "#f6efe0");
+    root.setProperty("--proj-cover-bg", hexToRgba(cover.bgColor, typeof cover.opacity === "number" ? cover.opacity : 45) || "rgba(20,16,10,.45)");
+    const glow = typeof cover.glow === "number" ? Math.max(0, Math.min(100, cover.glow)) : 20;
+    root.setProperty("--proj-cover-glow-blur", (14 + glow * 0.3).toFixed(0) + "px");
+    root.setProperty("--proj-cover-glow-color", hexToRgba(cover.textColor, glow * 0.6) || "rgba(246,239,224,.14)");
+    root.setProperty("--proj-cover-blur", (typeof cover.blur === "number" ? cover.blur : 5) + "px");
+    root.setProperty("--proj-cover-bg-dim", (1 - Math.max(0, Math.min(100, typeof cover.bgDim === "number" ? cover.bgDim : 0)) / 100).toFixed(2));
+    root.setProperty("--proj-cover-bg-blur", (typeof cover.bgBlur === "number" ? cover.bgBlur : 0) + "px");
+
+    // Overlay - media blur/dim behind the gate (toggled per state, see
+    // setOverlayActive()) and the status MESSAGE's own text/plate color
+    // (static). No longer doubles as the action buttons' color source
+    // (Module 6/9) - see `action` above.
     const ov = cfg.overlay || {};
     const tintStrong = hexToRgba(ov.tint, typeof ov.tintOpacity === "number" ? ov.tintOpacity : 55);
     const tintSoft = hexToRgba(ov.tint, (typeof ov.tintOpacity === "number" ? ov.tintOpacity : 55) * 0.7);
     root.setProperty("--proj-overlay-tint-strong", tintStrong || "rgba(17,13,8,.42)");
     root.setProperty("--proj-overlay-tint-soft", tintSoft || "rgba(17,13,8,.3)");
     root.setProperty("--proj-overlay-text", ov.textColor || "#f6efe0");
-    root.setProperty("--proj-overlay-accent", ov.accentColor || "#f6efe0");
   }
 
   /* -------------------------------------------------------------------- *
