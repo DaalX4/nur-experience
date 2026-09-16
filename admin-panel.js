@@ -178,6 +178,32 @@
       fields: []
     },
     {
+      id: "flow",
+      label: "جریان / شمارش / پروژکتور",
+      screen: { stage: "stage-countdown" },
+      fields: [
+        { type: "buttons", path: ["projector", "enabled"], label: "صفحه پروژکتور / خاطرات", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
+        { type: "slider", path: ["countdown", "seconds"], label: "شروع شمارش معکوس", min: 3, max: 120, step: 1, unit: " ثانیه" },
+        { type: "buttons", path: ["countdown", "pulseEnabled"], label: "پالس شمارش معکوس", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
+        { type: "slider", path: ["countdown", "pulseIntensity"], label: "شدت پالس", min: 0, max: 100, step: 5, unit: "%" },
+        { type: "color", path: ["sky", "color"], label: "رنگ آسمان" },
+        { type: "color", path: ["sky", "starColor"], label: "رنگ ستاره‌ها" }
+      ]
+    },
+    {
+      id: "projectorSettings",
+      label: "تنظیمات پروژکتور",
+      screen: { stage: "stage-projector" },
+      fields: [
+        { type: "buttons", path: ["projector", "preset"], label: "پیش‌فرض ظاهری (Preset)", options: [{ label: "Soft", value: "soft" }, { label: "Balanced", value: "balanced" }, { label: "Deep", value: "deep" }] },
+        { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%" },
+        { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%" },
+        { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%" },
+        { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%" },
+        { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%" }
+      ]
+    },
+    {
       id: "final",
       label: "پایانی",
       screen: { stage: "stage-final" },
@@ -337,6 +363,53 @@
       });
 
       wrap.append(preview, btn, fileInput, status);
+      row.appendChild(wrap);
+    } else if (field.type === "buttons") {
+      // Generic small button-group - used for both plain on/off toggles
+      // (options: [{label,value:true},{label,value:false}]) and a
+      // multi-choice pick like Projector's Preset, so this one type
+      // covers both instead of two near-identical ones.
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "display:flex; gap:6px; flex-wrap:wrap;";
+      const buttons = [];
+      function refresh() {
+        const current = getPath(draft, field.path);
+        buttons.forEach(({ btn, opt }) => {
+          const active = opt.value === current;
+          btn.className = "nurap-btn " + (active ? "nurap-btn--primary" : "nurap-btn--ghost");
+          btn.style.flex = "0 0 auto";
+        });
+      }
+      field.options.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = opt.label;
+        btn.addEventListener("click", () => {
+          setPath(draft, field.path, opt.value);
+          refresh();
+          livePreview();
+        });
+        buttons.push({ btn, opt });
+        wrap.appendChild(btn);
+      });
+      refresh();
+      row.appendChild(wrap);
+    } else if (field.type === "color") {
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "display:flex; align-items:center; gap:10px;";
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = value || "#000000";
+      input.style.cssText = "width:44px; height:32px; border:1px solid rgba(255,255,255,.15); border-radius:6px; background:#1c2238; padding:2px; cursor:pointer;";
+      const valueLabel = document.createElement("span");
+      valueLabel.className = "nurap-value";
+      valueLabel.textContent = value;
+      input.addEventListener("input", () => {
+        setPath(draft, field.path, input.value);
+        valueLabel.textContent = input.value;
+        livePreview();
+      });
+      wrap.append(input, valueLabel);
       row.appendChild(wrap);
     }
 
@@ -778,6 +851,10 @@
           <span class="nurap-title">پنل کنترل نور</span>
           <button type="button" class="nurap-close" aria-label="بستن">✕</button>
         </div>
+        <!-- TEMPORARY - remove once the local-vs-deployed mismatch is
+             confirmed resolved. Proves which physical build a given
+             browser tab actually loaded. -->
+        <div style="padding:4px 16px; font-size:10px; color:#6f7690; text-align:center; border-bottom:1px solid rgba(255,255,255,.06);">NUR BUILD: PROJECTOR-INTEGRATION-1</div>
         <div class="nurap-tabs"></div>
         <div class="nurap-body"></div>
         <div class="nurap-status"></div>

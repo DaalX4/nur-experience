@@ -196,6 +196,44 @@
       signatureOffsetY: 96,
       signatureFontSize: 15,
       signatureWordSpacing: 0
+    },
+
+    /* Countdown duration + the optional cinematic pulse on each tick.
+       "seconds" replaces app.js's old hardcoded COUNTDOWN_SECONDS=30. */
+    countdown: {
+      seconds: 30,
+      pulseEnabled: true,
+      pulseIntensity: 50
+    },
+
+    /* Shared night-sky colors - drive styles.css's existing --bg-1/--bg-2/
+       --star custom properties (already there, previously fixed values).
+       --bg-2 is not stored separately - app.js derives a slightly deeper
+       shade of skyColor automatically, so one picker still gives the
+       existing two-stop gradient depth. */
+    sky: {
+      color: "#0a1226",
+      starColor: "#fdf6e3"
+    },
+
+    /* Optional Projector/Memory stage between the countdown and the final
+       page - OFF by default (see admin-panel.js). When off, app.js never
+       shows the stage NOR loads projector.js's media - see the "enabled"
+       check at the call site in app.js. Appearance-only settings here;
+       the imported memories themselves are session-local (drag/drop a
+       memory-prep-tool export onto the stage while previewing it), same
+       scope boundary the standalone prototype already had - not yet
+       backed by persistent per-streamer storage.
+       preset/mediaSize/edgeFade/centerX/centerY/bgFillIntensity mirror
+       the simplified Projector Focus controls from that prototype. */
+    projector: {
+      enabled: false,
+      preset: "balanced",
+      mediaSize: 88,
+      edgeFade: 50,
+      centerX: 50,
+      centerY: 50,
+      bgFillIntensity: 0
     }
   };
 

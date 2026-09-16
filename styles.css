@@ -197,10 +197,36 @@ body{
   color:var(--text);
   font-family:var(--font-display);
   font-weight:400;
+  /* Light polish only (per explicit instruction not to redesign this):
+     the radial glow now spreads a little wider/deeper for a more natural
+     halo, and the linear gradient plateaus across the middle instead of
+     peaking at one sharp stop - softens the faint horizontal band that
+     was visible around the old single "55%" stop. */
   background:
-    radial-gradient(ellipse 70% 50% at 50% -6%, rgba(120,150,220,.10), transparent 62%),
-    linear-gradient(180deg,var(--bg-1),var(--bg-2) 55%,var(--bg-1));
+    radial-gradient(ellipse 78% 60% at 50% -8%, rgba(120,150,220,.11), transparent 68%),
+    linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-2) 62%,var(--bg-1) 100%);
   overflow-x:hidden;
+  filter:brightness(1);
+}
+
+/* Countdown pulse - a very subtle "something is approaching" brightness
+   rise on the shared sky, retriggered by app.js on every tick (see
+   pulseBackground()). --nur-pulse-amount is 0-1 (Pulse Intensity/100);
+   at 0 this animation is a real no-op (both keyframe ends resolve to the
+   same brightness), so "Pulse OFF" is simply never adding this class -
+   no separate toggle code path needed. Body-level brightness (not just
+   the ambient blob layer below) so it reads as the whole sky lifting,
+   not one spot glowing. */
+body.nur-pulse{
+  animation:nurCountdownPulse 450ms ease-out;
+}
+@keyframes nurCountdownPulse{
+  0%{filter:brightness(1)}
+  35%{filter:brightness(calc(1 + var(--nur-pulse-amount,0) * 0.16))}
+  100%{filter:brightness(1)}
+}
+@media (prefers-reduced-motion: reduce){
+  body.nur-pulse{animation:none}
 }
 
 /* Hidden admin-panel toggle dot (admin-panel.js). Styled here, in the

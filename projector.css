@@ -1,0 +1,241 @@
+/* ============================================================================
+   PROJECTOR / MEMORY STAGE — production integration.
+   ----------------------------------------------------------------------------
+   Ported from memory-page-prototype.html's proven engine, trimmed down for
+   production per the explicit "keep this simple/modular/low-risk" brief:
+
+   - The prototype's OWN night-sky layer (.bg-layer/.stars/.star, painterly
+     SVG sparkles) is intentionally NOT brought over. This stage lives inside
+     the SAME <body> as every other Nur stage, so it already inherits the
+     real project's shared sky (styles.css's body background + #stars) for
+     free - no second background engine, per the integration brief.
+   - The prototype exposed ~12 separate VHS dials (grain/noise/dust/
+     desaturate/warmth/contrast/brightness/softness/vignette/flicker/judder/
+     breathing) via its own admin panel. Production does not add a matching
+     control for each - the admin panel this stage answers to only exposes
+     Preset/Media Size/Edge Fade/Center (see projector.js's PROJECTOR_PRESETS
+     and admin-panel.js's "projector" tab), so these are baked in here as
+     plain fixed values instead of CSS custom properties nothing sets.
+   - Frame/mask assets are the exact files already used by the prototype,
+     copied as-is into assets/ (assets/memory-frame.png,
+     assets/memory-frame-mask.png) - untouched, per "do not touch the frame
+     PNG/mask" and "keep frame/mask as normal external assets, no base64".
+   ============================================================================ */
+
+.memory-frame{
+  position:absolute;
+  margin:0;
+  left:50%;
+  top:50%;
+  /* Responsive, same idiom as .letter-stage-inner's card width - the
+     prototype used a fixed 900x600px which would overflow a phone
+     viewport. Native mask/frame asset is 3:2 (1536x1024). */
+  width:min(720px,88vw);
+  height:calc(min(720px,88vw) * 2 / 3);
+  /* Same -2%-of-width optical nudge as the prototype - the torn-paper
+     art's tape/flower decoration only exists on the right side, so a
+     mathematically-centered box reads as shifted right to the eye. */
+  transform:translate(-50%,-50%) translateX(calc(min(720px,88vw) * -0.02));
+  filter:drop-shadow(0 22px 46px rgba(30,25,15,.22));
+}
+
+/* Real CSS mask - a pixel-exact alpha mask of the frame's own torn-paper
+   opening. Do not touch these mask-* properties - this is what guarantees
+   media never leaks past the torn edge. */
+.frame-media{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  background:#e9e2d2; /* avoids a white flash before the first item paints */
+  -webkit-mask-image:url("assets/memory-frame-mask.png");
+  mask-image:url("assets/memory-frame-mask.png");
+  -webkit-mask-size:100% 100%;
+  mask-size:100% 100%;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  animation:projVhsFlicker 3.4s steps(1,end) infinite, projVhsJudder 0.5s steps(4,end) infinite;
+}
+@keyframes projVhsFlicker{
+  0%,100%{opacity:1}
+  8%{opacity:.92}
+  9%{opacity:1}
+  32%{opacity:.952}
+  33%{opacity:1}
+  61%{opacity:.936}
+  62%{opacity:1}
+}
+@keyframes projVhsJudder{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(.06px,0)}
+  50%{transform:translate(0,-.06px)}
+  75%{transform:translate(-.06px,0)}
+}
+@media (prefers-reduced-motion: reduce){
+  .frame-media{animation:none}
+}
+
+/* Real, deliberate empty state - never a silently-blank box. */
+.frame-media.is-empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.frame-media.is-empty::before{
+  content:"هنوز خاطره‌ای اضافه نشده";
+  color:var(--muted);
+  font-family:var(--font-display);
+  font-size:15px;
+  opacity:.7;
+  text-align:center;
+  padding:0 24px;
+}
+
+/* No crossfade - a memory cuts straight in; the nostalgic feel comes from
+   the image treatment, not the transition. Two-layer swap underneath. */
+.media-layer{
+  position:absolute;
+  inset:0;
+  opacity:0;
+}
+.media-layer.active{
+  opacity:1;
+}
+.media-slot{
+  position:absolute;
+  inset:0;
+}
+.media-slot.media-bg{ z-index:0; }
+.media-slot.media-fg{
+  z-index:1;
+  inset:var(--proj-fg-inset-top,3%) var(--proj-fg-inset-right,6%) var(--proj-fg-inset-bottom,6%) var(--proj-fg-inset-left,6%);
+}
+.media-slot img,
+.media-slot video{
+  width:100%;
+  height:100%;
+  display:block;
+  filter:saturate(.88) sepia(.15) contrast(1.05) brightness(.98) blur(calc(.3px + var(--proj-extra-blur-px,0px)));
+}
+/* Foreground: no translate, ever - the only transform allowed is a
+   shrink (always <=1, so it can only pull content further from every
+   edge, never push any part of it outside the visible area). */
+.media-fg img,
+.media-fg video{
+  object-fit:contain;
+  object-position:var(--proj-fg-obj-pos,50% 50%);
+  transform:scale(var(--proj-fg-shrink,1));
+}
+/* Background fill (optional, off by default) - always cover, scaled up
+   slightly so its own blur edge never peeks past the mask. */
+.media-bg img,
+.media-bg video{
+  object-fit:cover;
+  object-position:50% 50%;
+  transform:scale(1.1);
+  filter:saturate(.88) sepia(.15) contrast(1.05)
+         brightness(calc(.98 * var(--proj-bg-brightness,0.7)))
+         blur(calc(.3px + var(--proj-bg-blur-px,13px)));
+  opacity:var(--proj-bg-opacity,0.79);
+}
+
+/* Projector Focus vignette - one radial-gradient div above both media
+   layers, fading the transition between the inner media stage and the
+   torn edge. A plain child of .frame-media, so it inherits the mask
+   automatically like every other overlay here. */
+.projector-vignette{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:radial-gradient(ellipse at var(--proj-vignette-cx,50%) var(--proj-vignette-cy,50%),
+    transparent var(--proj-vignette-inner,50%),
+    rgba(5,4,2,var(--proj-vignette-alpha,0.4)) var(--proj-vignette-outer,78%));
+}
+
+/* Nostalgia overlays - plain children of .frame-media, inherit its mask
+   automatically. Fixed, reasonable values (see file header - production
+   doesn't expose a dial per layer, only the collapsed Preset/Edge Fade). */
+.frame-media svg.vhs-layer{
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none;
+}
+.vhs-grain-layer{ opacity:.2; mix-blend-mode:overlay; }
+.vhs-noise-layer{ opacity:.12; mix-blend-mode:soft-light; animation:projNoiseDrift 1.2s steps(6,end) infinite; }
+@keyframes projNoiseDrift{
+  0%{transform:translateY(0)}
+  50%{transform:translateY(2%)}
+  100%{transform:translateY(0)}
+}
+.vhs-dust-layer{ opacity:.1; mix-blend-mode:screen; animation:projDustDrift 2.6s steps(5,end) infinite; }
+@keyframes projDustDrift{
+  0%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(-1.5%,1%) scale(1.01)}
+  100%{transform:translate(0,0) scale(1)}
+}
+.vhs-vignette-layer{
+  position:absolute; inset:0;
+  background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,.65) 100%);
+  opacity:.22;
+  pointer-events:none;
+}
+@media (prefers-reduced-motion: reduce){
+  .vhs-noise-layer, .vhs-dust-layer{animation:none}
+}
+
+.frame-overlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  visibility:hidden; /* hidden until it loads for real - no broken-image flash */
+}
+.frame-overlay.ready{visibility:visible}
+
+/* Caption for the current memory, shown just below the frame - same
+   idiom as every other text block in this project (fontSize/color/
+   opacity/word-spacing only, no italic/letter-spacing). */
+.proj-caption{
+  position:relative;
+  margin:14px 0 0;
+  padding:0 24px;
+  max-width:64ch;
+  text-align:center;
+  line-height:1.6;
+  font-size:15px;
+  color:var(--muted);
+  opacity:0;
+  filter:blur(4px);
+  transition:opacity 1.1s ease, filter 1.1s ease;
+}
+.proj-caption.show{opacity:.85; filter:blur(0)}
+
+/* Admin-only drop zone for populating memories this session (drag/drop a
+   memory-prep-tool export, or plain image/video files) - invisible/inert
+   text for a normal visitor unless they drag a file onto the frame, which
+   nobody does by accident. See projector.js's ingestFiles. */
+.proj-dropzone{
+  position:absolute;
+  inset:0;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:0 30px;
+  color:rgba(240,238,230,.0);
+  font-size:13px;
+  /* Stays interactive at all times (needs to receive drag/drop events),
+     but does nothing on an ordinary click - a visitor never notices it. */
+  transition:color .2s ease, background .2s ease;
+}
+.proj-dropzone.dragover{
+  color:rgba(240,238,230,.85);
+  background:rgba(0,0,0,.35);
+}
+
+#stage-projector .scene-actions{
+  margin-top:34px;
+}

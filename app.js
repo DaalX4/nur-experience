@@ -216,7 +216,45 @@
     document.getElementById("finalSub").textContent = config.final.sub;
     document.getElementById("finalSignature").textContent = config.final.signature;
 
+    applySkyColors(config.sky);
     renderStreamerName(config);
+
+    // Safe to call any time, even before the projector stage has ever
+    // been shown - it only ever sets CSS custom properties, never
+    // touches memories/media. This is what makes the admin panel's
+    // Preset/Media Size/Edge Fade sliders live-preview correctly.
+    if (config.projector && window.NUR_PROJECTOR) {
+      window.NUR_PROJECTOR.applyLive(config.projector);
+    }
+  }
+
+  /* Drives styles.css's existing --bg-1/--bg-2/--star custom properties
+     (previously fixed values) from one admin-picked sky color - --bg-2 is
+     derived automatically (a touch deeper/darker) so the existing two-
+     stop gradient depth is preserved without a second picker. Shared by
+     every stage in this document, the projector stage included, since
+     they all sit in the same body. */
+  function hexToRgb(hex) {
+    const v = String(hex || "").replace("#", "");
+    const full = v.length === 3 ? v.split("").map((c) => c + c).join("") : v;
+    const n = parseInt(full, 16);
+    if (Number.isNaN(n) || full.length !== 6) return [10, 18, 38]; // falls back to the original --bg-1
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgbToHex(r, g, b) {
+    return "#" + [r, g, b].map((n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0")).join("");
+  }
+  function applySkyColors(sky) {
+    if (!sky) return;
+    const root = document.documentElement.style;
+    const [r, g, b] = hexToRgb(sky.color);
+    root.setProperty("--bg-1", sky.color);
+    // A lighter, slightly more blue-shifted second stop - the exact same
+    // fixed per-channel delta that the original hardcoded pair already
+    // had (#0a1226 -> #16224a is +12/+16/+36 per channel), so any picked
+    // color keeps that same gradient depth automatically.
+    root.setProperty("--bg-2", rgbToHex(r + 12, g + 16, b + 36));
+    root.setProperty("--star", sky.starColor || "#fdf6e3");
   }
 
   applyConfig(currentConfig);
@@ -380,12 +418,27 @@
   });
 
   /* ------------------------------------------------------------------ *
-   *  Receiving the light — a quiet 30-second countdown, then the closing
-   *  line. No payment details are ever shown here; the actual donation is
-   *  sent manually elsewhere while this plays.
+   *  Receiving the light — a quiet countdown (duration now configurable,
+   *  see config.countdown.seconds - was a hardcoded 30), then either the
+   *  optional Projector/Memory stage or straight to the closing line. No
+   *  payment details are ever shown here; the actual donation is sent
+   *  manually elsewhere while this plays.
    * ------------------------------------------------------------------ */
-  const COUNTDOWN_SECONDS = 30;
   let countdownTimer = null;
+
+  /* Subtle "something is approaching" pulse on the shared sky background,
+     retriggered on every tick (not every second necessarily - only when
+     the visible number actually changes, same trigger point as the
+     existing tick flourish). Toggling a class that's already inert at
+     rest (--nur-pulse-amount defaults to 0 in styles.css) means Pulse
+     OFF is simply never adding the class - no separate code path. */
+  function pulseBackground(intensityPercent) {
+    const root = document.documentElement.style;
+    root.setProperty("--nur-pulse-amount", (Math.max(0, Math.min(100, intensityPercent)) / 100).toFixed(2));
+    document.body.classList.remove("nur-pulse");
+    void document.body.offsetWidth; // restart the animation if it's already mid-pulse
+    document.body.classList.add("nur-pulse");
+  }
 
   /* Calm "typing" dots next to "در حال ارسال" - the phrase itself lives
      in its own RTL-isolated <bdi> and never moves; only this sibling
@@ -457,16 +510,46 @@
   });
   stageObserver.observe(countdownStage, { attributes: true, attributeFilter: ["class"] });
 
+  /* One conditional branch point, not a duplicated flow: Projector OFF
+     (the default) behaves EXACTLY as before this integration - straight
+     to stage-final. Projector ON inserts exactly one extra stage before
+     the same final destination. window.NUR_PROJECTOR.start() is the only
+     place projector.js's code ever runs, and only when this branch is
+     actually taken - so a visitor with the feature off never causes a
+     single byte of projector.js's media to load. */
+  function goToFinalOrProjector() {
+    const proj = currentConfig.projector;
+    if (proj && proj.enabled && window.NUR_PROJECTOR) {
+      show("stage-projector");
+      window.NUR_PROJECTOR.start(proj, () => {
+        show("stage-final");
+        revealSignature();
+      });
+    } else {
+      show("stage-final");
+      revealSignature();
+    }
+  }
+
   function startCountdown() {
-    let remaining = COUNTDOWN_SECONDS;
+    const cd = currentConfig.countdown || { seconds: 30 };
+    let remaining = Math.max(1, Number(cd.seconds) || 30);
     let isEnding = false; // one-time guard: the end sequence below can only ever run once per countdown
     numberEl.textContent = remaining;
     startDots();
+    if (cd.pulseEnabled) pulseBackground(cd.pulseIntensity);
 
     clearInterval(countdownTimer);
     countdownTimer = setInterval(() => {
       if (isEnding) return; // extra safety net - should be unreachable since the interval is cleared below
       remaining -= 1;
+
+      if (cd.pulseEnabled && remaining > 0) {
+        // A touch stronger in the last few seconds ("something is
+        // approaching"), still capped well short of anything flashy.
+        const finalBoost = remaining <= 3 ? 1.35 : 1;
+        pulseBackground(cd.pulseIntensity * finalBoost);
+      }
 
       if (remaining <= 0) {
         isEnding = true;
@@ -519,8 +602,7 @@
           // animation, not two.
           countdownStage.classList.remove("exiting");
           countdownStage.classList.remove("active");
-          show("stage-final");
-          revealSignature();
+          goToFinalOrProjector();
         };
         if (reduced) {
           goToFinal();
@@ -549,6 +631,12 @@
     clearInterval(countdownTimer);
     stopDots();
     show(stageId);
+    if (stageId === "stage-projector" && window.NUR_PROJECTOR) {
+      // Admin preview only - a real visitor only ever reaches this stage
+      // through goToFinalOrProjector() above. Harmless no-op "done"
+      // callback since there's nothing to advance to while just previewing.
+      window.NUR_PROJECTOR.start(currentConfig.projector, () => {});
+    }
     if (stageId === "stage-letter" && letterPage) {
       letterFlipper.dataset.active = String(letterPage);
     }
