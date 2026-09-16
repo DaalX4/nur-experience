@@ -602,6 +602,13 @@
              poster is configured, falling back to .frame-media's own
              warm parchment background color. -->
         <img class="proj-poster" id="projPoster" alt="" hidden>
+        <!-- YouTube mode target (config.projector.source === "youtube") -
+             projector.js creates a YT.Player against this div only when
+             that source is active and the iframe API has been lazy-
+             loaded (Module 17: never for Uploaded Media viewers). Same
+             inset/position as the video slot so it sits inside the same
+             mask/crop area. -->
+        <div class="proj-youtube" id="projYouTube" hidden></div>
         <div class="projector-vignette"></div>
         <div class="proj-ambient-glow" aria-hidden="true"></div>
         <svg class="vhs-layer vhs-grain-layer" aria-hidden="true" focusable="false">

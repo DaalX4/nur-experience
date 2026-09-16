@@ -191,37 +191,51 @@
         { type: "buttons", path: ["projector", "enabled"], label: "صفحه پروژکتور / خاطرات", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "عمومی" },
         { type: "buttons", path: ["projector", "preset"], label: "پیش‌فرض ظاهری (Preset)", options: [{ label: "Soft", value: "soft" }, { label: "Balanced", value: "balanced" }, { label: "Deep", value: "deep" }], group: "عمومی" },
 
-        { type: "mediaManager", path: ["projector", "items"], label: "رسانه‌های پروژکتور / خاطرات", group: "رسانه" },
+        { type: "buttons", path: ["projector", "source"], label: "منبع ویدیو", help: "بین آپلود مستقیم فایل یا استفاده از یک ویدیوی یوتیوب انتخاب کن. تغییر این گزینه اطلاعات منبع دیگر را پاک نمی‌کند.", options: [{ label: "آپلود مستقیم", value: "upload" }, { label: "یوتیوب", value: "youtube" }], rerenderOnChange: true, group: "منبع ویدیو" },
 
-        { type: "image", path: ["projector", "poster"], label: "پوستر / کاور (قبل از پخش نمایش داده می‌شود)", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور" },
+        { type: "mediaManager", path: ["projector", "items"], label: "رسانه‌های پروژکتور / خاطرات", showIf: { path: ["projector", "source"], equals: "upload" }, group: "رسانه (آپلود مستقیم)" },
 
-        { type: "text", path: ["projector", "title", "text"], label: "عنوان بالای قاب", group: "متن‌های پروژکتور" },
-        { type: "slider", path: ["projector", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 32, step: 1, unit: "px", group: "متن‌های پروژکتور" },
-        { type: "color", path: ["projector", "title", "color"], label: "عنوان: رنگ", group: "متن‌های پروژکتور" },
-        { type: "slider", path: ["projector", "title", "opacity"], label: "عنوان: شفافیت", min: 0.2, max: 1, step: 0.05, unit: "", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "playButtonText"], label: "متن دکمه شروع", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "loadingText"], label: "متن بارگذاری اولیه", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "longLoadingText"], label: "متن بارگذاری طولانی", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "stalledText"], label: "متن قطع‌شدگی / خطا", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "retryText"], label: "متن «دوباره تلاش کن»", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "skipText"], label: "متن «ادامه بدون فیلم»", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "replayText"], label: "متن «پخش دوباره»", group: "متن‌های پروژکتور" },
-        { type: "text", path: ["projector", "continueText"], label: "متن «ادامه»", group: "متن‌های پروژکتور" },
+        { type: "youtubeSource", path: ["projector", "youtubeUrl"], label: "لینک ویدیو یوتیوب", help: "فرمت‌های watch؟v=، youtu.be و shorts پشتیبانی می‌شوند. برای بررسی سریع، از بخش «پیش‌نمایش حالت‌ها» پایین همین صفحه استفاده کن.", showIf: { path: ["projector", "source"], equals: "youtube" }, group: "یوتیوب" },
 
-        { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%", group: "پخش" },
-        { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%", group: "پخش" },
+        { type: "image", path: ["projector", "poster"], label: "پوستر / کاور", help: "قبل از شروع پخش نمایش داده می‌شود و باید دقیقاً مثل ویدیو در قاب جا بگیرد. اگر خالی بماند و منبع یوتیوب باشد، از تصویر بندانگشتی همان ویدیو استفاده می‌شود.", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور" },
 
-        { type: "buttons", path: ["projector", "autoContinue"], label: "ادامه خودکار بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پایان" },
-        { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه", group: "پایان" },
-        { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پایان" },
-        { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پایان" },
+        { type: "text", path: ["projector", "title", "text"], label: "عنوان بالای قاب", help: "همیشه از لحظه ورود تا پایان مرحله پروژکتور روی صفحه می‌ماند.", group: "متن‌ها: قبل از پخش" },
+        { type: "slider", path: ["projector", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 32, step: 1, unit: "px", group: "متن‌ها: قبل از پخش" },
+        { type: "color", path: ["projector", "title", "color"], label: "عنوان: رنگ", group: "متن‌ها: قبل از پخش" },
+        { type: "slider", path: ["projector", "title", "opacity"], label: "عنوان: شفافیت", min: 0.2, max: 1, step: 0.05, unit: "", group: "متن‌ها: قبل از پخش" },
+        { type: "text", path: ["projector", "playButtonText"], label: "متن دکمه شروع ویدیو", help: "روی پوستر، قبل از شروع پخش نمایش داده می‌شود.", group: "متن‌ها: قبل از پخش" },
+
+        { type: "text", path: ["projector", "loadingText"], label: "متن هنگام آماده شدن ویدیو", help: "همون لحظه‌ای که کاربر دکمه شروع را زده و ویدیو در حال آماده شدن است.", group: "متن‌ها: هنگام آماده شدن" },
+        { type: "text", path: ["projector", "longLoadingText"], label: "متن وقتی آماده شدن طول می‌کشد", help: "اگر آماده شدن بیشتر از حد معمول طول بکشد، جایگزین متن بالا می‌شود و دکمه‌های تلاش دوباره/ادامه بدون فیلم هم ظاهر می‌شوند.", group: "متن‌ها: هنگام آماده شدن" },
+
+        { type: "text", path: ["projector", "stalledText"], label: "متن هنگام گیر کردن یا قطع پخش", help: "وقتی ویدیو به‌دلیل اینترنت یا خطای پخش (حتی وسط پخش) متوقف می‌شود نمایش داده می‌شود.", group: "متن‌ها: هنگام مشکل پخش" },
+        { type: "text", path: ["projector", "retryText"], label: "متن دکمه تلاش دوباره", group: "متن‌ها: هنگام مشکل پخش" },
+        { type: "text", path: ["projector", "skipText"], label: "متن دکمه ادامه بدون فیلم", help: "اگر ویدیو لود نشود، کاربر می‌تواند مستقیم به مرحله پایانی برود.", group: "متن‌ها: هنگام مشکل پخش" },
+
+        { type: "text", path: ["projector", "replayText"], label: "متن دکمه پخش دوباره", group: "متن‌ها: بعد از پایان ویدیو" },
+        { type: "text", path: ["projector", "continueText"], label: "متن دکمه رفتن به مرحله بعد", help: "اگر «ادامه خودکار» خاموش باشد، تنها راه رفتن به صفحه پایانی همین دکمه است.", group: "متن‌ها: بعد از پایان ویدیو" },
+
+        { type: "slider", path: ["projector", "overlay", "blur"], label: "میزان تار شدن ویدیو پشت پیام", min: 0, max: 16, step: 1, unit: "px", group: "ظاهر پیام‌های روی ویدیو" },
+        { type: "slider", path: ["projector", "overlay", "dim"], label: "میزان تیره شدن ویدیو پشت پیام", min: 0, max: 70, step: 5, unit: "%", group: "ظاهر پیام‌های روی ویدیو" },
+        { type: "color", path: ["projector", "overlay", "tint"], label: "رنگ پس‌زمینه پیام", group: "ظاهر پیام‌های روی ویدیو" },
+        { type: "slider", path: ["projector", "overlay", "tintOpacity"], label: "شفافیت پس‌زمینه پیام", min: 10, max: 90, step: 5, unit: "%", group: "ظاهر پیام‌های روی ویدیو" },
+        { type: "color", path: ["projector", "overlay", "textColor"], label: "رنگ متن پیام", group: "ظاهر پیام‌های روی ویدیو" },
+        { type: "color", path: ["projector", "overlay", "accentColor"], label: "رنگ دکمه/لینک اصلی", group: "ظاهر پیام‌های روی ویدیو" },
+
+        { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%", group: "رفتار پخش" },
+        { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%", group: "رفتار پخش" },
+
+        { type: "buttons", path: ["projector", "autoContinue"], label: "ادامه خودکار بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
+        { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه", group: "رفتار پایان ویدیو" },
+        { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
+        { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
 
         { type: "previewButtons", group: "پیش‌نمایش حالت‌ها" },
 
         { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", group: "پیشرفته" },
         { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", group: "پیشرفته" },
         { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%", group: "پیشرفته" },
-        { type: "buttons", path: ["projector", "loop"], label: "تکرار پیوسته (پیش‌فرض خاموش)", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پیشرفته" }
+        { type: "buttons", path: ["projector", "loop"], label: "تکرار پیوسته (پیش‌فرض خاموش - فقط آپلود مستقیم)", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پیشرفته" }
       ]
     },
     {
@@ -299,6 +313,12 @@
       label.textContent = field.label;
       row.appendChild(label);
     }
+    if (field.help) {
+      const help = document.createElement("p");
+      help.className = "nurap-help";
+      help.textContent = field.help;
+      row.appendChild(help);
+    }
 
     if (field.type === "text") {
       const input = document.createElement("input");
@@ -310,6 +330,47 @@
         livePreview();
       });
       row.appendChild(input);
+    } else if (field.type === "youtubeSource") {
+      // URL field + live "detected video ID" readout (Module 11) - no
+      // network call, just the same extraction regex projector.js uses
+      // for real playback, so what the admin sees here is exactly what
+      // will actually play.
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "nurap-input";
+      input.dir = "ltr";
+      input.placeholder = "https://www.youtube.com/watch?v=...";
+      input.value = value || "";
+
+      const status = document.createElement("span");
+      status.className = "nurap-value";
+      status.style.cssText = "display:block; text-align:right; margin-top:2px;";
+
+      function extractId(url) {
+        if (!url) return null;
+        const patterns = [
+          /(?:youtube\.com\/watch\?[^#]*\bv=)([\w-]{11})/,
+          /(?:youtu\.be\/)([\w-]{11})/,
+          /(?:youtube\.com\/embed\/)([\w-]{11})/,
+          /(?:youtube\.com\/shorts\/)([\w-]{11})/
+        ];
+        for (const re of patterns) {
+          const m = url.match(re);
+          if (m) return m[1];
+        }
+        return null;
+      }
+      function refreshStatus() {
+        const id = extractId(input.value);
+        status.textContent = id ? ("شناسه ویدیو شناسایی شد: " + id) : (input.value ? "لینک نامعتبر است" : "هنوز لینکی وارد نشده");
+      }
+      input.addEventListener("input", () => {
+        setPath(draft, field.path, input.value);
+        refreshStatus();
+        livePreview();
+      });
+      refreshStatus();
+      row.append(input, status);
     } else if (field.type === "textarea") {
       const ta = document.createElement("textarea");
       ta.className = "nurap-textarea";
@@ -454,6 +515,12 @@
           setPath(draft, field.path, opt.value);
           refresh();
           livePreview();
+          // Other fields may be conditionally shown/hidden based on this
+          // one's value (e.g. Media Source -> Uploaded/YouTube fields) -
+          // a full re-render is the simplest way to keep that in sync
+          // without every "buttons" field needing to know who depends on
+          // it. Harmless for the (common) case where nothing does.
+          if (field.rerenderOnChange) renderTabContent();
         });
         buttons.push({ btn, opt });
         wrap.appendChild(btn);
@@ -769,6 +836,17 @@
     return openGroups[name];
   }
 
+  // Fields can carry `showIf:{path,equals}` to hide themselves when
+  // another field's current draft value doesn't match - e.g. the YouTube
+  // URL field only makes sense when Media Source is actually "youtube".
+  // Purely a rendering filter; the underlying config value is untouched
+  // either way (Module 16 - switching source never deletes the other
+  // source's data).
+  function fieldVisible(field) {
+    if (!field.showIf) return true;
+    return getPath(draft, field.showIf.path) === field.showIf.equals;
+  }
+
   function renderTabContent() {
     const body = panelEl.querySelector(".nurap-body");
     body.textContent = "";
@@ -782,8 +860,9 @@
     }
     if (tab.dragTarget) body.appendChild(dragToggleRow(tab));
 
+    const visibleFields = tab.fields.filter(fieldVisible);
     const groups = []; // [{name, fields}], name === null for ungrouped (rendered flat, first)
-    tab.fields.forEach((field) => {
+    visibleFields.forEach((field) => {
       const name = field.group || null;
       let g = groups.find((x) => x.name === name);
       if (!g) { g = { name, fields: [] }; groups.push(g); }
@@ -1184,6 +1263,7 @@
         #nurAdminPanel .nurap-group-header:hover{background:rgba(255,255,255,.09)}
         #nurAdminPanel .nurap-row{display:flex; flex-direction:column; gap:6px}
         #nurAdminPanel .nurap-label{color:#c7ccdc; font-size:12px}
+        #nurAdminPanel .nurap-help{color:#8b91a8; font-size:11px; line-height:1.5; margin:-2px 0 0}
         #nurAdminPanel .nurap-input{
           background:#1c2238; border:1px solid rgba(255,255,255,.12); color:#fff;
           border-radius:8px; padding:8px 10px; font-size:13px; font-family:inherit;

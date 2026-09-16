@@ -79,13 +79,97 @@
   let cfgCache = null;
   let maskWarmed = false;
 
-  let frameEl, layers, frameMediaEl, captionEl, titleEl, ambientGlowEl, posterEl, previewBadgeEl;
+  let frameEl, layers, frameMediaEl, captionEl, titleEl, ambientGlowEl, posterEl, previewBadgeEl, youtubeEl;
   let gateEl, gateTextEl, playBtn, gateActionsEl, retryBtn, skipBtn, endedActionsEl, replayBtn, continueBtn;
 
   let loadingTimeoutId = null;
   let stallTimeoutId = null;
   let preloadEl = null;   // the hidden warm-up <video> from preload(), reused for real item-0 playback if it matches
   let preloadUrl = null;
+
+  /* -------------------------------------------------------------------- *
+   *  YouTube mode (Module 9-18) - a second, independent media source.
+   *  Exactly ONE video (youtubeUrl), never a queue - every module
+   *  describing this says "the YouTube video", never a list, so this is
+   *  a paste-a-link feature, not a second upload architecture. Uses the
+   *  official IFrame Player API only (no scraping, no hacks against the
+   *  player) and maps its states onto the SAME gate functions above -
+   *  there is one Nur state model, not two.
+   *  ---------------------------------------------------------------------*/
+  let ytApiPromise = null;
+  let ytPlayer = null;
+  let ytReady = false;
+  let ytPendingPlay = false;
+  let ytHeartbeatId = null;
+  let ytLastTime = -1;
+
+  /* A <video> element fires "timeupdate" continuously during playback,
+     which is what armStallWatchdog() naturally leans on. YT.Player's
+     onStateChange only fires on STATE TRANSITIONS, not continuously - so
+     without this, arming the watchdog once on the PLAYING transition and
+     then never again would make the watchdog fire on every video longer
+     than STALL_TIMEOUT_MS, even while playing back perfectly normally
+     (confirmed by hitting exactly this while testing). Polling
+     getCurrentTime() and only re-arming when it has actually advanced
+     reproduces the same "real progress -> reset the timer" guarantee. */
+  function startYoutubeHeartbeat() {
+    stopYoutubeHeartbeat();
+    ytHeartbeatId = setInterval(() => {
+      if (!ytPlayer) return;
+      let t;
+      try { t = ytPlayer.getCurrentTime(); } catch (err) { return; }
+      if (typeof t === "number" && Math.abs(t - ytLastTime) > 0.05) {
+        ytLastTime = t;
+        armStallWatchdog();
+      }
+    }, 1500);
+  }
+
+  function stopYoutubeHeartbeat() {
+    clearInterval(ytHeartbeatId);
+    ytHeartbeatId = null;
+  }
+
+  /* Accepts watch?v=, youtu.be/, embed/, shorts/ (with or without extra
+     query params/timestamps) - returns null for anything else instead of
+     guessing, so a bad paste fails obviously (stalled/error gate) rather
+     than silently embedding the wrong thing. */
+  function extractYouTubeId(url) {
+    if (!url || typeof url !== "string") return null;
+    const patterns = [
+      /(?:youtube\.com\/watch\?[^#]*\bv=)([\w-]{11})/,
+      /(?:youtu\.be\/)([\w-]{11})/,
+      /(?:youtube\.com\/embed\/)([\w-]{11})/,
+      /(?:youtube\.com\/shorts\/)([\w-]{11})/
+    ];
+    for (const re of patterns) {
+      const m = url.match(re);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  /* Lazy-loaded ONLY when source is actually "youtube" (Module 17 - never
+     for Uploaded Media viewers). YT's own bootstrap calls the global
+     onYouTubeIframeAPIReady, which may already be claimed by something
+     else on the page (it isn't, here) - chaining is enough insurance
+     either way. Resolves once, cached, so repeated Play/Retry taps never
+     re-fetch the script. */
+  function loadYouTubeApi() {
+    if (ytApiPromise) return ytApiPromise;
+    ytApiPromise = new Promise((resolve) => {
+      if (window.YT && window.YT.Player) { resolve(window.YT); return; }
+      const prevReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (typeof prevReady === "function") prevReady();
+        resolve(window.YT);
+      };
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    });
+    return ytApiPromise;
+  }
 
   function makeItem(id, type, src, caption, pace, trimStart, trimEnd) {
     return { id, type, src, caption: caption || "", pace: pace || "normal", trimStart: trimStart || 0, trimEnd: trimEnd || null };
@@ -130,6 +214,21 @@
    *  hidden (not removed) the moment real media reveals so it costs
    *  nothing once playback is under way.
    *  ---------------------------------------------------------------------*/
+  /* The configured poster always wins. With none set AND source is
+     YouTube, falls back to YouTube's own predictable thumbnail URL
+     (Module 15 - "you may use the YouTube thumbnail if technically
+     straightforward" - a plain img.youtube.com URL is exactly that, no
+     API call needed). Uploaded-media mode with no poster stays on the
+     frame's own warm parchment placeholder, same as before. */
+  function currentPosterUrl() {
+    if (cfgCache.poster) return cfgCache.poster;
+    if (cfgCache.source === "youtube") {
+      const id = extractYouTubeId(cfgCache.youtubeUrl);
+      if (id) return "https://img.youtube.com/vi/" + id + "/maxresdefault.jpg";
+    }
+    return "";
+  }
+
   function applyPoster(url) {
     if (url) {
       posterEl.src = url;
@@ -142,6 +241,32 @@
 
   function hidePoster() {
     posterEl.classList.add("hide");
+  }
+
+  /* -------------------------------------------------------------------- *
+   *  Overlay visual state (Module 1-3, 19-20) - whenever a gate state
+   *  carries message text (loading/long-loading/stalled/ended), the media
+   *  behind it gently blurs/dims/desaturates via CSS vars already wired
+   *  into the SAME filter list as the frame's existing nostalgia
+   *  treatment (see projector.css) - one paint cost, smoothly animated,
+   *  never a hard cut. Neutral (0px/1/1) the instant real playback is
+   *  showing or the quiet pre-play poster is up, so the media reads
+   *  clearly whenever there is nothing to say about it.
+   *  ---------------------------------------------------------------------*/
+  function setOverlayActive(active) {
+    const root = document.documentElement.style;
+    const o = (cfgCache && cfgCache.overlay) || {};
+    if (active) {
+      const blur = typeof o.blur === "number" ? o.blur : 6;
+      const dim = typeof o.dim === "number" ? o.dim : 30;
+      root.setProperty("--proj-overlay-blur", blur + "px");
+      root.setProperty("--proj-overlay-dim", (1 - dim / 100).toFixed(2));
+      root.setProperty("--proj-overlay-desat", (1 - dim / 250).toFixed(2));
+    } else {
+      root.setProperty("--proj-overlay-blur", "0px");
+      root.setProperty("--proj-overlay-dim", "1");
+      root.setProperty("--proj-overlay-desat", "1");
+    }
   }
 
   /* -------------------------------------------------------------------- *
@@ -189,6 +314,7 @@
     clearTimeout(advanceTimer);
     loadingTimeoutId = null;
     stallTimeoutId = null;
+    stopYoutubeHeartbeat();
   }
 
   function hideGate() {
@@ -206,7 +332,8 @@
 
   function showPreplayGate() {
     hideGate();
-    applyPoster(cfgCache.poster);
+    setOverlayActive(false);
+    applyPoster(currentPosterUrl());
     gateEl.classList.add("show");
     playBtn.classList.add("show");
     ambientGlowEl.classList.add("show");
@@ -215,6 +342,7 @@
 
   function showLoadingGate(withEscape) {
     hideGate();
+    setOverlayActive(true);
     gateEl.classList.add("show");
     gateTextEl.textContent = withEscape
       ? (cfgCache.longLoadingText || "یکم بیشتر زمان می‌خواد...")
@@ -230,6 +358,7 @@
 
   function showStalledGate() {
     hideGate();
+    setOverlayActive(true);
     gateEl.classList.add("show");
     gateTextEl.textContent = cfgCache.stalledText || "هنوز آماده نشده";
     gateTextEl.classList.add("show");
@@ -250,9 +379,13 @@
      (Module 16). */
   function showEndedGate() {
     hideGate();
+    setOverlayActive(true);
     gateEl.classList.add("show");
     endedActionsEl.classList.add("show");
-    if (memories.length > 0 && cfgCache.showReplay !== false) replayBtn.classList.add("show");
+    const hasReplayableMedia = cfgCache.source === "youtube"
+      ? !!extractYouTubeId(cfgCache.youtubeUrl)
+      : memories.length > 0;
+    if (hasReplayableMedia && cfgCache.showReplay !== false) replayBtn.classList.add("show");
     continueBtn.classList.add("show");
     ambientGlowEl.classList.add("show");
   }
@@ -289,6 +422,7 @@
       if (requestToken !== showRequestSeq) return;
       clearTimeout(loadingTimeoutId);
       hideGate();
+      setOverlayActive(false);
       hidePoster();
       layer.classList.add("active");
       other.classList.remove("active");
@@ -463,12 +597,18 @@
 
   function beginPlayback() {
     hideGate();
+    if (cfgCache.source === "youtube") {
+      if (!extractYouTubeId(cfgCache.youtubeUrl)) { setFrameEmpty(true); showEndedGate(); return; }
+      beginPlaybackYoutube();
+      return;
+    }
     if (memories.length === 0) { setFrameEmpty(true); showEndedGate(); return; }
     showLoadingGate(false);
     loadItem(0);
   }
 
   function retryCurrent() {
+    if (cfgCache.source === "youtube") { retryYoutube(); return; }
     const idx = currentIndex();
     loadItem(idx === -1 ? 0 : idx);
   }
@@ -482,6 +622,7 @@
      sitting in memory. Falls back to a normal (fresh) loadItem(0) only
      if that element is somehow gone or was a different item/type. */
   function replayFromStart() {
+    if (cfgCache.source === "youtube") { replayYoutube(); return; }
     clearTimers();
     const first = memories[0];
     if (!first) { loadItem(0); return; }
@@ -497,12 +638,112 @@
   }
 
   /* -------------------------------------------------------------------- *
+   *  YouTube playback - mirrors the upload path's shape (loading gate ->
+   *  reveal/hide gate -> stall watchdog -> endSequence) but drives it
+   *  from YT.PlayerState events instead of <video> events. Same gate
+   *  functions, same timers, same Auto Continue/Replay/Continue logic -
+   *  one Nur state model for both sources (Module 13).
+   *  ---------------------------------------------------------------------*/
+  function beginPlaybackYoutube() {
+    const id = extractYouTubeId(cfgCache.youtubeUrl);
+    if (!id) { showStalledGate(); return; }
+    showLoadingGate(false);
+    armLoadingTimeout();
+    ytPendingPlay = true;
+    const requestToken = ++showRequestSeq;
+    loadYouTubeApi().then((YT) => {
+      if (!ytPendingPlay || requestToken !== showRequestSeq) return; // superseded by a re-entry/retry while the API was loading
+      youtubeEl.hidden = false;
+      if (ytPlayer && ytReady) {
+        try { ytPlayer.loadVideoById(id); } catch (err) { showStalledGate(); }
+        return;
+      }
+      if (ytPlayer) return; // constructing already, onReady below will pick it up
+      ytPlayer = new YT.Player(youtubeEl, {
+        videoId: id,
+        playerVars: {
+          controls: 0, modestbranding: 1, rel: 0, iv_load_policy: 3,
+          fs: 0, disablekb: 1, playsinline: 1, origin: location.origin
+        },
+        events: {
+          onReady: () => { ytReady = true; if (ytPendingPlay) playYoutube(); },
+          onStateChange: onYoutubeStateChange,
+          onError: onYoutubeError
+        }
+      });
+    });
+  }
+
+  function playYoutube() {
+    try { ytPlayer.playVideo(); } catch (err) { showStalledGate(); }
+  }
+
+  function onYoutubeStateChange(e) {
+    if (!window.YT) return;
+    const S = window.YT.PlayerState;
+    if (e.data === S.PLAYING) {
+      clearTimeout(loadingTimeoutId);
+      hideGate();
+      setOverlayActive(false);
+      hidePoster();
+      armStallWatchdog();
+      startYoutubeHeartbeat();
+    } else if (e.data === S.BUFFERING) {
+      armStallWatchdog(); // generous - normal mid-playback buffering shouldn't instantly read as broken
+    } else if (e.data === S.ENDED) {
+      clearTimeout(stallTimeoutId);
+      stopYoutubeHeartbeat();
+      endSequence(); // exact same hold -> Replay/Continue (or Auto Continue) logic as the upload path
+    }
+  }
+
+  function onYoutubeError() {
+    showStalledGate();
+  }
+
+  function retryYoutube() {
+    ytPendingPlay = true;
+    if (ytPlayer && ytReady) { playYoutube(); return; }
+    beginPlaybackYoutube();
+  }
+
+  function replayYoutube() {
+    hideGate();
+    ytPendingPlay = true;
+    if (ytPlayer && ytReady) {
+      try { ytPlayer.seekTo(0); ytPlayer.playVideo(); armStallWatchdog(); } catch (err) { beginPlaybackYoutube(); }
+    } else {
+      beginPlaybackYoutube();
+    }
+  }
+
+  /* Called on every entry (real, preview, or re-entry) - stops any
+     already-playing YouTube video and hides its box rather than leaving
+     it running behind a fresh preplay poster. Safe no-op if no player
+     exists yet (the common case: nothing has ever played). */
+  function resetYoutubePlayback() {
+    ytPendingPlay = false;
+    stopYoutubeHeartbeat();
+    if (ytPlayer && ytReady) {
+      try { ytPlayer.pauseVideo(); } catch (err) { /* ignore */ }
+    }
+    if (youtubeEl) youtubeEl.hidden = true;
+  }
+
+  /* -------------------------------------------------------------------- *
    *  Config application - reads config.projector (the real config object,
    *  same one every other stage uses) and drives the same CSS vars the
    *  prototype's applyMemoryConfig did, plus every editable text surface
    *  (Module 22/23) so admin edits reflect instantly regardless of which
    *  gate state happens to be showing.
    *  ---------------------------------------------------------------------*/
+  function hexToRgba(hex, alphaPct) {
+    const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex || "");
+    if (!m) return null;
+    const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+    return "rgba(" + r + "," + g + "," + b + "," + (Math.max(0, Math.min(100, alphaPct)) / 100).toFixed(2) + ")";
+  }
+
   function applyProjectorConfig(cfg) {
     const root = document.documentElement.style;
     const preset = PROJECTOR_PRESETS[cfg.preset] || PROJECTOR_PRESETS.balanced;
@@ -546,6 +787,17 @@
     if (skipBtn) skipBtn.textContent = cfg.skipText || "ادامه بدون فیلم";
     if (replayBtn) replayBtn.textContent = cfg.replayText || "پخش دوباره";
     if (continueBtn) continueBtn.textContent = cfg.continueText || "ادامه";
+
+    // Overlay appearance (Module 2/3 - admin's "ظاهر پیام‌های روی ویدیو").
+    // Static per-config, unlike --proj-overlay-blur/dim/desat above which
+    // toggle per gate state (see setOverlayActive()).
+    const ov = cfg.overlay || {};
+    const tintStrong = hexToRgba(ov.tint, typeof ov.tintOpacity === "number" ? ov.tintOpacity : 55);
+    const tintSoft = hexToRgba(ov.tint, (typeof ov.tintOpacity === "number" ? ov.tintOpacity : 55) * 0.7);
+    root.setProperty("--proj-overlay-tint-strong", tintStrong || "rgba(17,13,8,.42)");
+    root.setProperty("--proj-overlay-tint-soft", tintSoft || "rgba(17,13,8,.3)");
+    root.setProperty("--proj-overlay-text", ov.textColor || "#f6efe0");
+    root.setProperty("--proj-overlay-accent", ov.accentColor || "#f6efe0");
   }
 
   /* -------------------------------------------------------------------- *
@@ -573,6 +825,7 @@
     endedActionsEl = document.getElementById("projEndedActions");
     replayBtn = document.getElementById("projReplayBtn");
     continueBtn = document.getElementById("projContinueBtn");
+    youtubeEl = document.getElementById("projYouTube");
 
     const overlay = document.getElementById("projFrameOverlay");
     if (overlay) {
@@ -597,17 +850,21 @@
   function resetToEntry(cfg) {
     clearTimers();
     hidePoster();
+    resetYoutubePlayback();
     cfgCache = cfg || {};
     applyProjectorConfig(cfgCache);
     syncMemoriesFromConfig(cfgCache.items);
-    setFrameEmpty(memories.length === 0);
+    const isYoutube = cfgCache.source === "youtube";
+    setFrameEmpty(!isYoutube && memories.length === 0);
     armEntrance();
-    // Nothing uploaded yet (Projector turned on before any memory was
-    // added) - skip the play prompt entirely rather than inviting a tap
-    // that leads nowhere; go straight to the one control that's actually
-    // meaningful here (Module 12: Final must always stay reachable,
-    // including when media is simply missing).
-    if (memories.length === 0) {
+    // Nothing configured for the active source yet (Projector turned on
+    // before any memory was uploaded, or YouTube mode with no URL yet) -
+    // skip the play prompt entirely rather than inviting a tap that leads
+    // nowhere; go straight to the one control that's actually meaningful
+    // here (Module 12: Final must always stay reachable, including when
+    // media is simply missing).
+    const hasMedia = isYoutube ? !!extractYouTubeId(cfgCache.youtubeUrl) : memories.length > 0;
+    if (!hasMedia) {
       showEndedGate();
     } else {
       showPreplayGate();
@@ -653,7 +910,7 @@
     // it mid-playback or after the memory ended would just be invisible
     // until the next real entry anyway, so there is nothing to update.
     if (posterEl && playBtn && playBtn.classList.contains("show")) {
-      applyPoster(cfgCache.poster);
+      applyPoster(currentPosterUrl());
     }
   }
 
@@ -674,7 +931,18 @@
       new Image().src = FRAME_MASK_SRC;
     }
     new Image().src = FRAME_OVERLAY_SRC;
-    if (cfg.poster) new Image().src = cfg.poster;
+    if (cfg.poster) {
+      new Image().src = cfg.poster;
+    } else if (cfg.source === "youtube") {
+      const id = extractYouTubeId(cfg.youtubeUrl);
+      if (id) new Image().src = "https://img.youtube.com/vi/" + id + "/maxresdefault.jpg";
+    }
+    // Module 17 - only the active source ever loads anything beyond the
+    // frame's own decorative assets above (those are shared by both).
+    if (cfg.source === "youtube") {
+      if (extractYouTubeId(cfg.youtubeUrl)) loadYouTubeApi(); // script only - no player/video data yet
+      return;
+    }
     if (preloadEl) return;
     const items = Array.isArray(cfg.items) ? cfg.items : [];
     const first = items[0];

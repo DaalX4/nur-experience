@@ -251,6 +251,29 @@
       centerY: 50,
       bgFillIntensity: 0,
       items: [],
+      /* Media source mode - "upload" (default) plays config.items through
+         the existing multi-item engine untouched; "youtube" is a second,
+         independent path that plays exactly ONE video from youtubeUrl
+         (every module describing it says "the YouTube video", never a
+         list - a paste-a-link feature, not an upload queue). Switching
+         source never clears the other source's data (Module 16) - only
+         the active one is ever read/loaded (Module 17). */
+      source: "upload",
+      youtubeUrl: "",
+      /* Visual language for every gate overlay (loading/stalled/ended) -
+         see projector.js's applyOverlayState()/showXGate(). Deliberately
+         6 controls, not the fuller list once considered: border-radius
+         and border-opacity are fixed in CSS at values already tuned to
+         match the frame, not exposed here, because good defaults matter
+         more than exhaustive customization for a field this narrow. */
+      overlay: {
+        blur: 6,
+        dim: 30,
+        tint: "#171008",
+        tintOpacity: 55,
+        textColor: "#f6efe0",
+        accentColor: "#f6efe0"
+      },
       /* Pre-play reveal (see projector.js's state machine): the title
          shown above the frame before the viewer taps play, and the play
          button's own label. Kept to just these two text surfaces - a

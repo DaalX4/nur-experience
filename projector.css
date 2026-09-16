@@ -174,12 +174,20 @@
   z-index:1;
   inset:var(--proj-fg-inset-top,3%) var(--proj-fg-inset-right,6%) var(--proj-fg-inset-bottom,6%) var(--proj-fg-inset-left,6%);
 }
+/* --proj-overlay-blur/dim/desat default to neutral (0px/1/1 - a real
+   no-op) and are only ever set (with a smooth transition) while a gate
+   state with message text is showing - see projector.js's
+   setOverlayActive(). Appended to the SAME filter list as the existing
+   nostalgia treatment rather than a second filtered wrapper element, so
+   there is exactly one paint cost, not two stacked filter contexts. */
 .media-slot img,
 .media-slot video{
   width:100%;
   height:100%;
   display:block;
-  filter:saturate(.88) sepia(.15) contrast(1.05) brightness(.98) blur(calc(.3px + var(--proj-extra-blur-px,0px)));
+  filter:saturate(.88) sepia(.15) contrast(1.05) brightness(.98) blur(calc(.3px + var(--proj-extra-blur-px,0px)))
+         blur(var(--proj-overlay-blur,0px)) brightness(var(--proj-overlay-dim,1)) saturate(var(--proj-overlay-desat,1));
+  transition:filter .5s ease;
 }
 /* Foreground: no translate, ever - the only transform allowed is a
    shrink (always <=1, so it can only pull content further from every
@@ -205,11 +213,33 @@
   object-fit:contain;
   object-position:var(--proj-fg-obj-pos,50% 50%);
   transform:scale(var(--proj-fg-shrink,1));
-  filter:saturate(.88) sepia(.15) contrast(1.05) brightness(.98) blur(calc(.3px + var(--proj-extra-blur-px,0px)));
+  filter:saturate(.88) sepia(.15) contrast(1.05) brightness(.98) blur(calc(.3px + var(--proj-extra-blur-px,0px)))
+         blur(var(--proj-overlay-blur,0px)) brightness(var(--proj-overlay-dim,1)) saturate(var(--proj-overlay-desat,1));
   opacity:1;
-  transition:opacity .6s ease;
+  transition:opacity .6s ease, filter .5s ease;
 }
 .proj-poster[hidden]{display:none}
+
+/* YouTube mode target - same box as the video slot (.media-fg's inset)
+   so it sits inside the same mask/crop area; the iframe itself gets the
+   SAME overlay blur/dim/desat treatment via CSS filter (a regular
+   render-tree element, filters apply the same as any other node). An
+   iframe can't be told to letterbox like a <video> with object-fit -
+   YouTube's own player fills the box it's given (documented limitation,
+   not something CSS can fix without hacking the player). */
+.proj-youtube{
+  position:absolute;
+  z-index:1;
+  inset:var(--proj-fg-inset-top,3%) var(--proj-fg-inset-right,6%) var(--proj-fg-inset-bottom,6%) var(--proj-fg-inset-left,6%);
+  overflow:hidden;
+  filter:saturate(.88) sepia(.1) contrast(1.03)
+         blur(var(--proj-overlay-blur,0px)) brightness(var(--proj-overlay-dim,1)) saturate(var(--proj-overlay-desat,1));
+  transition:filter .5s ease;
+}
+.proj-youtube[hidden]{display:none}
+.proj-youtube iframe{
+  position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none;
+}
 .proj-poster.hide{opacity:0}
 
 /* Background fill (optional, off by default) - always cover, scaled up
@@ -423,15 +453,22 @@
    Skip only appear when a video has stalled/errored; Replay/Continue
    only appear after it has already ended) - it never competes with
    video decode. */
+/* Colors here all read from --proj-overlay-* custom properties, set by
+   projector.js from config.projector.overlay (admin's "ظاهر پیام‌های روی
+   ویدیو" section) - --proj-overlay-tint-strong/soft are pre-mixed rgba()
+   strings (hex + opacity combined in JS, not CSS color-mix(), for wider
+   browser support), everything else falls back to the exact same warm
+   ivory-on-dark-glass values already tuned here if the vars are ever
+   unset (e.g. an old cached config without the overlay section yet). */
 .proj-gate-text{
   margin:0;
   max-width:46ch;
   font-family:var(--font-display);
   font-size:16px;
   line-height:1.65;
-  color:#f6efe0;
+  color:var(--proj-overlay-text,#f6efe0);
   text-shadow:0 1px 4px rgba(0,0,0,.55);
-  background:rgba(17,13,8,.42);
+  background:var(--proj-overlay-tint-strong,rgba(17,13,8,.42));
   padding:11px 22px;
   border-radius:10px;
   backdrop-filter:blur(4px);
@@ -441,25 +478,24 @@
 .proj-gate-text.show{display:block}
 .proj-gate-btn{
   display:none;
-  border:1px solid rgba(246,239,224,.4);
+  border:1px solid color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 40%, transparent);
   border-radius:12px;
   padding:13px 34px;
   font-family:var(--font-display);
   font-size:16px;
   letter-spacing:.02em;
   cursor:pointer;
-  background:rgba(20,16,10,.45);
-  color:#f6efe0;
-  box-shadow:0 0 26px rgba(246,239,224,.14), 0 10px 24px rgba(0,0,0,.35);
+  background:var(--proj-overlay-tint-strong,rgba(20,16,10,.45));
+  color:var(--proj-overlay-text,#f6efe0);
+  box-shadow:0 0 26px color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 14%, transparent), 0 10px 24px rgba(0,0,0,.35);
   backdrop-filter:blur(5px);
   -webkit-backdrop-filter:blur(5px);
   transition:box-shadow .3s ease, border-color .3s ease, transform .25s ease, background .3s ease;
 }
 .proj-gate-btn:hover{
-  border-color:rgba(246,239,224,.65);
-  box-shadow:0 0 36px rgba(246,239,224,.22), 0 12px 28px rgba(0,0,0,.4);
+  border-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 65%, transparent);
+  box-shadow:0 0 36px color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 22%, transparent), 0 12px 28px rgba(0,0,0,.4);
   transform:translateY(-1px);
-  background:rgba(28,22,14,.52);
 }
 .proj-gate-btn.show{display:inline-block}
 .proj-gate-actions{
@@ -469,7 +505,7 @@
   justify-content:center;
   padding:9px 18px;
   border-radius:10px;
-  background:rgba(17,13,8,.3);
+  background:var(--proj-overlay-tint-soft,rgba(17,13,8,.3));
   backdrop-filter:blur(3px);
   -webkit-backdrop-filter:blur(3px);
 }
@@ -480,17 +516,17 @@
   padding:4px 2px;
   font-family:var(--font-display);
   font-size:14px;
-  color:#f6efe0;
+  color:var(--proj-overlay-text,#f6efe0);
   opacity:.82;
   text-shadow:0 1px 4px rgba(0,0,0,.5);
   text-decoration:underline;
-  text-decoration-color:rgba(246,239,224,.4);
+  text-decoration-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 40%, transparent);
   text-underline-offset:4px;
   cursor:pointer;
   transition:opacity .25s ease, text-decoration-color .25s ease;
 }
-.proj-gate-link:hover{ opacity:1; text-decoration-color:rgba(246,239,224,.8); }
-.proj-gate-link--primary{ font-weight:600; opacity:.95; }
+.proj-gate-link:hover{ opacity:1; text-decoration-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 80%, transparent); }
+.proj-gate-link--primary{ font-weight:600; opacity:.95; color:var(--proj-overlay-accent,#f6efe0); }
 @media (prefers-reduced-motion: reduce){
   .proj-gate{transition:none}
 }
