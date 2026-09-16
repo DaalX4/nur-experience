@@ -264,18 +264,24 @@
       },
       playButtonText: "بذار ببینمش",
       /* What happens once the last memory finishes: hold the last frame
-         for continueDelaySec (the "brief emotional pause"), then either
-         auto-advance to Final (autoContinue true, the default) or wait
-         for a manual tap (false - projector.js shows a small Continue
-         action in that case). showSkip controls whether a "ادامه بدون
-         فیلم" escape hatch appears during loading/stalled states - kept
-         on by default per the "Final must always be reachable" rule.
-         loop is OFF by default (no more forever-looping single item) -
-         an advanced/rare opt-in to replay the sequence instead of
-         ending, exposed under Projector's "تنظیمات پیشرفته" disclosure. */
-      autoContinue: true,
+         for continueDelaySec (the "brief emotional pause" - always
+         happens, auto or not), then EITHER auto-advance to Final
+         (autoContinue true) OR reveal the calm reaction gate - Replay +
+         ادامه - and wait indefinitely for a manual tap (autoContinue
+         false, now the DEFAULT - a streamer needs room to react to a
+         memory on stream, not a silent jump to the next scene).
+         showSkip/showReplay independently control the two escape
+         hatches: showSkip is the loading/stalled "ادامه بدون فیلم" (Final
+         must always stay reachable even when media fails), showReplay is
+         the ended-state "پخش دوباره" (hidden if the admin would rather
+         only offer Continue). loop is OFF by default (no more forever-
+         looping single item) - an advanced/rare opt-in to replay the
+         whole sequence automatically instead of ending, exposed under
+         Projector's "تنظیمات پیشرفته" disclosure. */
+      autoContinue: false,
       continueDelaySec: 1.3,
       showSkip: true,
+      showReplay: true,
       loop: false
     }
   };

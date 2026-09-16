@@ -632,7 +632,13 @@
             <button type="button" class="proj-gate-link" id="projRetryBtn">دوباره تلاش کن</button>
             <button type="button" class="proj-gate-link" id="projSkipBtn">ادامه بدون فیلم</button>
           </div>
-          <button type="button" class="proj-gate-btn proj-gate-btn--continue" id="projContinueBtn">ادامه</button>
+          <!-- The calm, indefinite-wait reaction state after the memory
+               finishes - deliberately no headline copy here, just two
+               quiet actions once the hold ends (see projector.js). -->
+          <div class="proj-gate-actions proj-gate-actions--ended" id="projEndedActions">
+            <button type="button" class="proj-gate-link" id="projReplayBtn">پخش دوباره</button>
+            <button type="button" class="proj-gate-link proj-gate-link--primary" id="projContinueBtn">ادامه</button>
+          </div>
         </div>
       </div>
       <img class="frame-overlay" id="projFrameOverlay" alt="">

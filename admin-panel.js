@@ -200,6 +200,7 @@
         { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%" },
         { type: "buttons", path: ["projector", "autoContinue"], label: "ادامه خودکار بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
         { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه" },
+        { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
         { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
         { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", advanced: true },
         { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", advanced: true },

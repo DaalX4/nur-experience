@@ -18,14 +18,18 @@
      config Save flow, so every visitor and every future admin session
      sees the same memories - never session-local blob URLs.
 
-   State machine (the actual architecture change from the first cut of this
-   stage): preplay -> loading -> playing -> (stalled <-> playing/loading) ->
-   ended-hold -> ended-manual | done. Every path that can go wrong (missing
-   media, network error, decode error, stall, timeout, explicit skip) funnels
-   into the SAME "stalled" gate with Retry/Skip - there is exactly one way
-   out of trouble, not a different dead end for each failure mode. "done"
-   always calls the same onDone callback app.js already wires to
-   stage-final, so Final is reachable from every single one of those paths.
+   State machine: preplay -> loading -> playing -> (stalled <-> playing/
+   loading) -> ended-hold -> ended (Replay/Continue, waits indefinitely by
+   default) -> done. Every path that can go wrong (missing media, network
+   error, decode error, stall, timeout, explicit skip) funnels into the
+   SAME "stalled" gate with Retry/Skip - there is exactly one way out of
+   trouble, not a different dead end for each failure mode. A memory
+   finishing normally does NOT jump straight to done: it holds briefly,
+   then reveals a calm Replay/Continue gate and waits for the viewer to
+   decide (Auto Continue, off by default, skips straight to done instead
+   after the same hold). "done" always calls the same onDone callback
+   app.js already wires to stage-final, so Final is reachable from every
+   single one of those paths.
    ============================================================================ */
 (() => {
   "use strict";
@@ -51,7 +55,7 @@
   let cfgCache = null;
 
   let layers, frameMediaEl, captionEl, titleEl, ambientGlowEl;
-  let gateEl, gateTextEl, playBtn, gateActionsEl, retryBtn, skipBtn, continueBtn;
+  let gateEl, gateTextEl, playBtn, gateActionsEl, retryBtn, skipBtn, endedActionsEl, replayBtn, continueBtn;
 
   let loadingTimeoutId = null;
   let stallTimeoutId = null;
@@ -112,6 +116,10 @@
     gateTextEl.classList.remove("show");
     playBtn.classList.remove("show");
     gateActionsEl.classList.remove("show");
+    retryBtn.classList.remove("show");
+    skipBtn.classList.remove("show");
+    endedActionsEl.classList.remove("show");
+    replayBtn.classList.remove("show");
     continueBtn.classList.remove("show");
     ambientGlowEl.classList.remove("show");
   }
@@ -127,24 +135,39 @@
   function showLoadingGate(withEscape) {
     hideGate();
     gateEl.classList.add("show");
-    gateTextEl.textContent = "دارم چند تکه‌ی قدیمی رو پیدا می‌کنم...";
+    gateTextEl.textContent = "دارم خاطره رو آماده می‌کنم...";
     gateTextEl.classList.add("show");
     ambientGlowEl.classList.add("show");
-    if (withEscape) gateActionsEl.classList.add("show");
+    if (withEscape && cfgCache.showSkip !== false) {
+      gateActionsEl.classList.add("show");
+      retryBtn.classList.add("show");
+      skipBtn.classList.add("show");
+    }
   }
 
   function showStalledGate() {
     hideGate();
     gateEl.classList.add("show");
-    gateTextEl.textContent = "انگار بعضی خاطره‌ها کمی دیرتر می‌رسن.";
+    gateTextEl.textContent = "انگار این خاطره کمی دیرتر می‌رسه...";
     gateTextEl.classList.add("show");
     gateActionsEl.classList.add("show");
+    retryBtn.classList.add("show");
+    if (cfgCache.showSkip !== false) skipBtn.classList.add("show");
     ambientGlowEl.classList.add("show");
   }
 
-  function showManualContinueGate() {
+  /* The calm, indefinite-wait reaction state once a memory actually
+     finishes (as opposed to showStalledGate above, which is for when
+     something went wrong) - deliberately no headline text, just the
+     quiet actions once the hold ends (see endSequence()). Replay only
+     appears when there is something to replay AND the admin hasn't
+     hidden it; Continue is the only action that can never be hidden -
+     it is the sole way out once Auto Continue is off. */
+  function showEndedGate() {
     hideGate();
     gateEl.classList.add("show");
+    endedActionsEl.classList.add("show");
+    if (memories.length > 0 && cfgCache.showReplay !== false) replayBtn.classList.add("show");
     continueBtn.classList.add("show");
     ambientGlowEl.classList.add("show");
   }
@@ -154,9 +177,7 @@
    *  ---------------------------------------------------------------------*/
   function armLoadingTimeout() {
     clearTimeout(loadingTimeoutId);
-    loadingTimeoutId = setTimeout(() => {
-      if (cfgCache.showSkip !== false) showLoadingGate(true);
-    }, LOADING_TIMEOUT_MS);
+    loadingTimeoutId = setTimeout(() => showLoadingGate(true), LOADING_TIMEOUT_MS);
   }
 
   function armStallWatchdog() {
@@ -167,7 +188,7 @@
   }
 
   function loadItem(index) {
-    if (memories.length === 0) { setFrameEmpty(true); showManualContinueGate(); return; }
+    if (memories.length === 0) { setFrameEmpty(true); showEndedGate(); return; }
     setFrameEmpty(false);
     const item = memories[index];
     currentId = item.id;
@@ -185,6 +206,14 @@
       hideGate();
       layer.classList.add("active");
       other.classList.remove("active");
+      // Stop the outgoing layer's media immediately instead of only
+      // hiding it - otherwise it keeps decoding (and, for video, keeps
+      // making sound) in the background until this layer slot happens
+      // to be reused two items later. Found while testing Replay:
+      // replaying the same item while its previous copy was still
+      // "inactive but playing" produced two overlapping video/audio
+      // streams - a real correctness bug, not just a resize/perf one.
+      other.querySelectorAll("video").forEach((v) => v.pause());
       currentEl = el;
 
       captionEl.classList.remove("show");
@@ -317,16 +346,19 @@
   }
 
   /* Last frame/ambience lingers briefly ("something settling"), then
-     either moves on by itself or waits for one manual tap - never loops
-     forever by default (the actual bug this whole pass exists to fix). */
+     either moves on by itself (Auto Continue) or reveals the calm
+     Replay/Continue gate and waits indefinitely - never loops forever
+     by default, and never rushes straight to Final either (Auto
+     Continue now defaults OFF: a streamer needs room to react to a
+     memory, not a silent jump to the next scene). */
   function endSequence() {
     clearTimeout(advanceTimer);
     const delayMs = Math.max(0, (typeof cfgCache.continueDelaySec === "number" ? cfgCache.continueDelaySec : 1.3) * 1000);
     advanceTimer = setTimeout(() => {
-      if (cfgCache.autoContinue === false) {
-        showManualContinueGate();
-      } else {
+      if (cfgCache.autoContinue) {
         callFinish();
+      } else {
+        showEndedGate();
       }
     }, delayMs);
   }
@@ -339,7 +371,7 @@
   function beginPlayback() {
     hideGate();
     titleEl.classList.remove("show");
-    if (memories.length === 0) { setFrameEmpty(true); showManualContinueGate(); return; }
+    if (memories.length === 0) { setFrameEmpty(true); showEndedGate(); return; }
     showLoadingGate(false);
     loadItem(0);
   }
@@ -347,6 +379,29 @@
   function retryCurrent() {
     const idx = currentIndex();
     loadItem(idx === -1 ? 0 : idx);
+  }
+
+  /* Replay restarts the WHOLE sequence from the first memory (Module 4:
+     "restart from the beginning"), not just whichever item happened to
+     be last - in the common case (one clip) these are the same thing.
+     Reuses the exact, already-buffered <video> element in place instead
+     of tearing it down and recreating it whenever that element is still
+     the one showing - no redundant re-fetch of something already
+     sitting in memory. Falls back to a normal (fresh) loadItem(0) only
+     if that element is somehow gone or was a different item/type. */
+  function replayFromStart() {
+    clearTimers();
+    const first = memories[0];
+    if (!first) { loadItem(0); return; }
+    const canReuse = currentIndex() === 0 && first.type === "video" &&
+      currentEl && currentEl.tagName === "VIDEO" && currentEl.src === first.src;
+    if (canReuse) {
+      hideGate();
+      try { currentEl.currentTime = first.trimStart || 0; } catch (err) { /* ignore */ }
+      currentEl.play().then(armStallWatchdog).catch(() => loadItem(0));
+    } else {
+      loadItem(0);
+    }
   }
 
   /* -------------------------------------------------------------------- *
@@ -422,6 +477,8 @@
       gateActionsEl = document.getElementById("projGateActions");
       retryBtn = document.getElementById("projRetryBtn");
       skipBtn = document.getElementById("projSkipBtn");
+      endedActionsEl = document.getElementById("projEndedActions");
+      replayBtn = document.getElementById("projReplayBtn");
       continueBtn = document.getElementById("projContinueBtn");
 
       const overlay = document.getElementById("projFrameOverlay");
@@ -433,6 +490,7 @@
       playBtn.addEventListener("click", beginPlayback);
       retryBtn.addEventListener("click", retryCurrent);
       skipBtn.addEventListener("click", callFinish);
+      replayBtn.addEventListener("click", replayFromStart);
       continueBtn.addEventListener("click", callFinish);
     }
     clearTimers();
@@ -445,7 +503,7 @@
     // that's actually meaningful here (see Module 5: Final must always
     // stay reachable, including when media is simply missing).
     if (memories.length === 0) {
-      showManualContinueGate();
+      showEndedGate();
     } else {
       showPreplayGate();
     }
