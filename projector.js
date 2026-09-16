@@ -303,6 +303,23 @@
     audioHintTimeoutId = setTimeout(() => audioHintEl.classList.remove("show"), durationMs);
   }
 
+  /* Admin-only preview (Module 4 - "I cannot see the reminder while
+     editing, it only appears after playback starts"). Shows the exact
+     same element with NO auto-hide timer, so the admin can freely tweak
+     every "صدا" slider/color and see it update live without playing
+     anything or waiting 5 seconds. Real visitors never call this - it's
+     wired to a dedicated admin-panel button, not any real playback path.
+     previewEnter()/resetToEntry() (run every time the admin switches
+     tabs) already call hideAudioHint() via showPreplayGate(), so leaving
+     the preview open never leaks into a real state. */
+  function previewAudioHint() {
+    if (!audioHintEl) return;
+    const audio = (cfgCache && cfgCache.audio) || {};
+    hideAudioHint();
+    audioHintTextEl.textContent = audio.hintText || "صدا روشنه";
+    audioHintEl.classList.add("show");
+  }
+
   /* Module 7 - audible autoplay got rejected by browser policy and
      playback fell back to muted. A persistent (no auto-hide timer),
      clickable action instead of the plain reminder above - clicking it
@@ -1049,16 +1066,25 @@
     root.setProperty("--proj-overlay-tint-strong", tintStrong || "rgba(17,13,8,.42)");
     root.setProperty("--proj-overlay-text", ov.textColor || "#f6efe0");
 
-    // Audio reminder/fallback appearance + corner placement (Module 5).
+    // Audio reminder/fallback appearance + free-form placement (Module
+    // 5) - manual X/Y replaced the old 4-corner presets.
     const audio = cfg.audio || {};
-    root.setProperty("--proj-audio-hint-size", (typeof audio.hintIconSize === "number" ? audio.hintIconSize : 20) + "px");
-    root.setProperty("--proj-audio-hint-color", audio.hintColor || "#f6efe0");
+    root.setProperty("--proj-audio-hint-x", (typeof audio.hintX === "number" ? audio.hintX : 88) + "%");
+    root.setProperty("--proj-audio-hint-y", (typeof audio.hintY === "number" ? audio.hintY : 88) + "%");
+    root.setProperty("--proj-audio-hint-icon-display", audio.hintIconEnabled === false ? "none" : "inline");
+    root.setProperty("--proj-audio-hint-icon-size", (typeof audio.hintIconSize === "number" ? audio.hintIconSize : 20) + "px");
+    root.setProperty("--proj-audio-hint-icon-color", audio.hintIconColor || "#f6efe0");
+    root.setProperty("--proj-audio-hint-text-color", audio.hintTextColor || "#f6efe0");
+    root.setProperty("--proj-audio-hint-text-size", (typeof audio.hintTextSize === "number" ? audio.hintTextSize : 13) + "px");
     root.setProperty("--proj-audio-hint-opacity", (typeof audio.hintOpacity === "number" ? Math.max(0, Math.min(100, audio.hintOpacity)) : 90) / 100);
     root.setProperty("--proj-audio-hint-glow", (typeof audio.hintGlow === "number" ? Math.max(0, Math.min(100, audio.hintGlow)) * 0.12 : 3.6).toFixed(1) + "px");
-    if (audioHintEl) {
-      const pos = ["br", "bl", "tr", "tl"].includes(audio.hintPosition) ? audio.hintPosition : "br";
-      audioHintEl.classList.remove("proj-audio-hint--br", "proj-audio-hint--bl", "proj-audio-hint--tr", "proj-audio-hint--tl");
-      audioHintEl.classList.add("proj-audio-hint--" + pos);
+    // Keep the TEXT itself live too while the admin preview (or a real
+    // reminder) happens to already be showing - every other property
+    // above is a CSS var and updates for free, but textContent needs an
+    // explicit poke (same pattern as the poster's own "only while
+    // relevant" live update below).
+    if (audioHintEl && audioHintTextEl && audioHintEl.classList.contains("show") && !audioHintEl.classList.contains("proj-audio-hint--action")) {
+      audioHintTextEl.textContent = audio.hintText || "صدا روشنه";
     }
   }
 
@@ -1306,6 +1332,8 @@
     applyLive,
     preload,
     previewState,
+    previewAudioHint,
+    hideAudioHint,
     _bgEnabled: false
   };
 })();

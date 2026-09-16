@@ -312,18 +312,25 @@
          hint* fields are the small, temporary "صدا روشنه" corner
          reminder (Module 3-5) - purely cosmetic, shown for hintDuration
          seconds after playback starts (and again after Replay), never
-         blocking the video. position is one of "br"/"bl"/"tr"/"tl". */
+         blocking the video. hintX/hintY are free-form % position within
+         the frame (manual placement replaced the old 4-corner presets -
+         not flexible enough) - default places it near the bottom-right,
+         same as the old "br" preset, until the admin drags it elsewhere. */
       audio: {
         enabled: true,
         volume: 100,
         hintEnabled: true,
         hintText: "صدا روشنه",
         hintDuration: 5,
+        hintIconEnabled: true,
         hintIconSize: 20,
-        hintColor: "#f6efe0",
+        hintIconColor: "#f6efe0",
+        hintTextColor: "#f6efe0",
+        hintTextSize: 13,
         hintOpacity: 90,
         hintGlow: 30,
-        hintPosition: "br"
+        hintX: 88,
+        hintY: 88
       },
       /* Media blur/dim behind the gate, and the status message's own
          text/plate color - see projector.js's setOverlayActive() (blur/

@@ -200,13 +200,18 @@
         { type: "buttons", path: ["projector", "audio", "enabled"], label: "پخش صدا", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "صدا" },
         { type: "slider", path: ["projector", "audio", "volume"], label: "بلندی صدا", min: 0, max: 100, step: 5, unit: "%", group: "صدا" },
         { type: "buttons", path: ["projector", "audio", "hintEnabled"], label: "نمایش یادآور صدا", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "صدا" },
+        { type: "actionButton", label: "پیش‌نمایش یادآور صدا", help: "بدون نیاز به پخش ویدیو یا صبر کردن - فقط برای زمان ویرایش. روی بازدیدکننده واقعی اثری ندارد.", buttonLabel: "نمایش پیش‌نمایش", action: () => window.NUR_PROJECTOR && window.NUR_PROJECTOR.previewAudioHint(), group: "صدا" },
         { type: "text", path: ["projector", "audio", "hintText"], label: "متن یادآور صدا", group: "صدا" },
         { type: "slider", path: ["projector", "audio", "hintDuration"], label: "مدت نمایش", min: 2, max: 10, step: 0.5, unit: " ثانیه", group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "hintX"], label: "جای‌گذاری افقی", min: 0, max: 100, step: 1, unit: "%", group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "hintY"], label: "جای‌گذاری عمودی", min: 0, max: 100, step: 1, unit: "%", group: "صدا" },
+        { type: "buttons", path: ["projector", "audio", "hintIconEnabled"], label: "نمایش آیکون", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "صدا" },
         { type: "slider", path: ["projector", "audio", "hintIconSize"], label: "اندازه آیکون", min: 14, max: 32, step: 1, unit: "px", group: "صدا" },
-        { type: "color", path: ["projector", "audio", "hintColor"], label: "رنگ آیکون / متن", group: "صدا" },
+        { type: "color", path: ["projector", "audio", "hintIconColor"], label: "رنگ آیکون", group: "صدا" },
+        { type: "slider", path: ["projector", "audio", "hintTextSize"], label: "اندازه متن", min: 10, max: 20, step: 1, unit: "px", group: "صدا" },
+        { type: "color", path: ["projector", "audio", "hintTextColor"], label: "رنگ متن", group: "صدا" },
         { type: "slider", path: ["projector", "audio", "hintOpacity"], label: "شفافیت", min: 40, max: 100, step: 5, unit: "%", group: "صدا" },
         { type: "slider", path: ["projector", "audio", "hintGlow"], label: "شدت درخشش", min: 0, max: 100, step: 5, unit: "%", group: "صدا" },
-        { type: "buttons", path: ["projector", "audio", "hintPosition"], label: "جایگاه", options: [{ label: "پایین راست", value: "br" }, { label: "پایین چپ", value: "bl" }, { label: "بالا راست", value: "tr" }, { label: "بالا چپ", value: "tl" }], group: "صدا" },
 
         /* Video/media size+position - own group, moved out of "پیشرفته"
            (a real complaint: these are basic, commonly-needed controls to
@@ -621,6 +626,17 @@
         livePreview();
         renderTabContent();
       });
+      row.appendChild(btn);
+    } else if (field.type === "actionButton") {
+      // Generic "just call this function" button - unlike resetButton,
+      // doesn't touch draft/config at all. Used for the audio reminder's
+      // admin-only live preview (Module 4): calling straight into
+      // projector.js rather than writing/reading any config value.
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nurap-btn nurap-btn--ghost";
+      btn.textContent = field.buttonLabel || "اجرا";
+      btn.addEventListener("click", () => { if (field.action) field.action(); });
       row.appendChild(btn);
     } else if (field.type === "buttons") {
       // Generic small button-group - used for both plain on/off toggles
