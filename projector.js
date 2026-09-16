@@ -10,10 +10,11 @@
      called - app.js only calls that when config.projector.enabled is true,
      so a visitor with the feature off never loads a single byte of this
      stage's media.
-   - Memory items themselves stay session-local for this pass (drag/drop a
-     memory-prep-tool.html export, or plain files, onto the frame) - the
-     same explicit scope boundary the prototype had; per-streamer persistent
-     upload is a separate, later piece of work.
+   - Memory items are persistent: they live in config.projector.items
+     (each { id, type, url, caption, pace, trimStart, trimEnd }), uploaded
+     via admin-panel.js's media-manager field and saved through the normal
+     config Save flow, so every visitor and every future admin session
+     sees the same memories - never session-local blob URLs.
    ============================================================================ */
 (() => {
   "use strict";
@@ -28,7 +29,6 @@
 
   let started = false;
   let memories = [];
-  let nextItemId = 1;
   let currentId = null;
   let currentEl = null;
   let nextLayer = 0;
@@ -36,13 +36,27 @@
   let showRequestSeq = 0;
   let onDoneCallback = null;
 
-  let layers, frameMediaEl, captionEl, dropzoneEl;
+  let layers, frameMediaEl, captionEl;
 
-  function makeItem(type, src, caption, pace, extra) {
-    return Object.assign(
-      { id: nextItemId++, type, src, caption: caption || "", pace: pace || "normal", trimStart: 0, trimEnd: null },
-      extra || {}
-    );
+  function makeItem(id, type, src, caption, pace, trimStart, trimEnd) {
+    return { id, type, src, caption: caption || "", pace: pace || "normal", trimStart: trimStart || 0, trimEnd: trimEnd || null };
+  }
+
+  /* Rebuilds the playable list from the persisted config every time
+     start()/applyLive() runs, so both a real visitor and the admin's
+     live-preview always reflect whatever was last saved - never a stale
+     in-memory list. Only re-renders (onMemoriesChanged) once the stage
+     has actually been started at least once - applyLive() also fires
+     while the projector stage has never been shown yet (e.g. editing
+     other tabs), before layers/frameMediaEl/captionEl exist to render
+     into. */
+  function syncMemoriesFromConfig(items) {
+    const list = Array.isArray(items) ? items : [];
+    memories = list
+      .filter((it) => it && it.url && (it.type === "video" || it.type === "image"))
+      .map((it) => makeItem(it.id, it.type, it.url, it.caption, it.pace, it.trimStart, it.trimEnd));
+    if (currentIndex() === -1) currentId = null;
+    if (started) onMemoriesChanged();
   }
 
   function currentIndex() {
@@ -182,22 +196,6 @@
     show(nextIdx);
   }
 
-  /* -------------------------------------------------------------------- *
-   *  Session-local ingestion - drag/drop a memory-prep-tool.html export
-   *  (manifest.json + files) or plain image/video files onto the frame.
-   *  Admin-only in practice (a visitor never drags a file onto this page),
-   *  not gated behind any login since there is nothing sensitive here -
-   *  same scope/security posture as the prototype this was ported from.
-   *  ---------------------------------------------------------------------*/
-  function readAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(reader.error || new Error("خواندن فایل ناموفق بود"));
-      reader.readAsDataURL(file);
-    });
-  }
-
   function onMemoriesChanged() {
     if (memories.length === 0) {
       currentId = null;
@@ -206,59 +204,6 @@
       return;
     }
     if (currentIndex() === -1) show(0);
-  }
-
-  async function ingestFiles(fileList) {
-    const files = Array.from(fileList);
-    const manifestFile = files.find((f) => /\.json$/i.test(f.name));
-    const byName = new Map(
-      files.filter((f) => f.type.startsWith("video/") || f.type.startsWith("image/")).map((f) => [f.name, f])
-    );
-
-    if (manifestFile) {
-      try {
-        const manifest = JSON.parse(await manifestFile.text());
-        if (manifest && Array.isArray(manifest.items)) {
-          for (const entry of manifest.items) {
-            const file = byName.get(entry.file);
-            if (!file) continue;
-            try {
-              const src = await readAsDataURL(file);
-              memories.push(makeItem(entry.type === "video" ? "video" : "image", src, entry.caption, entry.pace, {
-                trimStart: entry.trimStart || 0,
-                trimEnd: entry.trimEnd || null
-              }));
-              onMemoriesChanged();
-            } catch (err) { /* unreadable file - skip it, rest of the manifest still proceeds */ }
-            byName.delete(entry.file);
-            if (entry.poster) byName.delete(entry.poster);
-          }
-          return;
-        }
-      } catch (err) {
-        /* invalid/unreadable manifest.json - fall through to plain ingestion */
-      }
-    }
-
-    for (const file of byName.values()) {
-      try {
-        const src = await readAsDataURL(file);
-        memories.push(makeItem(file.type.startsWith("video/") ? "video" : "image", src, "", "normal"));
-        onMemoriesChanged();
-      } catch (err) { /* unreadable file - skip it, rest of the batch still proceeds */ }
-    }
-  }
-
-  function wireDropzone() {
-    ["dragenter", "dragover"].forEach((evt) => {
-      dropzoneEl.addEventListener(evt, (e) => { e.preventDefault(); dropzoneEl.classList.add("dragover"); });
-    });
-    ["dragleave", "drop"].forEach((evt) => {
-      dropzoneEl.addEventListener(evt, (e) => { e.preventDefault(); dropzoneEl.classList.remove("dragover"); });
-    });
-    dropzoneEl.addEventListener("drop", (e) => {
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) ingestFiles(e.dataTransfer.files);
-    });
   }
 
   /* -------------------------------------------------------------------- *
@@ -315,8 +260,6 @@
       layers = Array.from(document.querySelectorAll("#stage-projector .media-layer"));
       frameMediaEl = document.querySelector("#stage-projector .frame-media");
       captionEl = document.getElementById("projCaption");
-      dropzoneEl = document.getElementById("projDropzone");
-      wireDropzone();
 
       const overlay = document.getElementById("projFrameOverlay");
       if (overlay) {
@@ -327,8 +270,7 @@
       document.getElementById("projContinue").addEventListener("click", finish);
     }
     applyProjectorConfig(cfg || {});
-    setFrameEmpty(memories.length === 0);
-    if (memories.length) show(currentIndex() === -1 ? 0 : currentIndex());
+    syncMemoriesFromConfig(cfg && cfg.items); // started is now true - this renders directly
   }
 
   function finish() {
@@ -336,9 +278,14 @@
     if (onDoneCallback) onDoneCallback();
   }
 
+  function applyLive(cfg) {
+    applyProjectorConfig(cfg || {});
+    syncMemoriesFromConfig(cfg && cfg.items);
+  }
+
   window.NUR_PROJECTOR = {
     start,
-    applyLive: applyProjectorConfig,
+    applyLive,
     _bgEnabled: false
   };
 })();

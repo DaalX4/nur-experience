@@ -219,13 +219,16 @@
     /* Optional Projector/Memory stage between the countdown and the final
        page - OFF by default (see admin-panel.js). When off, app.js never
        shows the stage NOR loads projector.js's media - see the "enabled"
-       check at the call site in app.js. Appearance-only settings here;
-       the imported memories themselves are session-local (drag/drop a
-       memory-prep-tool export onto the stage while previewing it), same
-       scope boundary the standalone prototype already had - not yet
-       backed by persistent per-streamer storage.
+       check at the call site in app.js.
        preset/mediaSize/edgeFade/centerX/centerY/bgFillIntensity mirror
-       the simplified Projector Focus controls from that prototype. */
+       the simplified Projector Focus controls from the original prototype.
+       `items` is the persistent memories list - each entry
+       { id, type: "image"|"video", url, fileName, caption, pace,
+       trimStart, trimEnd }, uploaded via admin-panel.js's media-manager
+       field (REMOTE_UPLOAD_URL, same generic Wix upload endpoint the
+       paper-image field already uses) and saved into this same config
+       blob, so it persists globally through the normal Save flow - never
+       session-local blob URLs, never embedded as base64. */
     projector: {
       enabled: false,
       preset: "balanced",
@@ -233,7 +236,8 @@
       edgeFade: 50,
       centerX: 50,
       centerY: 50,
-      bgFillIntensity: 0
+      bgFillIntensity: 0,
+      items: []
     }
   };
 

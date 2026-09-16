@@ -27,7 +27,9 @@
       label: "کلی",
       screen: { stage: "stage-intro" },
       fields: [
-        { type: "text", path: ["streamerName"], label: "نام استریمر (Streamer Name)" }
+        { type: "text", path: ["streamerName"], label: "نام استریمر (Streamer Name)" },
+        { type: "color", path: ["sky", "color"], label: "رنگ آسمان" },
+        { type: "color", path: ["sky", "starColor"], label: "رنگ ستاره‌ها" }
       ]
     },
     {
@@ -175,19 +177,10 @@
       id: "countdown",
       label: "شمارش معکوس",
       screen: { stage: "stage-countdown" },
-      fields: []
-    },
-    {
-      id: "flow",
-      label: "جریان / شمارش / پروژکتور",
-      screen: { stage: "stage-countdown" },
       fields: [
-        { type: "buttons", path: ["projector", "enabled"], label: "صفحه پروژکتور / خاطرات", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
         { type: "slider", path: ["countdown", "seconds"], label: "شروع شمارش معکوس", min: 3, max: 120, step: 1, unit: " ثانیه" },
         { type: "buttons", path: ["countdown", "pulseEnabled"], label: "پالس شمارش معکوس", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
-        { type: "slider", path: ["countdown", "pulseIntensity"], label: "شدت پالس", min: 0, max: 100, step: 5, unit: "%" },
-        { type: "color", path: ["sky", "color"], label: "رنگ آسمان" },
-        { type: "color", path: ["sky", "starColor"], label: "رنگ ستاره‌ها" }
+        { type: "slider", path: ["countdown", "pulseIntensity"], label: "شدت پالس", min: 0, max: 100, step: 5, unit: "%" }
       ]
     },
     {
@@ -195,6 +188,8 @@
       label: "تنظیمات پروژکتور",
       screen: { stage: "stage-projector" },
       fields: [
+        { type: "mediaManager", path: ["projector", "items"], label: "رسانه‌های پروژکتور / خاطرات" },
+        { type: "buttons", path: ["projector", "enabled"], label: "صفحه پروژکتور / خاطرات", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
         { type: "buttons", path: ["projector", "preset"], label: "پیش‌فرض ظاهری (Preset)", options: [{ label: "Soft", value: "soft" }, { label: "Balanced", value: "balanced" }, { label: "Deep", value: "deep" }] },
         { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%" },
         { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%" },
@@ -393,6 +388,131 @@
         wrap.appendChild(btn);
       });
       refresh();
+      row.appendChild(wrap);
+    } else if (field.type === "mediaManager") {
+      // Persistent projector/memories media list - drag&drop or click to
+      // upload image/video files (via uploadMediaFile, same Wix Media
+      // Manager endpoint as the paper-image field), each becoming an
+      // entry in config.projector.items. This is the ONLY place the
+      // admin uploads projector media - it must be obvious, so it's
+      // rendered as the first field of the Projector tab.
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "display:flex; flex-direction:column; gap:10px;";
+
+      const dropzone = document.createElement("div");
+      dropzone.className = "nurap-dropzone";
+      dropzone.textContent = "فایل‌های عکس/ویدیو را اینجا رها کن یا کلیک کن";
+
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "image/*,video/*";
+      fileInput.multiple = true;
+      fileInput.style.display = "none";
+
+      const status = document.createElement("span");
+      status.className = "nurap-value";
+      status.style.textAlign = "center";
+
+      const list = document.createElement("div");
+      list.style.cssText = "display:flex; flex-direction:column; gap:8px;";
+
+      function renderList() {
+        list.textContent = "";
+        const items = getPath(draft, field.path) || [];
+        if (items.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "nurap-empty";
+          empty.textContent = "هنوز هیچ رسانه‌ای آپلود نشده.";
+          list.appendChild(empty);
+          return;
+        }
+        items.forEach((item) => {
+          const row = document.createElement("div");
+          row.style.cssText = "display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.05); border-radius:8px; padding:6px 8px;";
+
+          let thumb;
+          if (item.type === "video") {
+            thumb = document.createElement("video");
+            thumb.src = item.url;
+            thumb.muted = true;
+          } else {
+            thumb = document.createElement("img");
+            thumb.src = item.url;
+            thumb.alt = "";
+          }
+          thumb.style.cssText = "width:52px; height:38px; object-fit:cover; border-radius:6px; background:#1c2238; flex-shrink:0;";
+
+          const name = document.createElement("span");
+          name.textContent = (item.type === "video" ? "🎬 " : "🖼 ") + (item.fileName || "");
+          name.style.cssText = "flex:1; font-size:12px; color:#c7ccdc; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;";
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "nurap-btn nurap-btn--danger";
+          removeBtn.style.cssText = "flex:0 0 auto; min-width:0; padding:6px 10px;";
+          removeBtn.textContent = "حذف";
+          removeBtn.addEventListener("click", () => {
+            const current = getPath(draft, field.path) || [];
+            setPath(draft, field.path, current.filter((i) => i.id !== item.id));
+            renderList();
+            livePreview();
+          });
+
+          row.append(thumb, name, removeBtn);
+          list.appendChild(row);
+        });
+      }
+
+      async function handleFiles(files) {
+        const arr = Array.from(files || []);
+        if (arr.length === 0) return;
+        dropzone.classList.remove("nurap-dropzone--drag");
+        for (const file of arr) {
+          const isVideo = file.type.startsWith("video/");
+          const isImage = file.type.startsWith("image/");
+          if (!isVideo && !isImage) continue;
+          status.textContent = "در حال آپلود «" + file.name + "»...";
+          try {
+            const url = await uploadMediaFile(file);
+            const current = getPath(draft, field.path) || [];
+            current.push({
+              id: "m" + Date.now() + Math.random().toString(36).slice(2, 8),
+              type: isVideo ? "video" : "image",
+              url,
+              fileName: file.name,
+              caption: "",
+              pace: "normal",
+              trimStart: 0,
+              trimEnd: null
+            });
+            setPath(draft, field.path, current);
+            renderList();
+            livePreview();
+          } catch (err) {
+            status.textContent = "ناموفق: " + (err && err.message ? err.message : "خطای نامشخص");
+            return;
+          }
+        }
+        status.textContent = "آپلود شد ✓ (برای انتشار سراسری «ذخیره تغییرات» را بزن)";
+      }
+
+      dropzone.addEventListener("click", () => fileInput.click());
+      dropzone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropzone.classList.add("nurap-dropzone--drag");
+      });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("nurap-dropzone--drag"));
+      dropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        handleFiles(e.dataTransfer.files);
+      });
+      fileInput.addEventListener("change", () => {
+        handleFiles(fileInput.files);
+        fileInput.value = "";
+      });
+
+      renderList();
+      wrap.append(dropzone, fileInput, status, list);
       row.appendChild(wrap);
     } else if (field.type === "color") {
       const wrap = document.createElement("div");
@@ -681,6 +801,45 @@
     return data.url;
   }
 
+  /* Projector media upload (image or video) - same generic Wix upload
+     endpoint as the paper-image field, just without the WebP re-encode
+     (video can't go through that canvas path, and re-compressing images
+     here isn't worth the complexity for a memories reel) and a longer
+     timeout since clips are much larger than a paper PNG. Only the
+     resulting Wix Media Manager URL is ever stored in config.projector.
+     items - never raw bytes, never a local blob URL - so it persists
+     globally through the normal Save flow. */
+  async function uploadMediaFile(file) {
+    const password = getAdminPassword();
+    if (!password) throw new Error("رمز وارد نشد");
+    const base64 = await blobToBase64(file);
+    const mimeType = file.type || "application/octet-stream";
+    const extFromName = (file.name.split(".").pop() || "").toLowerCase();
+    const ext = extFromName || (mimeType.split("/")[1] || "bin");
+    const fileName = "nur-projector-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    let res;
+    try {
+      res = await fetch(api.REMOTE_UPLOAD_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, fileName, mimeType, base64 }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (res.status === 401) {
+      sessionStorage.removeItem(ADMIN_PW_KEY);
+      throw new Error("رمز اشتباه است");
+    }
+    if (!res.ok) throw new Error("آپلود ناموفق (" + res.status + ")");
+    const data = await res.json();
+    if (!data.ok || !data.url) throw new Error(data.error || "پاسخ نامعتبر از سرور");
+    return data.url;
+  }
+
   function doSave() {
     api.saveConfig(draft);
     window.NUR_APP.applyConfig(api.deepClone(draft));
@@ -844,6 +1003,13 @@
           transition:opacity .3s ease; opacity:0;
         }
         #nurAdminPanel .nurap-status--show{height:auto; opacity:1; padding-top:6px}
+        #nurAdminPanel .nurap-dropzone{
+          border:2px dashed rgba(255,255,255,.25); border-radius:10px;
+          padding:18px 10px; text-align:center; font-size:12px; color:#c7ccdc;
+          cursor:pointer; transition:border-color .2s ease, background .2s ease;
+        }
+        #nurAdminPanel .nurap-dropzone:hover{border-color:rgba(143,193,154,.6)}
+        #nurAdminPanel .nurap-dropzone--drag{border-color:#8fc19a; background:rgba(143,193,154,.1)}
       </style>
       <div class="nurap-backdrop"></div>
       <div class="nurap-panel">

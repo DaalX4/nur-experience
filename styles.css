@@ -209,24 +209,51 @@ body{
   filter:brightness(1);
 }
 
-/* Countdown pulse - a very subtle "something is approaching" brightness
-   rise on the shared sky, retriggered by app.js on every tick (see
-   pulseBackground()). --nur-pulse-amount is 0-1 (Pulse Intensity/100);
-   at 0 this animation is a real no-op (both keyframe ends resolve to the
-   same brightness), so "Pulse OFF" is simply never adding this class -
-   no separate toggle code path needed. Body-level brightness (not just
-   the ambient blob layer below) so it reads as the whole sky lifting,
-   not one spot glowing. */
+/* Countdown pulse - a very subtle "something is approaching" brightness/
+   exposure rise across the FULL screen/sky, retriggered by app.js on
+   every tick (see pulseBackground()). --nur-pulse-amount is 0-1 (Pulse
+   Intensity/100); at 0 both layers are real no-ops, so "Pulse OFF" is
+   simply never adding this class - no separate toggle code path needed.
+
+   Two layers work together instead of relying on filter:brightness()
+   alone, because brightness() is nearly imperceptible against the very
+   dark base sky color (--bg-1 is close to black) - multiplying a near-0
+   value by 1.16 is still near-0. A fixed-position full-viewport overlay
+   (.nur-pulse-overlay, a plain radial glow, NOT a circle tied to the
+   countdown number - it sits behind all stage content, id="stars"-level,
+   and is not scoped to #stage-countdown) whose opacity animates gives a
+   real, visible-but-subtle full-screen exposure lift, while the
+   brightness() filter adds a touch of extra lift to everything already
+   on screen (stars, decorations, the number itself) so the two read as
+   one coherent "sky brightening" event, not a flash/strobe/halo. */
+.nur-pulse-overlay{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 50% 42%, rgba(253,246,227,.55) 0%, rgba(253,246,227,.18) 38%, rgba(253,246,227,0) 72%);
+  opacity:0;
+  will-change:opacity;
+}
+body.nur-pulse .nur-pulse-overlay{
+  animation:nurPulseOverlay 650ms ease-out;
+}
 body.nur-pulse{
-  animation:nurCountdownPulse 450ms ease-out;
+  animation:nurCountdownPulse 650ms ease-out;
+}
+@keyframes nurPulseOverlay{
+  0%{opacity:0}
+  30%{opacity:calc(var(--nur-pulse-amount,0) * 0.85)}
+  100%{opacity:0}
 }
 @keyframes nurCountdownPulse{
   0%{filter:brightness(1)}
-  35%{filter:brightness(calc(1 + var(--nur-pulse-amount,0) * 0.16))}
+  30%{filter:brightness(calc(1 + var(--nur-pulse-amount,0) * 0.22))}
   100%{filter:brightness(1)}
 }
 @media (prefers-reduced-motion: reduce){
   body.nur-pulse{animation:none}
+  body.nur-pulse .nur-pulse-overlay{animation:none}
 }
 
 /* Hidden admin-panel toggle dot (admin-panel.js). Styled here, in the

@@ -212,30 +212,6 @@
 }
 .proj-caption.show{opacity:.85; filter:blur(0)}
 
-/* Admin-only drop zone for populating memories this session (drag/drop a
-   memory-prep-tool export, or plain image/video files) - invisible/inert
-   text for a normal visitor unless they drag a file onto the frame, which
-   nobody does by accident. See projector.js's ingestFiles. */
-.proj-dropzone{
-  position:absolute;
-  inset:0;
-  z-index:3;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding:0 30px;
-  color:rgba(240,238,230,.0);
-  font-size:13px;
-  /* Stays interactive at all times (needs to receive drag/drop events),
-     but does nothing on an ordinary click - a visitor never notices it. */
-  transition:color .2s ease, background .2s ease;
-}
-.proj-dropzone.dragover{
-  color:rgba(240,238,230,.85);
-  background:rgba(0,0,0,.35);
-}
-
 #stage-projector .scene-actions{
   margin-top:34px;
 }
