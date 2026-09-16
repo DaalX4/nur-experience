@@ -197,11 +197,26 @@
 
         { type: "youtubeSource", path: ["projector", "youtubeUrl"], label: "لینک ویدیو یوتیوب", help: "فرمت‌های watch؟v=، youtu.be و shorts پشتیبانی می‌شوند. برای بررسی سریع، از بخش «پیش‌نمایش حالت‌ها» پایین همین صفحه استفاده کن.", showIf: { path: ["projector", "source"], equals: "youtube" }, group: "یوتیوب" },
 
-        { type: "image", path: ["projector", "poster"], label: "پوستر / کاور", help: "قبل از شروع پخش نمایش داده می‌شود. اگر خالی بماند و منبع یوتیوب باشد، از تصویر بندانگشتی همان ویدیو استفاده می‌شود.", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور" },
-        { type: "buttons", path: ["projector", "posterFit"], label: "نحوه جا شدن پوستر در قاب", help: "«کامل داخل قاب» کل تصویر را بدون برش نشان می‌دهد؛ «پر کردن قاب» ممکن است لبه‌های تصویر را کمی ببرد.", options: [{ label: "کامل داخل قاب", value: "contain" }, { label: "پر کردن قاب", value: "cover" }], group: "پوستر / کاور" },
-        { type: "slider", path: ["projector", "posterScale"], label: "بزرگ‌نمایی پوستر", min: 0.5, max: 2, step: 0.05, unit: "×", group: "پوستر / کاور" },
-        { type: "slider", path: ["projector", "posterX"], label: "جای‌گذاری افقی پوستر", min: 0, max: 100, step: 1, unit: "%", group: "پوستر / کاور" },
-        { type: "slider", path: ["projector", "posterY"], label: "جای‌گذاری عمودی پوستر", min: 0, max: 100, step: 1, unit: "%", group: "پوستر / کاور" },
+        { type: "image", path: ["projector", "poster"], label: "پوستر / کاور", help: "قبل از شروع پخش نمایش داده می‌شود. اگر خالی بماند و منبع یوتیوب باشد، از تصویر بندانگشتی همان ویدیو استفاده می‌شود. هر بار که پوستر جدیدی آپلود کنی، جای‌گذاری آن به‌طور خودکار به حالت «کامل و وسط‌چین» برمی‌گردد تا نیازی به تنظیم دستی نباشد.", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور",
+          resetOnChange: [
+            { path: ["projector", "posterFit"], value: "contain" },
+            { path: ["projector", "posterScale"], value: 1 },
+            { path: ["projector", "posterX"], value: 50 },
+            { path: ["projector", "posterY"], value: 50 }
+          ]
+        },
+        { type: "buttons", path: ["projector", "posterFit"], label: "نحوه جا شدن پوستر در قاب", help: "«نمایش کامل عکس» کل تصویر را بدون برش نشان می‌دهد - پیش‌فرض و توصیه‌شده برای بیشتر تصاویر. «پر کردن قاب» ممکن است لبه‌های تصویر را کمی ببرد.", options: [{ label: "نمایش کامل عکس", value: "contain" }, { label: "پر کردن قاب", value: "cover" }], group: "پوستر / کاور" },
+        { type: "slider", path: ["projector", "posterScale"], label: "بزرگ‌نمایی پوستر (فقط برای تنظیم دستی ظریف)", min: 0.5, max: 2, step: 0.05, unit: "×", group: "پوستر / کاور" },
+        { type: "slider", path: ["projector", "posterX"], label: "جای‌گذاری افقی پوستر (فقط برای تنظیم دستی ظریف)", min: 0, max: 100, step: 1, unit: "%", group: "پوستر / کاور" },
+        { type: "slider", path: ["projector", "posterY"], label: "جای‌گذاری عمودی پوستر (فقط برای تنظیم دستی ظریف)", min: 0, max: 100, step: 1, unit: "%", group: "پوستر / کاور" },
+        { type: "resetButton", label: "حالت پوستر را به‌هم ریختی؟", buttonLabel: "بازنشانی جایگاه پوستر", group: "پوستر / کاور",
+          resetTo: [
+            { path: ["projector", "posterFit"], value: "contain" },
+            { path: ["projector", "posterScale"], value: 1 },
+            { path: ["projector", "posterX"], value: 50 },
+            { path: ["projector", "posterY"], value: 50 }
+          ]
+        },
 
         { type: "text", path: ["projector", "title", "text"], label: "عنوان بالای قاب", help: "همیشه از لحظه ورود تا پایان مرحله پروژکتور روی صفحه می‌ماند.", group: "متن‌ها: قبل از پخش" },
         { type: "slider", path: ["projector", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 32, step: 1, unit: "px", group: "متن‌ها: قبل از پخش" },
@@ -379,8 +394,25 @@
         refreshStatus();
         livePreview();
       });
+
+      // No way to clear a saved link once entered (had to overwrite the
+      // whole text box, and mixed pasting a new link with clearing the old
+      // one) - a plain, explicit remove button, same pattern as the
+      // poster/paper-image fields' "حذف" button.
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.className = "nurap-btn nurap-btn--danger";
+      clearBtn.style.cssText = "align-self:flex-start;";
+      clearBtn.textContent = "حذف لینک";
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        setPath(draft, field.path, "");
+        refreshStatus();
+        livePreview();
+      });
+
       refreshStatus();
-      row.append(input, status);
+      row.append(input, status, clearBtn);
     } else if (field.type === "textarea") {
       const ta = document.createElement("textarea");
       ta.className = "nurap-textarea";
@@ -472,10 +504,21 @@
           status.textContent = "در حال آپلود...";
           const url = await uploadPaperImage(blob, mimeType);
           setPath(draft, field.path, url);
+          // A brand new image (very likely a different aspect ratio/crop
+          // than whatever was there before) should look correct
+          // immediately, not inherit scale/X/Y tuned for the OLD image
+          // (Module 22-24: "upload -> looks good immediately -> done",
+          // never "upload -> manually fix crop every time"). Only fields
+          // that opted in via resetOnChange are touched - most "image"
+          // fields (letter paper images) don't set this and are unaffected.
+          if (field.resetOnChange) {
+            field.resetOnChange.forEach((r) => setPath(draft, r.path, r.value));
+          }
           preview.src = url;
           preview.style.display = "";
           livePreview();
           status.textContent = "آپلود شد ✓ (برای انتشار سراسری «ذخیره تغییرات» را بزن)";
+          if (field.resetOnChange) renderTabContent();
         } catch (err) {
           status.textContent = "ناموفق: " + (err && err.message ? err.message : "خطای نامشخص");
         } finally {
@@ -492,15 +535,35 @@
         removeBtn.textContent = "حذف";
         removeBtn.addEventListener("click", () => {
           setPath(draft, field.path, "");
+          if (field.resetOnChange) {
+            field.resetOnChange.forEach((r) => setPath(draft, r.path, r.value));
+          }
           preview.removeAttribute("src");
           preview.style.display = "none";
           livePreview();
           status.textContent = "حذف شد";
+          if (field.resetOnChange) renderTabContent();
         });
         wrap.appendChild(removeBtn);
       }
 
       row.appendChild(wrap);
+    } else if (field.type === "resetButton") {
+      // Generic "reset these fields back to a known-good default" button
+      // (Module 25 - "بازنشانی جایگاه" must restore a proper centered
+      // state, never another broken one). Deliberately its own small
+      // field type rather than overloading "buttons", since this doesn't
+      // read/highlight a current value - it only ever fires an action.
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nurap-btn nurap-btn--ghost";
+      btn.textContent = field.buttonLabel || "بازنشانی";
+      btn.addEventListener("click", () => {
+        field.resetTo.forEach((r) => setPath(draft, r.path, r.value));
+        livePreview();
+        renderTabContent();
+      });
+      row.appendChild(btn);
     } else if (field.type === "buttons") {
       // Generic small button-group - used for both plain on/off toggles
       // (options: [{label,value:true},{label,value:false}]) and a

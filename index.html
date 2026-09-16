@@ -682,12 +682,27 @@
              warm parchment background color. -->
         <img class="proj-poster" id="projPoster" alt="" hidden>
         <!-- YouTube mode target (config.projector.source === "youtube") -
-             projector.js creates a YT.Player against this div only when
-             that source is active and the iframe API has been lazy-
-             loaded (Module 17: never for Uploaded Media viewers). Same
-             inset/position as the video slot so it sits inside the same
-             mask/crop area. -->
-        <div class="proj-youtube" id="projYouTube" hidden></div>
+             projector.js creates a YT.Player against the INNER mount div
+             only when that source is active and the iframe API has been
+             lazy-loaded (Module 17: never for Uploaded Media viewers).
+             Same inset/position as the video slot so it sits inside the
+             same mask/crop area.
+             Two nested elements, deliberately - YT.Player REPLACES
+             whatever element you hand it with its own <iframe> (same id,
+             different node), so a cached reference to that element goes
+             stale the instant the player is created. Confirmed as the
+             actual cause of a real bug: code that later tried to hide
+             "#projYouTube" was silently updating an orphaned, detached
+             node - the real, visible iframe (which inherited the same id)
+             could never be hidden again after the first play, so it
+             stayed on screen indefinitely, stacking on top of whatever
+             played next. The OUTER wrapper (#projYouTubeFrame) is what
+             every show/hide toggle now targets - it is never touched or
+             replaced by YT, so it stays a stable reference. Only the
+             INNER mount (#projYouTube) is ever handed to `new YT.Player`. -->
+        <div class="proj-youtube" id="projYouTubeFrame" hidden>
+          <div id="projYouTube"></div>
+        </div>
         <div class="projector-vignette"></div>
         <div class="proj-ambient-glow" aria-hidden="true"></div>
         <svg class="vhs-layer vhs-grain-layer" aria-hidden="true" focusable="false">

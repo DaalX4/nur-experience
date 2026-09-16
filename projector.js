@@ -79,7 +79,7 @@
   let cfgCache = null;
   let maskWarmed = false;
 
-  let frameEl, layers, frameMediaEl, captionEl, titleEl, ambientGlowEl, posterEl, previewBadgeEl, youtubeEl;
+  let frameEl, layers, frameMediaEl, captionEl, titleEl, ambientGlowEl, posterEl, previewBadgeEl, youtubeFrameEl, youtubeMountEl;
   let gateEl, gateTextEl, playBtn, gateActionsEl, retryBtn, skipBtn, endedActionsEl, replayBtn, continueBtn;
 
   let loadingTimeoutId = null;
@@ -197,14 +197,33 @@
     img.src = item.src;
   }
 
+  /* Fully tears down whatever the upload-media engine was showing/playing -
+     pauses and detaches every <video> instead of just hiding it (a paused-
+     but-still-`src`'d video can keep decoding/holding a network
+     connection), clears both layers, and drops the caption. Split out from
+     setFrameEmpty() so resetToEntry() can call this UNCONDITIONALLY on
+     every entry (including into YouTube mode) - the actual fix for a real,
+     confirmed bug: switching Media Source from Uploaded to YouTube never
+     used to stop a still-active uploaded video, so it kept playing
+     (video+audio) stacked underneath the new YouTube iframe. */
+  function clearMediaLayers() {
+    layers.forEach((l) => {
+      l.classList.remove("active");
+      l.querySelectorAll("video").forEach((v) => {
+        v.pause();
+        v.removeAttribute("src");
+        v.load();
+      });
+      l.innerHTML = "";
+    });
+    captionEl.classList.remove("show");
+    captionEl.textContent = "";
+    currentEl = null;
+  }
+
   function setFrameEmpty(empty) {
     frameMediaEl.classList.toggle("is-empty", empty);
-    if (empty) {
-      layers.forEach((l) => { l.classList.remove("active"); l.innerHTML = ""; });
-      captionEl.classList.remove("show");
-      captionEl.textContent = "";
-      currentEl = null;
-    }
+    if (empty) clearMediaLayers();
   }
 
   /* -------------------------------------------------------------------- *
@@ -653,13 +672,17 @@
     const requestToken = ++showRequestSeq;
     loadYouTubeApi().then((YT) => {
       if (!ytPendingPlay || requestToken !== showRequestSeq) return; // superseded by a re-entry/retry while the API was loading
-      youtubeEl.hidden = false;
+      youtubeFrameEl.hidden = false;
       if (ytPlayer && ytReady) {
         try { ytPlayer.loadVideoById(id); } catch (err) { showStalledGate(); }
         return;
       }
       if (ytPlayer) return; // constructing already, onReady below will pick it up
-      ytPlayer = new YT.Player(youtubeEl, {
+      // Hand YT the INNER mount div, never the outer wrapper - YT.Player
+      // replaces whatever element it's given with its own <iframe>, so the
+      // wrapper (which every hidden-toggle above/below targets) must stay
+      // untouched or it goes stale the moment this line runs.
+      ytPlayer = new YT.Player(youtubeMountEl, {
         videoId: id,
         playerVars: {
           controls: 0, modestbranding: 1, rel: 0, iv_load_policy: 3,
@@ -727,7 +750,7 @@
     if (ytPlayer && ytReady) {
       try { ytPlayer.pauseVideo(); } catch (err) { /* ignore */ }
     }
-    if (youtubeEl) youtubeEl.hidden = true;
+    if (youtubeFrameEl) youtubeFrameEl.hidden = true;
   }
 
   /* -------------------------------------------------------------------- *
@@ -830,7 +853,8 @@
     endedActionsEl = document.getElementById("projEndedActions");
     replayBtn = document.getElementById("projReplayBtn");
     continueBtn = document.getElementById("projContinueBtn");
-    youtubeEl = document.getElementById("projYouTube");
+    youtubeFrameEl = document.getElementById("projYouTubeFrame");
+    youtubeMountEl = document.getElementById("projYouTube");
 
     const overlay = document.getElementById("projFrameOverlay");
     if (overlay) {
@@ -856,11 +880,18 @@
     clearTimers();
     hidePoster();
     resetYoutubePlayback();
+    // Always tear down any upload-media playback here, unconditionally -
+    // not just when memories.length === 0. This must run even when the
+    // active source IS YouTube (or is about to become YouTube), otherwise
+    // a video that was playing under the "Uploaded" source keeps running
+    // in the background the moment the admin switches source and starts
+    // the YouTube video - two sources rendering/playing at once.
+    clearMediaLayers();
     cfgCache = cfg || {};
     applyProjectorConfig(cfgCache);
     syncMemoriesFromConfig(cfgCache.items);
     const isYoutube = cfgCache.source === "youtube";
-    setFrameEmpty(!isYoutube && memories.length === 0);
+    frameMediaEl.classList.toggle("is-empty", !isYoutube && memories.length === 0);
     armEntrance();
     // Nothing configured for the active source yet (Projector turned on
     // before any memory was uploaded, or YouTube mode with no URL yet) -
@@ -907,7 +938,21 @@
      playback state or the gate's current visibility, so it is safe to
      call on every keystroke without interrupting anything (Module 23). */
   function applyLive(cfg) {
-    cfgCache = cfg || {};
+    cfg = cfg || {};
+    // Media Source (Uploaded <-> YouTube) toggled while a memory or the
+    // YouTube video was already playing - a plain appearance/text update
+    // is NOT safe here: whichever source was active needs to be fully
+    // stopped and torn down before the new one can start, or both end up
+    // rendering/playing at once (the exact bug reported: switching source
+    // left the old upload video running underneath the new YouTube
+    // iframe). A full resetToEntry() is the same safe teardown+re-entry
+    // every other real entry point already uses - it never touches
+    // onDoneCallback, so it's safe to call from a live-preview edit.
+    if (started && cfgCache && cfgCache.source !== cfg.source) {
+      resetToEntry(cfg);
+      return;
+    }
+    cfgCache = cfg;
     applyProjectorConfig(cfgCache);
     syncMemoriesFromConfig(cfgCache.items);
     // Only touch the poster while the preplay gate is actually the thing
