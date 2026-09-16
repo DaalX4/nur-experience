@@ -204,15 +204,27 @@
    (--proj-poster-*), deliberately NOT shared with the video's
    centerX/centerY/mediaSize. A poster can have any aspect ratio/crop the
    uploaded video doesn't, so tying them together meant no way to fix one
-   without shifting the other - the actual "poster cropped badly" bug.
-   Defaults (contain/50%/50%/1) reproduce the old shared-var look exactly,
-   so nothing shifts until the admin actually touches these. Sits above
-   both .media-layer slots (z-index) so fading ITS opacity to 0 reveals
-   whichever one is already active underneath. */
+   without shifting the other. Sits above both .media-layer slots (z-index)
+   so fading ITS opacity to 0 reveals whichever one is already active
+   underneath.
+   width/height:100% is NOT decorative - this is the actual fix for the
+   real "poster cropped badly" bug. An absolutely-positioned <img> (a
+   replaced element) with `inset` set but NO explicit width/height falls
+   back to its INTRINSIC pixel size instead of stretching to fill the
+   inset box (a real, easy-to-miss CSS rule for replaced elements) -
+   object-fit never got a chance to run, so a poster larger than its frame
+   just rendered at full native resolution and got silently clipped by
+   .frame-media's overflow:hidden, looking exactly like a bad zoom/crop.
+   Confirmed by reproducing it against the real production poster and
+   fixing it with only this rule, nothing else. The video's own rule
+   (.media-slot img,video below) already had this - only this poster rule
+   was missing it. */
 .proj-poster{
   position:absolute;
   z-index:1;
   inset:var(--proj-fg-inset-top,3%) var(--proj-fg-inset-right,6%) var(--proj-fg-inset-bottom,6%) var(--proj-fg-inset-left,6%);
+  width:100%;
+  height:100%;
   display:block;
   object-fit:var(--proj-poster-fit,contain);
   object-position:var(--proj-poster-x,50%) var(--proj-poster-y,50%);
