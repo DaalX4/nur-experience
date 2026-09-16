@@ -426,10 +426,19 @@
       /* Every viewer-facing Projector string, editable from the admin
          panel's "متن‌های پروژکتور" section instead of hardcoded - see
          projector.js's showXGate() functions, which all read from here
-         with these exact strings as fallback. */
+         with these exact strings as fallback.
+         Two clearly separate states, never mixed (a real, confirmed
+         reported bug): longLoadingText is a plain "still waiting"
+         message with NO actions - it isn't an error yet, just patience.
+         stalledText is the actual failure/sustained-stall state, the
+         ONLY one that ever shows Retry/Continue-Without-Video. If long
+         loading itself drags on too long with no progress, it escalates
+         into this same stalled state automatically (see projector.js's
+         armLongLoadingEscalation()) - the viewer is never stuck with a
+         message and no way out. */
       loadingText: "دارم آماده‌ش می‌کنم...",
       longLoadingText: "یکم بیشتر زمان می‌خواد...",
-      stalledText: "هنوز آماده نشده",
+      stalledText: "اتصال قطع شد",
       retryText: "دوباره تلاش کن",
       skipText: "ادامه بدون فیلم",
       replayText: "پخش دوباره",

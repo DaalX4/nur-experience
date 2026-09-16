@@ -55,7 +55,8 @@
   "use strict";
 
   const PACE_MS = { quick: 900, normal: 2000, hold: 4000 };
-  const LOADING_TIMEOUT_MS = 6000;  // no progress on the very first load -> escalate copy + reveal retry/skip
+  const LOADING_TIMEOUT_MS = 6000;  // no progress on the very first load -> escalate to the "long loading" MESSAGE (no actions yet)
+  const LONG_LOADING_ESCALATION_MS = 9000; // long loading itself drags on this much longer with still no progress -> treat it as a real stall (message + Retry/Skip)
   const STALL_TIMEOUT_MS = 9000;    // no timeupdate progress mid-playback -> reveal retry/skip
   const ENTRANCE_SAFETY_MS = 700;   // never leave the frame invisible longer than this even on a dead-slow connection
 
@@ -84,6 +85,7 @@
   let audioHintEl, audioHintTextEl;
 
   let loadingTimeoutId = null;
+  let longLoadingEscalationId = null;
   let stallTimeoutId = null;
   let audioHintTimeoutId = null;
   let preloadEl = null;   // the hidden warm-up <video> from preload(), reused for real item-0 playback if it matches
@@ -422,10 +424,12 @@
    *  ---------------------------------------------------------------------*/
   function clearTimers() {
     clearTimeout(loadingTimeoutId);
+    clearTimeout(longLoadingEscalationId);
     clearTimeout(stallTimeoutId);
     clearTimeout(advanceTimer);
     clearTimeout(audioHintTimeoutId);
     loadingTimeoutId = null;
+    longLoadingEscalationId = null;
     stallTimeoutId = null;
     audioHintTimeoutId = null;
     stopYoutubeHeartbeat();
@@ -455,6 +459,14 @@
     titleEl.classList.add("show");
   }
 
+  /* LOADING and LONG LOADING are the SAME non-error waiting state, just
+     escalated copy - neither ever shows Retry/Skip (a real, confirmed
+     bug: long loading used to reveal both actions, making it visually
+     indistinguishable from a real stall). If long loading itself drags
+     on with still no progress, armLongLoadingEscalation() below promotes
+     it into the real stalled state - the viewer is never stuck on a
+     "still waiting" message with no way out, but the plain waiting
+     message itself never carries actions. */
   function showLoadingGate(withEscape) {
     hideGate();
     hideAudioHint();
@@ -465,19 +477,18 @@
       : (cfgCache.loadingText || "دارم آماده‌ش می‌کنم...");
     gateTextEl.classList.add("show");
     ambientGlowEl.classList.add("show");
-    if (withEscape && cfgCache.showSkip !== false) {
-      gateActionsEl.classList.add("show");
-      retryBtn.classList.add("show");
-      skipBtn.classList.add("show");
-    }
+    if (withEscape) armLongLoadingEscalation();
   }
 
+  /* The ONLY state that ever shows Retry/Continue-Without-Video - a real
+     failure or a sustained stall, never just "still waiting" (see
+     showLoadingGate above). */
   function showStalledGate() {
     hideGate();
     hideAudioHint();
     setOverlayActive(true);
     gateEl.classList.add("show");
-    gateTextEl.textContent = cfgCache.stalledText || "هنوز آماده نشده";
+    gateTextEl.textContent = cfgCache.stalledText || "اتصال قطع شد";
     gateTextEl.classList.add("show");
     gateActionsEl.classList.add("show");
     retryBtn.classList.add("show");
@@ -514,6 +525,17 @@
   function armLoadingTimeout() {
     clearTimeout(loadingTimeoutId);
     loadingTimeoutId = setTimeout(() => showLoadingGate(true), LOADING_TIMEOUT_MS);
+  }
+
+  /* Long loading is a patience message, not an error - it never shows
+     Retry/Skip on its own (see showLoadingGate). But if it drags on this
+     much longer with STILL no progress, it really has become a stall in
+     every practical sense, so promote it into the real stalled state
+     (message + actions) rather than leaving the viewer stuck forever on
+     a "still waiting" message with no way out. */
+  function armLongLoadingEscalation() {
+    clearTimeout(longLoadingEscalationId);
+    longLoadingEscalationId = setTimeout(() => showStalledGate(), LONG_LOADING_ESCALATION_MS);
   }
 
   /* Whether media is ACTIVELY trying to play right now - the missing
@@ -553,11 +575,13 @@
 
     layer.innerHTML = "";
     clearTimeout(advanceTimer);
+    clearTimeout(longLoadingEscalationId);
     armLoadingTimeout();
 
     function reveal(el) {
       if (requestToken !== showRequestSeq) return;
       clearTimeout(loadingTimeoutId);
+      clearTimeout(longLoadingEscalationId);
       hideGate();
       setOverlayActive(false);
       hidePoster();
@@ -595,6 +619,7 @@
     function onItemError() {
       if (requestToken !== showRequestSeq) return;
       clearTimeout(loadingTimeoutId);
+      clearTimeout(longLoadingEscalationId);
       showStalledGate();
     }
 
@@ -887,6 +912,7 @@
     const S = window.YT.PlayerState;
     if (e.data === S.PLAYING) {
       clearTimeout(loadingTimeoutId);
+      clearTimeout(longLoadingEscalationId);
       hideGate();
       setOverlayActive(false);
       hidePoster();
