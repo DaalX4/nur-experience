@@ -522,29 +522,29 @@
 }
 .proj-gate-btn.show{display:inline-block}
 
-/* Loading/stalled action row (Retry/Skip). */
-.proj-gate-actions{
+/* Action row (Retry/Skip, and separately Replay/Continue) - a plain,
+   transparent flex layout container, nothing else. It used to ALSO carry
+   its own card background (derived from --proj-overlay-tint-soft, the
+   STATUS MESSAGE plate's own color) wrapped around buttons that already
+   have their own individually-styled background - a real confirmed
+   "card inside card inside button" bug, and a hidden duplicate-control
+   bug too: moving the status message's background-opacity slider was
+   silently also changing this wrapper, with no dedicated control telling
+   the admin that was happening. One clean hierarchy now: Overlay State ->
+   Status Message (its own plate, .proj-gate-text) -> Action Buttons (own
+   pills, .proj-action-btn) - no third, invisible layer between them. */
+.proj-gate-actions,
+.proj-gate-actions--ended{
   display:none;
   gap:var(--proj-action-gap,14px);
   flex-wrap:wrap;
   justify-content:center;
-  padding:9px 18px;
-  border-radius:10px;
-  background:var(--proj-overlay-tint-soft,rgba(17,13,8,.3));
-  backdrop-filter:blur(3px);
-  -webkit-backdrop-filter:blur(3px);
-}
-.proj-gate-actions.show{display:flex}
-
-/* End-state action row (Replay/Continue) - no extra background plate of
-   its own (the two pills already carry their own backing). */
-.proj-gate-actions--ended{
-  gap:var(--proj-action-gap,14px);
   background:none;
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
   padding:0;
 }
+.proj-gate-actions.show{display:flex}
 
 /* The ONE shared action-button style - Retry, Skip, Replay, Continue all
    use exactly this class and read from exactly these vars (Module 6).
@@ -554,7 +554,7 @@
 .proj-action-btn{
   display:none;
   border:1px solid color-mix(in srgb, var(--proj-action-text,#f6efe0) 30%, transparent);
-  border-radius:10px;
+  border-radius:var(--proj-action-radius,10px);
   padding:9px 22px;
   font-family:var(--font-display);
   font-size:var(--proj-action-font-size,15px);

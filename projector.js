@@ -877,6 +877,7 @@
     root.setProperty("--proj-action-bg", hexToRgba(act.bgColor, 15) || "rgba(233,226,210,.15)");
     root.setProperty("--proj-action-opacity", (typeof act.opacity === "number" ? act.opacity : 85) / 100);
     root.setProperty("--proj-action-gap", (typeof act.gap === "number" ? act.gap : 14) + "px");
+    root.setProperty("--proj-action-radius", (typeof act.radius === "number" ? act.radius : 10) + "px");
 
     // Cover/pre-play CTA - fully independent styling (Module 7/8), never
     // shares a var with the action style above.
@@ -894,12 +895,13 @@
     // Overlay - media blur/dim behind the gate (toggled per state, see
     // setOverlayActive()) and the status MESSAGE's own text/plate color
     // (static). No longer doubles as the action buttons' color source
-    // (Module 6/9) - see `action` above.
+    // (Module 6/9) - see `action` above. --proj-overlay-tint-soft used to
+    // ALSO be reused as the action-row wrapper's own card background (the
+    // confirmed "card inside card" bug) - that wrapper is gone, so this
+    // is the message plate's color alone now.
     const ov = cfg.overlay || {};
     const tintStrong = hexToRgba(ov.tint, typeof ov.tintOpacity === "number" ? ov.tintOpacity : 55);
-    const tintSoft = hexToRgba(ov.tint, (typeof ov.tintOpacity === "number" ? ov.tintOpacity : 55) * 0.7);
     root.setProperty("--proj-overlay-tint-strong", tintStrong || "rgba(17,13,8,.42)");
-    root.setProperty("--proj-overlay-tint-soft", tintSoft || "rgba(17,13,8,.3)");
     root.setProperty("--proj-overlay-text", ov.textColor || "#f6efe0");
   }
 

@@ -321,7 +321,8 @@
         bgColor: "#e9e2d2",
         opacity: 85,
         fontSize: 15,
-        gap: 14
+        gap: 14,
+        radius: 10
       },
       /* Pre-play reveal (see projector.js's state machine): the title
          shown above the frame before the viewer taps play, and the CTA

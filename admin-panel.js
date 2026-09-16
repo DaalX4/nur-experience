@@ -268,6 +268,7 @@
         { type: "slider", path: ["projector", "action", "opacity"], label: "شفافیت دکمه‌ها", min: 40, max: 100, step: 5, unit: "%", group: "ظاهر دکمه‌های پروژکتور" },
         { type: "slider", path: ["projector", "action", "fontSize"], label: "اندازه متن دکمه‌ها", min: 12, max: 20, step: 1, unit: "px", group: "ظاهر دکمه‌های پروژکتور" },
         { type: "slider", path: ["projector", "action", "gap"], label: "فاصله بین دکمه‌ها", min: 6, max: 36, step: 1, unit: "px", group: "ظاهر دکمه‌های پروژکتور" },
+        { type: "slider", path: ["projector", "action", "radius"], label: "گردی گوشه دکمه‌ها", min: 0, max: 24, step: 1, unit: "px", group: "ظاهر دکمه‌های پروژکتور" },
         { type: "slider", path: ["projector", "overlay", "blur"], label: "شدت بلر پشت پیام", min: 0, max: 16, step: 1, unit: "px", group: "ظاهر دکمه‌های پروژکتور" },
         { type: "slider", path: ["projector", "overlay", "dim"], label: "میزان تاریکی پشت پیام", min: 0, max: 70, step: 5, unit: "%", group: "ظاهر دکمه‌های پروژکتور" },
 
