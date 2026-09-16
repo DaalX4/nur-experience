@@ -339,12 +339,16 @@
         tintOpacity: 55,
         textColor: "#f6efe0"
       },
-      /* ONE shared visual style for every "normal" Projector action -
-         Retry, Continue-Without-Video, Replay, Next Page (Module 6/9/10/
-         11). Changing these updates all four together; there is no way
-         for them to accidentally end up with different colors, since
-         they're all driven by exactly this one object. opacity is a
-         percent (0-100) applied to the whole pill. */
+      /* ONE shared visual style for every "normal" Projector action still
+         living inside the frame - Retry, Continue-Without-Video, Replay.
+         Changing these updates all three together; there is no way for
+         them to accidentally end up with different colors, since they're
+         all driven by exactly this one object. opacity is a percent
+         (0-100) applied to the whole pill. "صفحه بعد"/Continue moved
+         outside the frame (see nextButton below) and deliberately does
+         NOT use this style - it reuses the letter pages' own nav-button
+         look instead, since it now lives in that same "outside the card"
+         visual space. */
       action: {
         textColor: "#f6efe0",
         bgColor: "#e9e2d2",
@@ -352,6 +356,17 @@
         fontSize: 15,
         gap: 14,
         radius: 10
+      },
+      /* "صفحه بعد" / Continue's OWN compact fine-tuning controls (Module
+         4) - gap is the space below the frame, offsetX/Y are small nudges
+         on top of the natural centered position, scale is an overall size
+         multiplier. Defaults reproduce a natural centered-below-frame
+         placement with no adjustment needed. */
+      nextButton: {
+        scale: 1,
+        gap: 44,
+        offsetX: 0,
+        offsetY: 0
       },
       /* Pre-play reveal (see projector.js's state machine): the title
          shown above the frame before the viewer taps play, and the CTA

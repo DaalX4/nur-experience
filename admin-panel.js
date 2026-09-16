@@ -297,6 +297,14 @@
         { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
         { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
 
+        /* "صفحه بعد" now lives outside the frame, below it, reusing the
+           letter pages' own nav-button look - these are fine-tuning only,
+           the default already looks correct centered below the frame. */
+        { type: "slider", path: ["projector", "nextButton", "scale"], label: "اندازه دکمه", min: 0.7, max: 1.4, step: 0.05, unit: "×", group: "دکمه «صفحه بعد» (بیرون قاب)" },
+        { type: "slider", path: ["projector", "nextButton", "gap"], label: "فاصله از قاب", min: 20, max: 140, step: 2, unit: "px", group: "دکمه «صفحه بعد» (بیرون قاب)" },
+        { type: "slider", path: ["projector", "nextButton", "offsetX"], label: "جای‌گذاری افقی (تنظیم ظریف)", min: -100, max: 100, step: 2, unit: "px", group: "دکمه «صفحه بعد» (بیرون قاب)" },
+        { type: "slider", path: ["projector", "nextButton", "offsetY"], label: "جای‌گذاری عمودی (تنظیم ظریف)", min: -60, max: 60, step: 2, unit: "px", group: "دکمه «صفحه بعد» (بیرون قاب)" },
+
         { type: "previewButtons", group: "پیش‌نمایش حالت‌ها" },
 
         { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%", group: "پیشرفته" },

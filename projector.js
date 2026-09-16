@@ -1015,6 +1015,15 @@
     root.setProperty("--proj-action-gap", (typeof act.gap === "number" ? act.gap : 14) + "px");
     root.setProperty("--proj-action-radius", (typeof act.radius === "number" ? act.radius : 10) + "px");
 
+    // "صفحه بعد"/Continue's own compact fine-tuning vars - lives outside
+    // the frame now, reusing the letter pages' nav-button look instead of
+    // the `action` style above.
+    const nextBtn = cfg.nextButton || {};
+    root.setProperty("--proj-next-gap", (typeof nextBtn.gap === "number" ? nextBtn.gap : 44) + "px");
+    root.setProperty("--proj-next-x", (typeof nextBtn.offsetX === "number" ? nextBtn.offsetX : 0) + "px");
+    root.setProperty("--proj-next-y", (typeof nextBtn.offsetY === "number" ? nextBtn.offsetY : 0) + "px");
+    root.setProperty("--proj-next-scale", typeof nextBtn.scale === "number" ? nextBtn.scale : 1);
+
     // Cover/pre-play CTA - fully independent styling (Module 7/8), never
     // shares a var with the action style above.
     const cover = cfg.coverCta || {};

@@ -387,6 +387,39 @@
 }
 .proj-caption.show{opacity:.85; filter:blur(0)}
 
+/* "صفحه بعد" / Continue - lives OUTSIDE the frame entirely (Module 2),
+   reusing .note-next-btn (the exact same green-pill component the
+   letter pages already use for "صفحه‌ی بعد"/"دریافت نور") for its visual
+   language instead of a one-off style, per the explicit "reuse, don't
+   recreate" request. Position uses the SAME --frame-h-relative idiom as
+   .proj-caption/.proj-title above (not normal document flow) - a real,
+   already-diagnosed bug (see the git history) is that a flow-positioned
+   version of this exact button silently rendered BEHIND the frame,
+   because positioned siblings always paint above non-positioned in-flow
+   ones regardless of DOM order. gap/scale/offsetX/offsetY are the
+   compact admin fine-tuning controls - defaults (44px/1/0/0) place it
+   centered, comfortably clear of the frame and its caption. */
+.proj-next-btn{
+  position:absolute;
+  left:50%;
+  top:calc(50% + (var(--frame-h) / 2) + var(--proj-next-gap,44px));
+  /* Same general size/shape as the letter pages' own next-button default
+     (96x47, radius 999, ~14px text) - Projector isn't part of that
+     per-card --nur-card-scale system, so these are the matching literal
+     px values rather than borrowed variables. */
+  width:96px;
+  height:47px;
+  font-size:14px;
+  border-radius:999px;
+  transform:translate(calc(-50% + var(--proj-optical-x) + var(--proj-next-x,0px)), var(--proj-next-y,0px)) scale(var(--proj-next-scale,1));
+  z-index:3;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .6s ease, transform .2s ease;
+}
+.proj-next-btn.show{opacity:1; pointer-events:auto}
+.proj-next-btn:active{transform:translate(calc(-50% + var(--proj-optical-x) + var(--proj-next-x,0px)), var(--proj-next-y,0px)) scale(calc(var(--proj-next-scale,1) * .96))}
+
 /* Editor-only "Preview: X" badge (Module 28) - only ever shown/labelled
    by projector.js's previewState(), which only the admin panel's State
    Preview buttons call; a real visitor's code path never touches it, so

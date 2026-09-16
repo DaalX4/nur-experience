@@ -754,13 +754,13 @@
             <button type="button" class="proj-action-btn" id="projSkipBtn">ادامه بدون فیلم</button>
           </div>
           <!-- The calm, indefinite-wait reaction state after the memory
-               finishes - deliberately no headline copy here, just two
-               quiet actions once the hold ends (see projector.js). Same
-               .proj-action-btn class as Retry/Skip above - ONE shared
-               visual language for every normal Projector action. -->
+               finishes - deliberately no headline copy here, just the
+               quiet action once the hold ends (see projector.js).
+               Continue/"صفحه بعد" USED to live here too, but it now lives
+               entirely outside the frame (see #projContinueBtn below) -
+               only Replay stays inside, centered, alone. -->
           <div class="proj-gate-actions proj-gate-actions--ended" id="projEndedActions">
             <button type="button" class="proj-action-btn" id="projReplayBtn">پخش دوباره</button>
-            <button type="button" class="proj-action-btn" id="projContinueBtn">ادامه</button>
           </div>
         </div>
       </div>
@@ -780,6 +780,19 @@
       </button>
       <img class="frame-overlay" id="projFrameOverlay" alt="">
     </figure>
+    <!-- "صفحه بعد" / Continue - lives completely OUTSIDE the frame, below
+         it, reusing the exact same .note-next-btn component the letter
+         pages already use ("صفحه‌ی بعد"/"دریافت نور") instead of a new
+         one-off style. Positioned relative to the STAGE's own center
+         (like .proj-caption above/.proj-title below - see projector.css)
+         rather than sitting in normal document flow, which is what
+         previously made an in-flow version of this exact button render
+         BEHIND the frame (positioned siblings always paint above
+         non-positioned in-flow ones, regardless of DOM order). hidden by
+         default - projector.js's showEndedGate()/resetToEntry() toggle
+         it exactly like every other gate control, only now independent
+         of .proj-gate's own opacity fade. -->
+    <button type="button" class="note-next-btn proj-next-btn" id="projContinueBtn">ادامه</button>
     <p class="proj-caption" id="projCaption"></p>
     <!-- Editor-only badge (Module 28) - text/visibility set exclusively by
          projector.js's previewState(), which is only ever called from the
