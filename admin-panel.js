@@ -188,24 +188,40 @@
       label: "تنظیمات پروژکتور",
       screen: { stage: "stage-projector" },
       fields: [
-        { type: "mediaManager", path: ["projector", "items"], label: "رسانه‌های پروژکتور / خاطرات" },
-        { type: "buttons", path: ["projector", "enabled"], label: "صفحه پروژکتور / خاطرات", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
-        { type: "text", path: ["projector", "title", "text"], label: "عنوان بالای قاب" },
-        { type: "slider", path: ["projector", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 32, step: 1, unit: "px" },
-        { type: "color", path: ["projector", "title", "color"], label: "عنوان: رنگ" },
-        { type: "slider", path: ["projector", "title", "opacity"], label: "عنوان: شفافیت", min: 0.2, max: 1, step: 0.05, unit: "" },
-        { type: "text", path: ["projector", "playButtonText"], label: "متن دکمه شروع" },
-        { type: "buttons", path: ["projector", "preset"], label: "پیش‌فرض ظاهری (Preset)", options: [{ label: "Soft", value: "soft" }, { label: "Balanced", value: "balanced" }, { label: "Deep", value: "deep" }] },
-        { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%" },
-        { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%" },
-        { type: "buttons", path: ["projector", "autoContinue"], label: "ادامه خودکار بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
-        { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه" },
-        { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
-        { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }] },
-        { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", advanced: true },
-        { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", advanced: true },
-        { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%", advanced: true },
-        { type: "buttons", path: ["projector", "loop"], label: "تکرار پیوسته (پیش‌فرض خاموش)", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], advanced: true }
+        { type: "buttons", path: ["projector", "enabled"], label: "صفحه پروژکتور / خاطرات", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "عمومی" },
+        { type: "buttons", path: ["projector", "preset"], label: "پیش‌فرض ظاهری (Preset)", options: [{ label: "Soft", value: "soft" }, { label: "Balanced", value: "balanced" }, { label: "Deep", value: "deep" }], group: "عمومی" },
+
+        { type: "mediaManager", path: ["projector", "items"], label: "رسانه‌های پروژکتور / خاطرات", group: "رسانه" },
+
+        { type: "image", path: ["projector", "poster"], label: "پوستر / کاور (قبل از پخش نمایش داده می‌شود)", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور" },
+
+        { type: "text", path: ["projector", "title", "text"], label: "عنوان بالای قاب", group: "متن‌های پروژکتور" },
+        { type: "slider", path: ["projector", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 32, step: 1, unit: "px", group: "متن‌های پروژکتور" },
+        { type: "color", path: ["projector", "title", "color"], label: "عنوان: رنگ", group: "متن‌های پروژکتور" },
+        { type: "slider", path: ["projector", "title", "opacity"], label: "عنوان: شفافیت", min: 0.2, max: 1, step: 0.05, unit: "", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "playButtonText"], label: "متن دکمه شروع", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "loadingText"], label: "متن بارگذاری اولیه", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "longLoadingText"], label: "متن بارگذاری طولانی", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "stalledText"], label: "متن قطع‌شدگی / خطا", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "retryText"], label: "متن «دوباره تلاش کن»", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "skipText"], label: "متن «ادامه بدون فیلم»", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "replayText"], label: "متن «پخش دوباره»", group: "متن‌های پروژکتور" },
+        { type: "text", path: ["projector", "continueText"], label: "متن «ادامه»", group: "متن‌های پروژکتور" },
+
+        { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%", group: "پخش" },
+        { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%", group: "پخش" },
+
+        { type: "buttons", path: ["projector", "autoContinue"], label: "ادامه خودکار بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پایان" },
+        { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه", group: "پایان" },
+        { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پایان" },
+        { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پایان" },
+
+        { type: "previewButtons", group: "پیش‌نمایش حالت‌ها" },
+
+        { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", group: "پیشرفته" },
+        { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", group: "پیشرفته" },
+        { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%", group: "پیشرفته" },
+        { type: "buttons", path: ["projector", "loop"], label: "تکرار پیوسته (پیش‌فرض خاموش)", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پیشرفته" }
       ]
     },
     {
@@ -273,14 +289,16 @@
   }
 
   function fieldRow(field) {
-    const value = getPath(draft, field.path);
+    const value = field.path ? getPath(draft, field.path) : undefined;
     const row = document.createElement("div");
     row.className = "nurap-row";
 
-    const label = document.createElement("label");
-    label.className = "nurap-label";
-    label.textContent = field.label;
-    row.appendChild(label);
+    if (field.label) {
+      const label = document.createElement("label");
+      label.className = "nurap-label";
+      label.textContent = field.label;
+      row.appendChild(label);
+    }
 
     if (field.type === "text") {
       const input = document.createElement("input");
@@ -351,7 +369,12 @@
       const preview = document.createElement("img");
       preview.alt = "";
       preview.style.cssText = "width:56px; height:auto; max-height:90px; border-radius:6px; border:1px solid rgba(255,255,255,.15); background:#1c2238; object-fit:cover;";
-      preview.src = value || field.defaultSrc;
+      // Never set src="" - an empty string re-requests the current page in
+      // some browsers instead of just showing nothing. No value and no
+      // default just means no preview image yet (a poster is optional).
+      const initialSrc = value || field.defaultSrc || "";
+      preview.style.display = initialSrc ? "" : "none";
+      if (initialSrc) preview.src = initialSrc;
 
       const fileInput = document.createElement("input");
       fileInput.type = "file";
@@ -361,7 +384,7 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "nurap-btn nurap-btn--ghost";
-      btn.textContent = "انتخاب و جایگزینی تصویر کاغذ";
+      btn.textContent = field.buttonLabel || "انتخاب و جایگزینی تصویر کاغذ";
       btn.addEventListener("click", () => fileInput.click());
 
       const status = document.createElement("span");
@@ -379,6 +402,7 @@
           const url = await uploadPaperImage(blob, mimeType);
           setPath(draft, field.path, url);
           preview.src = url;
+          preview.style.display = "";
           livePreview();
           status.textContent = "آپلود شد ✓ (برای انتشار سراسری «ذخیره تغییرات» را بزن)";
         } catch (err) {
@@ -389,6 +413,22 @@
       });
 
       wrap.append(preview, btn, fileInput, status);
+
+      if (field.allowRemove) {
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "nurap-btn nurap-btn--danger";
+        removeBtn.textContent = "حذف";
+        removeBtn.addEventListener("click", () => {
+          setPath(draft, field.path, "");
+          preview.removeAttribute("src");
+          preview.style.display = "none";
+          livePreview();
+          status.textContent = "حذف شد";
+        });
+        wrap.appendChild(removeBtn);
+      }
+
       row.appendChild(wrap);
     } else if (field.type === "buttons") {
       // Generic small button-group - used for both plain on/off toggles
@@ -562,6 +602,44 @@
       });
       wrap.append(input, valueLabel);
       row.appendChild(wrap);
+    } else if (field.type === "previewButtons") {
+      // State Preview (Module 24-28) - each button is a pure call into
+      // projector.js's previewState(), which only ever toggles the gate's
+      // own CSS classes (the exact same ones the real state machine
+      // already uses) - no config write, no real fetch, no touching
+      // onDoneCallback. Requires the Projector stage to have been entered
+      // at least once (previewEnter() runs automatically the moment this
+      // tab is opened, via the existing tab-click -> previewStage wiring),
+      // so by the time this row renders it's always ready to use.
+      const hint = document.createElement("p");
+      hint.className = "nurap-empty";
+      hint.textContent = "برای دیدن سریع هر حالت روی دکمه‌اش بزن - چیزی ذخیره نمی‌شود.";
+      row.appendChild(hint);
+
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "display:flex; gap:8px; flex-wrap:wrap;";
+      const states = [
+        { key: "entry", label: "ورود / قبل از پخش" },
+        { key: "loading", label: "بارگذاری" },
+        { key: "longLoading", label: "بارگذاری طولانی" },
+        { key: "stalled", label: "قطع‌شدگی / خطا" },
+        { key: "ended", label: "پایان ویدیو" },
+        { key: "finalTransition", label: "انتقال به صفحه پایانی" }
+      ];
+      states.forEach((s) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "nurap-btn nurap-btn--ghost";
+        btn.style.cssText = "flex:0 0 auto; min-width:0;";
+        btn.textContent = s.label;
+        btn.addEventListener("click", () => {
+          if (window.NUR_PROJECTOR && window.NUR_PROJECTOR.previewState) {
+            window.NUR_PROJECTOR.previewState(s.key);
+          }
+        });
+        wrap.appendChild(btn);
+      });
+      row.appendChild(wrap);
     }
 
     return row;
@@ -673,13 +751,23 @@
     return row;
   }
 
-  // Fields marked `advanced:true` (rarely-needed tuning - Center X/Y,
-  // Background Fill, Loop) start collapsed behind a single disclosure
-  // button instead of always cluttering the tab - generic over any tab
-  // that uses the flag, not just Projector's. Resets closed on every tab
-  // switch (see renderTabs' click handler) rather than persisting, since
-  // this is a rare "I need one more dial" visit, not a mode to stay in.
-  let advancedOpen = false;
+  // Fields carrying a `group:"..."` label (Module 20: "collapsible
+  // categories instead of nested tabs") get rendered under a named,
+  // independently collapsible header instead of one flat wall of
+  // controls - generic over any tab that uses it, not just Projector's.
+  // Ungrouped fields (every other existing tab) render exactly as before,
+  // flat, no header - fully backward compatible. Open/closed state is
+  // per-group-name and resets on every tab switch (see renderTabs' click
+  // handler) rather than persisting, since re-opening the panel should
+  // always start from the same predictable layout. "پیشرفته" (Advanced)
+  // starts closed - everything else starts open, since hiding routine
+  // controls behind a click would defeat "fast to configure".
+  let openGroups = {};
+
+  function isGroupOpen(name) {
+    if (!(name in openGroups)) openGroups[name] = name !== "پیشرفته";
+    return openGroups[name];
+  }
 
   function renderTabContent() {
     const body = panelEl.querySelector(".nurap-body");
@@ -693,24 +781,35 @@
       return;
     }
     if (tab.dragTarget) body.appendChild(dragToggleRow(tab));
-    const basicFields = tab.fields.filter((f) => !f.advanced);
-    const advancedFields = tab.fields.filter((f) => f.advanced);
-    basicFields.forEach((field) => body.appendChild(fieldRow(field)));
-    if (advancedFields.length > 0) {
-      const toggleRow = document.createElement("div");
-      toggleRow.className = "nurap-row";
-      const toggleBtn = document.createElement("button");
-      toggleBtn.type = "button";
-      toggleBtn.className = "nurap-btn nurap-btn--ghost";
-      toggleBtn.textContent = advancedOpen ? "بستن تنظیمات پیشرفته ▴" : "تنظیمات پیشرفته ▾";
-      toggleBtn.addEventListener("click", () => {
-        advancedOpen = !advancedOpen;
+
+    const groups = []; // [{name, fields}], name === null for ungrouped (rendered flat, first)
+    tab.fields.forEach((field) => {
+      const name = field.group || null;
+      let g = groups.find((x) => x.name === name);
+      if (!g) { g = { name, fields: [] }; groups.push(g); }
+      g.fields.push(field);
+    });
+
+    groups.forEach((g) => {
+      if (g.name === null) {
+        g.fields.forEach((field) => body.appendChild(fieldRow(field)));
+        return;
+      }
+      const open = isGroupOpen(g.name);
+      const headerRow = document.createElement("div");
+      headerRow.className = "nurap-row";
+      const headerBtn = document.createElement("button");
+      headerBtn.type = "button";
+      headerBtn.className = "nurap-group-header";
+      headerBtn.textContent = (open ? "▾ " : "◂ ") + g.name;
+      headerBtn.addEventListener("click", () => {
+        openGroups[g.name] = !open;
         renderTabContent();
       });
-      toggleRow.appendChild(toggleBtn);
-      body.appendChild(toggleRow);
-      if (advancedOpen) advancedFields.forEach((field) => body.appendChild(fieldRow(field)));
-    }
+      headerRow.appendChild(headerBtn);
+      body.appendChild(headerRow);
+      if (open) g.fields.forEach((field) => body.appendChild(fieldRow(field)));
+    });
   }
 
   function renderTabs() {
@@ -724,7 +823,7 @@
       btn.addEventListener("click", () => {
         stopDrag();
         activeTab = tab.id;
-        advancedOpen = false;
+        openGroups = {};
         renderTabs();
         renderTabContent();
         // Jump the live preview behind the panel to match this tab, so
@@ -939,7 +1038,7 @@
     // letterName and letterPage1) - reset every distinct section that tab
     // actually shows fields for, not just the first one.
     const tab = TABS.find((t) => t.id === activeTab);
-    const sectionKeys = [...new Set(tab.fields.map((f) => f.path[0]))];
+    const sectionKeys = [...new Set(tab.fields.filter((f) => f.path).map((f) => f.path[0]))];
     if (sectionKeys.length === 0) return;
     sectionKeys.forEach((sectionKey) => {
       if (sectionKey === "streamerName") {
@@ -1077,6 +1176,12 @@
           flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:14px;
         }
         #nurAdminPanel .nurap-empty{color:#8b91a8; font-size:12px}
+        #nurAdminPanel .nurap-group-header{
+          width:100%; text-align:right; background:rgba(255,255,255,.05); color:#c7ccdc;
+          border:0; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:700;
+          cursor:pointer; font-family:inherit;
+        }
+        #nurAdminPanel .nurap-group-header:hover{background:rgba(255,255,255,.09)}
         #nurAdminPanel .nurap-row{display:flex; flex-direction:column; gap:6px}
         #nurAdminPanel .nurap-label{color:#c7ccdc; font-size:12px}
         #nurAdminPanel .nurap-input{

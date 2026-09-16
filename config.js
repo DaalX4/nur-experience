@@ -262,7 +262,28 @@
         color: "#c9cddc",
         opacity: 0.85
       },
-      playButtonText: "بذار ببینمش",
+      playButtonText: "ببینش",
+      /* "" = no uploaded poster, falls back to the frame's own warm
+         parchment placeholder color (never a stark white hole) - see
+         projector.js/projector.css. Any other value is a Wix Media
+         Manager URL from the admin panel's Poster field (same upload
+         path as letterPageN's paperImage), rendered with the EXACT same
+         crop/fit/position as the video so the poster-to-video crossfade
+         never jumps. Deliberately no automatic still-frame extraction
+         from the video (heavy/unreliable in-browser) - a dedicated
+         upload is the whole feature. */
+      poster: "",
+      /* Every viewer-facing Projector string, editable from the admin
+         panel's "متن‌های پروژکتور" section instead of hardcoded - see
+         projector.js's showXGate() functions, which all read from here
+         with these exact strings as fallback. */
+      loadingText: "دارم آماده‌ش می‌کنم...",
+      longLoadingText: "یکم بیشتر زمان می‌خواد...",
+      stalledText: "هنوز آماده نشده",
+      retryText: "دوباره تلاش کن",
+      skipText: "ادامه بدون فیلم",
+      replayText: "پخش دوباره",
+      continueText: "ادامه",
       /* What happens once the last memory finishes: hold the last frame
          for continueDelaySec (the "brief emotional pause" - always
          happens, auto or not), then EITHER auto-advance to Final

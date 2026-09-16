@@ -46,6 +46,19 @@
   --proj-optical-x:calc(var(--frame-w) * -0.02);
 }
 
+/* Soft entrance - the WHOLE framed composition (frame, mask, poster,
+   flower/tape decoration, media viewport - everything inside this one
+   figure) fades/scales in together as one object, never piece by piece.
+   Driven by a JS-toggled class (projector.js's triggerEntrance()), NOT a
+   plain CSS animation that would auto-play the instant this element is
+   mounted - the previous version did exactly that, which meant the
+   transition could start (and finish) before the decorative frame PNG or
+   the CSS mask image had actually loaded, producing "mask appears first,
+   blank interior, then frame pops in". armEntrance() only adds .enter
+   once those assets are confirmed ready (instant in the common case,
+   since preload() already warmed them during the countdown) or a short
+   safety timeout has passed, so what the viewer sees is always the
+   complete picture arriving at once. */
 .memory-frame{
   position:absolute;
   margin:0;
@@ -53,20 +66,17 @@
   top:50%;
   width:var(--frame-w);
   height:var(--frame-h);
-  transform:translate(-50%,-50%) translateX(var(--proj-optical-x));
   filter:drop-shadow(0 22px 46px rgba(30,25,15,.22));
-  /* Soft entrance - the frame is being revealed, not inserted. Plays once
-     whenever #stage-projector goes from display:none to .active (the
-     normal way every Nur stage becomes visible), cheap transform+opacity
-     only, no layout cost. */
-  animation:projFrameAwaken 1.1s cubic-bezier(.22,.8,.2,1) both;
+  opacity:0;
+  transform:translate(-50%,-50%) translateX(var(--proj-optical-x)) scale(.97);
+  transition:opacity .9s cubic-bezier(.22,.8,.2,1), transform .9s cubic-bezier(.22,.8,.2,1);
 }
-@keyframes projFrameAwaken{
-  from{ opacity:0; transform:translate(-50%,-50%) translateX(var(--proj-optical-x)) scale(.97); }
-  to{ opacity:1; transform:translate(-50%,-50%) translateX(var(--proj-optical-x)) scale(1); }
+.memory-frame.enter{
+  opacity:1;
+  transform:translate(-50%,-50%) translateX(var(--proj-optical-x)) scale(1);
 }
 @media (prefers-reduced-motion: reduce){
-  .memory-frame{animation:none}
+  .memory-frame{transition:none}
 }
 
 /* Title above the frame - same text-block idiom as every other Nur
@@ -180,6 +190,28 @@
   object-position:var(--proj-fg-obj-pos,50% 50%);
   transform:scale(var(--proj-fg-shrink,1));
 }
+/* Poster/cover - deliberately duplicates .media-slot.media-fg's inset
+   and .media-fg img's object-fit/position/transform/filter exactly
+   (rather than sharing the class, since this is one element playing
+   both roles at once) so the poster-to-video crossfade below never
+   jumps - same crop, same fit, same position, pixel for pixel. Sits
+   above both .media-layer slots (z-index) so fading ITS opacity to 0
+   reveals whichever one is already active underneath. */
+.proj-poster{
+  position:absolute;
+  z-index:1;
+  inset:var(--proj-fg-inset-top,3%) var(--proj-fg-inset-right,6%) var(--proj-fg-inset-bottom,6%) var(--proj-fg-inset-left,6%);
+  display:block;
+  object-fit:contain;
+  object-position:var(--proj-fg-obj-pos,50% 50%);
+  transform:scale(var(--proj-fg-shrink,1));
+  filter:saturate(.88) sepia(.15) contrast(1.05) brightness(.98) blur(calc(.3px + var(--proj-extra-blur-px,0px)));
+  opacity:1;
+  transition:opacity .6s ease;
+}
+.proj-poster[hidden]{display:none}
+.proj-poster.hide{opacity:0}
+
 /* Background fill (optional, off by default) - always cover, scaled up
    slightly so its own blur edge never peeks past the mask. */
 .media-bg img,
@@ -300,6 +332,30 @@
   transition:opacity 1.1s ease, filter 1.1s ease;
 }
 .proj-caption.show{opacity:.85; filter:blur(0)}
+
+/* Editor-only "Preview: X" badge (Module 28) - only ever shown/labelled
+   by projector.js's previewState(), which only the admin panel's State
+   Preview buttons call; a real visitor's code path never touches it, so
+   there is no separate "hide from visitors" logic to get wrong. */
+.proj-preview-badge{
+  position:absolute;
+  left:50%;
+  top:calc(50% - (var(--frame-h) / 2) - 78px);
+  transform:translateX(calc(-50% + var(--proj-optical-x)));
+  margin:0;
+  padding:4px 14px;
+  border-radius:999px;
+  background:rgba(20,16,10,.55);
+  border:1px solid rgba(246,239,224,.3);
+  color:#f6efe0;
+  font-family:var(--font-display);
+  font-size:11px;
+  letter-spacing:.03em;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s ease;
+}
+.proj-preview-badge.show{opacity:.9}
 
 /* Subtle "projector light" breathing glow behind the pre-play/loading
    gate - reuses the frame's existing always-on grain/flicker for

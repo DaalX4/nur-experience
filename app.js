@@ -539,11 +539,13 @@
     startDots();
     if (cd.pulseEnabled) pulseBackground(cd.pulseIntensity);
 
-    // Smart preloading (only when Projector is actually enabled): warm just
-    // the FIRST memory's metadata/initial buffer while the countdown runs,
-    // so a tap on "بذار ببینمش" starts fast - never the whole list, never
-    // eagerly for a visitor who will never reach this stage. See
-    // projector.js's preload() for exactly how light this is.
+    // Smart preloading (only when Projector is actually enabled): warm the
+    // frame's own decorative PNGs plus the FIRST memory's metadata/initial
+    // buffer while the countdown runs, so both the entrance (Module 4/5 -
+    // no "mask before frame" flash) and a tap on the play button are fast -
+    // never the whole memory list, never eagerly for a visitor who will
+    // never reach this stage. See projector.js's preload() for exactly how
+    // light this is.
     if (currentConfig.projector && currentConfig.projector.enabled && window.NUR_PROJECTOR) {
       window.NUR_PROJECTOR.preload(currentConfig.projector);
     }
@@ -642,9 +644,17 @@
     show(stageId);
     if (stageId === "stage-projector" && window.NUR_PROJECTOR) {
       // Admin preview only - a real visitor only ever reaches this stage
-      // through goToFinalOrProjector() above. Harmless no-op "done"
-      // callback since there's nothing to advance to while just previewing.
-      window.NUR_PROJECTOR.start(currentConfig.projector, () => {});
+      // through goToFinalOrProjector() above, which calls start() with
+      // the REAL onDone callback. This used to call start() again here
+      // too - harmless-looking, but start() unconditionally overwrites
+      // that callback. Any admin who opened the panel and clicked the
+      // Projector tab while a real visitor's playback was already
+      // running (or even just testing their own stream) silently broke
+      // Continue for the rest of that page's life - confirmed as the
+      // actual cause of "Continue doesn't reliably reach Final". A
+      // dedicated preview entry point that never touches onDoneCallback
+      // fixes this at the root instead of trying to special-case it here.
+      window.NUR_PROJECTOR.previewEnter(currentConfig.projector);
     }
     if (stageId === "stage-letter" && letterPage) {
       letterFlipper.dataset.active = String(letterPage);

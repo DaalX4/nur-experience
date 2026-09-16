@@ -6,43 +6,67 @@
    - Reads its appearance settings from config.js's config.projector section
      (the SAME config object/admin panel every other stage uses - no second
      config system).
-   - Never touches the DOM or fetches any media until start() is actually
-     called - app.js only calls that when config.projector.enabled is true,
-     so a visitor with the feature off never loads a single byte of this
-     stage's media. preload() (see bottom) is the one deliberate exception -
-     app.js calls it near the end of the countdown, and even then it only
-     warms the FIRST item, never the whole list.
+   - Never touches the DOM or fetches any media until start()/previewEnter()
+     is actually called - app.js only calls start() when config.projector.
+     enabled is true, so a visitor with the feature off never loads a single
+     byte of this stage's media. preload() (see bottom) is the one deliberate
+     exception - app.js calls it near the end of the countdown, and even
+     then it only warms the frame's own decorative assets plus the FIRST
+     memory item, never the whole list.
    - Memory items are persistent: they live in config.projector.items
      (each { id, type, url, caption, pace, trimStart, trimEnd }), uploaded
      via admin-panel.js's media-manager field and saved through the normal
      config Save flow, so every visitor and every future admin session
      sees the same memories - never session-local blob URLs.
 
-   State machine: preplay -> loading -> playing -> (stalled <-> playing/
-   loading) -> ended-hold -> ended (Replay/Continue, waits indefinitely by
-   default) -> done. Every path that can go wrong (missing media, network
-   error, decode error, stall, timeout, explicit skip) funnels into the
-   SAME "stalled" gate with Retry/Skip - there is exactly one way out of
-   trouble, not a different dead end for each failure mode. A memory
-   finishing normally does NOT jump straight to done: it holds briefly,
-   then reveals a calm Replay/Continue gate and waits for the viewer to
-   decide (Auto Continue, off by default, skips straight to done instead
-   after the same hold). "done" always calls the same onDone callback
-   app.js already wires to stage-final, so Final is reachable from every
-   single one of those paths.
+   TWO separate entry points, deliberately - this split is what fixes a real,
+   confirmed production bug ("Continue doesn't reliably reach Final"):
+   - start(cfg, onDone): the ONLY path a real visitor ever takes
+     (goToFinalOrProjector() in app.js). Sets onDoneCallback to the REAL
+     routing callback.
+   - previewEnter(cfg): what admin-panel.js's tab-switching uses to show the
+     Projector stage while editing. It shares every bit of setup/reset logic
+     with start() but NEVER touches onDoneCallback. Before this split, both
+     paths called the same start() function, so an admin merely clicking
+     into the Projector tab while a real (or even just previously-admin-
+     started) playback was in flight would silently overwrite the real
+     "go to Final" callback with previewEnter's harmless no-op - Continue
+     would then do nothing, permanently, for the rest of that page's life.
+     Confirmed by reproducing it exactly this way before writing this fix.
+
+   State machine: entry -> preplay(poster+title+play) -> loading -> playing
+   -> (stalled <-> playing/loading) -> ended-hold -> ended (Replay/Continue,
+   waits indefinitely by default) -> done. Every failure path (missing
+   media, network error, decode error, stall, timeout, explicit skip)
+   funnels into the SAME "stalled" gate with Retry/Skip - one way out of
+   trouble, not a different dead end per failure mode. A memory finishing
+   normally does NOT jump straight to done: it holds briefly, then reveals
+   a calm Replay/Continue gate and waits for the viewer (Auto Continue, off
+   by default, skips straight to done instead after the same hold). "done"
+   always calls onDoneCallback, so Final is reachable from every path.
+
+   The title is shown exactly once, on entry, and only ever hidden by the
+   natural cross-stage fade when the WHOLE #stage-projector section leaves
+   (app.js's show()/.stage.leaving) - no per-state fading of the title, no
+   individually hiding frame/title/gate before routing to Final (Module 18:
+   the stage leaves as one composition, not piece by piece).
    ============================================================================ */
 (() => {
   "use strict";
 
   const PACE_MS = { quick: 900, normal: 2000, hold: 4000 };
-  const LOADING_TIMEOUT_MS = 6000;  // no progress on the very first load -> reveal retry/skip
+  const LOADING_TIMEOUT_MS = 6000;  // no progress on the very first load -> escalate copy + reveal retry/skip
   const STALL_TIMEOUT_MS = 9000;    // no timeupdate progress mid-playback -> reveal retry/skip
+  const ENTRANCE_SAFETY_MS = 700;   // never leave the frame invisible longer than this even on a dead-slow connection
 
   const PROJECTOR_PRESETS = {
     soft:     { vignette: 0.5, blurPx: 0.15 },
     balanced: { vignette: 1.0, blurPx: 0.35 },
     deep:     { vignette: 1.5, blurPx: 0.55 }
   };
+
+  const FRAME_OVERLAY_SRC = "assets/memory-frame.png";
+  const FRAME_MASK_SRC = "assets/memory-frame-mask.png";
 
   let started = false;
   let memories = [];
@@ -53,8 +77,9 @@
   let showRequestSeq = 0;
   let onDoneCallback = null;
   let cfgCache = null;
+  let maskWarmed = false;
 
-  let layers, frameMediaEl, captionEl, titleEl, ambientGlowEl;
+  let frameEl, layers, frameMediaEl, captionEl, titleEl, ambientGlowEl, posterEl, previewBadgeEl;
   let gateEl, gateTextEl, playBtn, gateActionsEl, retryBtn, skipBtn, endedActionsEl, replayBtn, continueBtn;
 
   let loadingTimeoutId = null;
@@ -67,9 +92,9 @@
   }
 
   /* Rebuilds the playable list from the persisted config every time
-     start()/applyLive() runs, so both a real visitor and the admin's
-     live-preview always reflect whatever was last saved - never a stale
-     in-memory list. Never auto-plays anything by itself - see resetGate(). */
+     start()/previewEnter()/applyLive() runs, so both a real visitor and
+     the admin's live-preview always reflect whatever was last saved -
+     never a stale in-memory list. Never auto-plays anything by itself. */
   function syncMemoriesFromConfig(items) {
     const list = Array.isArray(items) ? items : [];
     memories = list
@@ -99,9 +124,64 @@
   }
 
   /* -------------------------------------------------------------------- *
+   *  Poster - a persistent <img>, same crop/fit/position CSS vars as the
+   *  video (.media-fg), so a poster-to-video crossfade never jumps. Shown
+   *  whenever configured and no media has been revealed yet; explicitly
+   *  hidden (not removed) the moment real media reveals so it costs
+   *  nothing once playback is under way.
+   *  ---------------------------------------------------------------------*/
+  function applyPoster(url) {
+    if (url) {
+      posterEl.src = url;
+      posterEl.hidden = false;
+      posterEl.classList.remove("hide");
+    } else {
+      posterEl.hidden = true;
+    }
+  }
+
+  function hidePoster() {
+    posterEl.classList.add("hide");
+  }
+
+  /* -------------------------------------------------------------------- *
+   *  Entrance - the whole framed composition (frame + mask + poster +
+   *  decoration) fades/scales in as ONE object, gated on its own
+   *  decorative assets actually being ready (Module 4: the previous
+   *  version started this transition immediately, before the frame PNG
+   *  or the CSS mask image had necessarily loaded, which is exactly what
+   *  produced "mask appears, blank interior, then frame pops in" - two
+   *  independently-loading network images racing against a CSS animation
+   *  that didn't know or care whether they'd arrived). preload() (bottom)
+   *  warms both during the countdown so in the common case this resolves
+   *  instantly; the safety timeout guarantees it is never stuck invisible
+   *  on a slow connection either.
+   *  ---------------------------------------------------------------------*/
+  function triggerEntrance() {
+    frameEl.classList.remove("enter");
+    void frameEl.offsetWidth; // restart the transition if this is a re-entry
+    frameEl.classList.add("enter");
+  }
+
+  function armEntrance() {
+    const overlay = document.getElementById("projFrameOverlay");
+    let fired = false;
+    const fire = () => { if (!fired) { fired = true; triggerEntrance(); } };
+    if (overlay.complete && overlay.naturalWidth > 0) {
+      fire();
+    } else {
+      overlay.addEventListener("load", fire, { once: true });
+      overlay.addEventListener("error", fire, { once: true });
+      setTimeout(fire, ENTRANCE_SAFETY_MS);
+    }
+  }
+
+  /* -------------------------------------------------------------------- *
    *  The gate - one overlay, one function per state. Every state clears
    *  whatever the previous one showed instead of layering flags, so there
    *  is never a stuck "loading text + play button both visible" glitch.
+   *  All copy is config-driven (admin panel's "متن‌های پروژکتور" section)
+   *  with the shipped defaults as fallback - see config.js.
    *  ---------------------------------------------------------------------*/
   function clearTimers() {
     clearTimeout(loadingTimeoutId);
@@ -126,6 +206,7 @@
 
   function showPreplayGate() {
     hideGate();
+    applyPoster(cfgCache.poster);
     gateEl.classList.add("show");
     playBtn.classList.add("show");
     ambientGlowEl.classList.add("show");
@@ -135,7 +216,9 @@
   function showLoadingGate(withEscape) {
     hideGate();
     gateEl.classList.add("show");
-    gateTextEl.textContent = "دارم خاطره رو آماده می‌کنم...";
+    gateTextEl.textContent = withEscape
+      ? (cfgCache.longLoadingText || "یکم بیشتر زمان می‌خواد...")
+      : (cfgCache.loadingText || "دارم آماده‌ش می‌کنم...");
     gateTextEl.classList.add("show");
     ambientGlowEl.classList.add("show");
     if (withEscape && cfgCache.showSkip !== false) {
@@ -148,7 +231,7 @@
   function showStalledGate() {
     hideGate();
     gateEl.classList.add("show");
-    gateTextEl.textContent = "انگار این خاطره کمی دیرتر می‌رسه...";
+    gateTextEl.textContent = cfgCache.stalledText || "هنوز آماده نشده";
     gateTextEl.classList.add("show");
     gateActionsEl.classList.add("show");
     retryBtn.classList.add("show");
@@ -162,7 +245,9 @@
      quiet actions once the hold ends (see endSequence()). Replay only
      appears when there is something to replay AND the admin hasn't
      hidden it; Continue is the only action that can never be hidden -
-     it is the sole way out once Auto Continue is off. */
+     it is the sole way out once Auto Continue is off. Does NOT touch
+     the frame/title/media - the last frame stays exactly as it was
+     (Module 16). */
   function showEndedGate() {
     hideGate();
     gateEl.classList.add("show");
@@ -204,6 +289,7 @@
       if (requestToken !== showRequestSeq) return;
       clearTimeout(loadingTimeoutId);
       hideGate();
+      hidePoster();
       layer.classList.add("active");
       other.classList.remove("active");
       // Stop the outgoing layer's media immediately instead of only
@@ -349,8 +435,10 @@
      either moves on by itself (Auto Continue) or reveals the calm
      Replay/Continue gate and waits indefinitely - never loops forever
      by default, and never rushes straight to Final either (Auto
-     Continue now defaults OFF: a streamer needs room to react to a
-     memory, not a silent jump to the next scene). */
+     Continue defaults OFF: a streamer needs room to react to a memory,
+     not a silent jump to the next scene). Nothing here touches the
+     frame/title/media - the ended video's own last frame is already
+     exactly what should stay on screen (Module 16). */
   function endSequence() {
     clearTimeout(advanceTimer);
     const delayMs = Math.max(0, (typeof cfgCache.continueDelaySec === "number" ? cfgCache.continueDelaySec : 1.3) * 1000);
@@ -363,6 +451,11 @@
     }, delayMs);
   }
 
+  /* The only path to "done" - never called piecemeal alongside manually
+     hiding title/frame/gate first. The whole #stage-projector section
+     leaves as one composition via app.js's existing cross-stage fade
+     (show() -> .stage.leaving -> sceneOut), which already covers every
+     descendant at once - nothing extra to orchestrate here. */
   function callFinish() {
     clearTimers();
     if (onDoneCallback) onDoneCallback();
@@ -370,7 +463,6 @@
 
   function beginPlayback() {
     hideGate();
-    titleEl.classList.remove("show");
     if (memories.length === 0) { setFrameEmpty(true); showEndedGate(); return; }
     showLoadingGate(false);
     loadItem(0);
@@ -381,7 +473,7 @@
     loadItem(idx === -1 ? 0 : idx);
   }
 
-  /* Replay restarts the WHOLE sequence from the first memory (Module 4:
+  /* Replay restarts the WHOLE sequence from the first memory (Module 17:
      "restart from the beginning"), not just whichever item happened to
      be last - in the common case (one clip) these are the same thing.
      Reuses the exact, already-buffered <video> element in place instead
@@ -407,9 +499,9 @@
   /* -------------------------------------------------------------------- *
    *  Config application - reads config.projector (the real config object,
    *  same one every other stage uses) and drives the same CSS vars the
-   *  prototype's applyMemoryConfig did, just for a much smaller control
-   *  set (Preset/Media Size/Edge Fade/Center - see admin-panel.js's
-   *  "projector" tab), plus the title text block.
+   *  prototype's applyMemoryConfig did, plus every editable text surface
+   *  (Module 22/23) so admin edits reflect instantly regardless of which
+   *  gate state happens to be showing.
    *  ---------------------------------------------------------------------*/
   function applyProjectorConfig(cfg) {
     const root = document.documentElement.style;
@@ -449,59 +541,72 @@
     root.setProperty("--proj-title-color", title.color || "var(--muted)");
     root.setProperty("--proj-title-opacity", typeof title.opacity === "number" ? title.opacity : 0.85);
     if (titleEl) titleEl.textContent = title.text || "";
-    if (playBtn) playBtn.textContent = cfg.playButtonText || "بذار ببینمش";
+    if (playBtn) playBtn.textContent = cfg.playButtonText || "ببینش";
+    if (retryBtn) retryBtn.textContent = cfg.retryText || "دوباره تلاش کن";
+    if (skipBtn) skipBtn.textContent = cfg.skipText || "ادامه بدون فیلم";
+    if (replayBtn) replayBtn.textContent = cfg.replayText || "پخش دوباره";
+    if (continueBtn) continueBtn.textContent = cfg.continueText || "ادامه";
   }
 
   /* -------------------------------------------------------------------- *
-   *  Public API - app.js calls start() only when config.projector.enabled
-   *  is true, and only once the countdown finishes (never eagerly, never
-   *  when the feature is off) - that single call site is what guarantees
-   *  no media for this stage ever loads unless it is actually needed.
-   *  Each call resets fully to the pre-play gate - it never resumes
-   *  mid-sequence, so re-entering (or the admin's live-preview) always
-   *  starts from the same deliberate beginning.
+   *  One-time DOM wiring, shared by start() and previewEnter() - grabs
+   *  every element reference and attaches every click handler exactly
+   *  once, regardless of which entry point gets called first.
    *  ---------------------------------------------------------------------*/
-  function start(cfg, onDone) {
-    onDoneCallback = onDone;
-    cfgCache = cfg || {};
-    if (!started) {
-      started = true;
-      layers = Array.from(document.querySelectorAll("#stage-projector .media-layer"));
-      frameMediaEl = document.querySelector("#stage-projector .frame-media");
-      captionEl = document.getElementById("projCaption");
-      titleEl = document.getElementById("projTitle");
-      ambientGlowEl = document.querySelector("#stage-projector .proj-ambient-glow");
-      gateEl = document.getElementById("projGate");
-      gateTextEl = document.getElementById("projGateText");
-      playBtn = document.getElementById("projPlayBtn");
-      gateActionsEl = document.getElementById("projGateActions");
-      retryBtn = document.getElementById("projRetryBtn");
-      skipBtn = document.getElementById("projSkipBtn");
-      endedActionsEl = document.getElementById("projEndedActions");
-      replayBtn = document.getElementById("projReplayBtn");
-      continueBtn = document.getElementById("projContinueBtn");
+  function wireOnce() {
+    if (started) return;
+    started = true;
+    frameEl = document.getElementById("memoryFrame");
+    layers = Array.from(document.querySelectorAll("#stage-projector .media-layer"));
+    frameMediaEl = document.querySelector("#stage-projector .frame-media");
+    captionEl = document.getElementById("projCaption");
+    titleEl = document.getElementById("projTitle");
+    ambientGlowEl = document.querySelector("#stage-projector .proj-ambient-glow");
+    posterEl = document.getElementById("projPoster");
+    previewBadgeEl = document.getElementById("projPreviewBadge");
+    gateEl = document.getElementById("projGate");
+    gateTextEl = document.getElementById("projGateText");
+    playBtn = document.getElementById("projPlayBtn");
+    gateActionsEl = document.getElementById("projGateActions");
+    retryBtn = document.getElementById("projRetryBtn");
+    skipBtn = document.getElementById("projSkipBtn");
+    endedActionsEl = document.getElementById("projEndedActions");
+    replayBtn = document.getElementById("projReplayBtn");
+    continueBtn = document.getElementById("projContinueBtn");
 
-      const overlay = document.getElementById("projFrameOverlay");
-      if (overlay) {
-        overlay.addEventListener("load", () => overlay.classList.add("ready"), { once: true });
-        overlay.src = "assets/memory-frame.png";
-      }
-
-      playBtn.addEventListener("click", beginPlayback);
-      retryBtn.addEventListener("click", retryCurrent);
-      skipBtn.addEventListener("click", callFinish);
-      replayBtn.addEventListener("click", replayFromStart);
-      continueBtn.addEventListener("click", callFinish);
+    const overlay = document.getElementById("projFrameOverlay");
+    if (overlay) {
+      overlay.addEventListener("load", () => overlay.classList.add("ready"), { once: true });
+      overlay.src = FRAME_OVERLAY_SRC;
     }
+    if (!maskWarmed) {
+      maskWarmed = true;
+      new Image().src = FRAME_MASK_SRC; // warm the HTTP cache for the CSS mask-image below
+    }
+
+    playBtn.addEventListener("click", beginPlayback);
+    retryBtn.addEventListener("click", retryCurrent);
+    skipBtn.addEventListener("click", callFinish);
+    replayBtn.addEventListener("click", replayFromStart);
+    continueBtn.addEventListener("click", callFinish);
+  }
+
+  /* Shared by start()/previewEnter() - applies config, rebuilds the
+     memory list, resets every timer/gate, and reveals the entrance. Never
+     touches onDoneCallback - that is each entry point's own concern. */
+  function resetToEntry(cfg) {
     clearTimers();
+    hidePoster();
+    cfgCache = cfg || {};
     applyProjectorConfig(cfgCache);
     syncMemoriesFromConfig(cfgCache.items);
     setFrameEmpty(memories.length === 0);
+    armEntrance();
     // Nothing uploaded yet (Projector turned on before any memory was
-    // added) - skip the "بذار ببینمش" prompt entirely rather than
-    // inviting a tap that leads nowhere; go straight to the one control
-    // that's actually meaningful here (see Module 5: Final must always
-    // stay reachable, including when media is simply missing).
+    // added) - skip the play prompt entirely rather than inviting a tap
+    // that leads nowhere; go straight to the one control that's actually
+    // meaningful here (Module 12: Final must always stay reachable,
+    // including when media is simply missing).
     if (memories.length === 0) {
       showEndedGate();
     } else {
@@ -509,25 +614,68 @@
     }
   }
 
-  /* Live-preview only (admin panel sliders/color pickers) - appearance +
-     title text update instantly; never touches playback state, so it is
-     safe to call on every keystroke without interrupting anything. */
+  /* -------------------------------------------------------------------- *
+   *  Public API.
+   *  ---------------------------------------------------------------------*/
+
+  /* The ONLY path a real visitor ever takes - app.js's
+     goToFinalOrProjector() calls this once, with the real "go to Final"
+     callback. See the file header for exactly why this must never be
+     reused for admin preview. */
+  function start(cfg, onDone) {
+    wireOnce();
+    onDoneCallback = onDone;
+    resetToEntry(cfg);
+  }
+
+  /* Admin-panel tab-preview only. Reuses onDoneCallback if one already
+     exists (e.g. a real sequence is genuinely in progress and the admin
+     is just glancing at the tab) instead of ever overwriting it - the
+     fix for Module 2's bug. Falls back to a harmless no-op only if
+     nothing has ever been set (nothing to route to yet in that case
+     anyway). */
+  function previewEnter(cfg) {
+    wireOnce();
+    if (!onDoneCallback) onDoneCallback = () => {};
+    resetToEntry(cfg);
+  }
+
+  /* Live-preview only (admin panel sliders/color pickers/text fields) -
+     appearance + every text surface update instantly; never touches
+     playback state or the gate's current visibility, so it is safe to
+     call on every keystroke without interrupting anything (Module 23). */
   function applyLive(cfg) {
     cfgCache = cfg || {};
     applyProjectorConfig(cfgCache);
     syncMemoriesFromConfig(cfgCache.items);
+    // Only touch the poster while the preplay gate is actually the thing
+    // showing (Module 23: instant feedback while it's relevant) - editing
+    // it mid-playback or after the memory ended would just be invisible
+    // until the next real entry anyway, so there is nothing to update.
+    if (posterEl && playBtn && playBtn.classList.contains("show")) {
+      applyPoster(cfgCache.poster);
+    }
   }
 
   /* Called by app.js near the end of the countdown (only when Projector
-     is enabled) - the ONE deliberate exception to "never load media until
-     start()". Warms exactly the first item, nothing more: a hidden
+     is enabled) - the ONE deliberate exception to "never load anything
+     until start()/previewEnter()". Warms the frame's own decorative PNG/
+     mask (Module 4/5 - so the entrance never has to wait for them) plus
+     exactly the first memory item and its poster, nothing more: a hidden
      <video preload="auto"> (browsers fetch enough to start smoothly, not
      the whole file) or a plain Image() prefetch for a photo. If start()
      later plays that same first item, loadItem() reuses this exact
      element instead of creating a second one, so there is never a
      duplicate request. */
   function preload(cfg) {
-    if (!cfg || !cfg.enabled || preloadEl) return;
+    if (!cfg || !cfg.enabled) return;
+    if (!maskWarmed) {
+      maskWarmed = true;
+      new Image().src = FRAME_MASK_SRC;
+    }
+    new Image().src = FRAME_OVERLAY_SRC;
+    if (cfg.poster) new Image().src = cfg.poster;
+    if (preloadEl) return;
     const items = Array.isArray(cfg.items) ? cfg.items : [];
     const first = items[0];
     if (!first || !first.url) return;
@@ -544,10 +692,56 @@
     }
   }
 
+  /* -------------------------------------------------------------------- *
+   *  State Preview - admin-only editor tool (Module 24-28). Every branch
+   *  is a pure UI-visibility toggle already used by the real state
+   *  machine above (or, for "finalTransition", the same admin-preview
+   *  stage switch every other tab already does) - none of them touch
+   *  onDoneCallback, write to config, or start a real fetch, so flipping
+   *  through every state costs nothing and saves nothing (Module 27).
+   *  Six states, not eleven: "Entry"/"Pre-Play"/"Poster" are one and the
+   *  same visual moment in this architecture (title + poster + play
+   *  button, nothing else renders differently between them), and
+   *  "Stalled" and "Failed Media" already funnel into one identical gate
+   *  - inventing separate previews for states that render identically
+   *    would be showing the same screenshot twice under different names.
+   *  ---------------------------------------------------------------------*/
+  const PREVIEW_LABELS = {
+    entry: "ورود / قبل از پخش",
+    loading: "بارگذاری",
+    longLoading: "بارگذاری طولانی",
+    stalled: "قطع‌شدگی / خطا",
+    ended: "پایان ویدیو",
+    finalTransition: "انتقال به پایانی"
+  };
+
+  function showPreviewBadge(name) {
+    if (!previewBadgeEl) return;
+    previewBadgeEl.textContent = "پیش‌نمایش: " + (PREVIEW_LABELS[name] || name);
+    previewBadgeEl.classList.add("show");
+  }
+
+  function previewState(name) {
+    if (!started) return;
+    clearTimers();
+    if (name === "finalTransition") {
+      if (window.NUR_APP) window.NUR_APP.previewStage("stage-final");
+      return;
+    }
+    showPreviewBadge(name);
+    if (name === "entry") { resetToEntry(cfgCache); return; }
+    if (name === "loading") { showLoadingGate(false); return; }
+    if (name === "longLoading") { showLoadingGate(true); return; }
+    if (name === "stalled") { showStalledGate(); return; }
+    if (name === "ended") { showEndedGate(); return; }
+  }
+
   window.NUR_PROJECTOR = {
     start,
+    previewEnter,
     applyLive,
     preload,
+    previewState,
     _bgEnabled: false
   };
 })();

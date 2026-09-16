@@ -593,6 +593,15 @@
       <div class="frame-media">
         <div class="media-layer" data-layer="0"></div>
         <div class="media-layer" data-layer="1"></div>
+        <!-- Poster/cover (config.projector.poster) - same crop/fit/
+             position as the eventual video (.media-fg), shown from the
+             moment the frame enters so there is never a blank/white
+             interior before playback. Fades out (not removed) the
+             instant real media reveals - see projector.js's hidePoster()
+             and reveal(). Hidden entirely (not just empty) when no
+             poster is configured, falling back to .frame-media's own
+             warm parchment background color. -->
+        <img class="proj-poster" id="projPoster" alt="" hidden>
         <div class="projector-vignette"></div>
         <div class="proj-ambient-glow" aria-hidden="true"></div>
         <svg class="vhs-layer vhs-grain-layer" aria-hidden="true" focusable="false">
@@ -644,6 +653,11 @@
       <img class="frame-overlay" id="projFrameOverlay" alt="">
     </figure>
     <p class="proj-caption" id="projCaption"></p>
+    <!-- Editor-only badge (Module 28) - text/visibility set exclusively by
+         projector.js's previewState(), which is only ever called from the
+         admin panel's State Preview buttons. A real visitor's code path
+         never calls previewState(), so this never appears for them. -->
+    <p class="proj-preview-badge" id="projPreviewBadge" aria-hidden="true"></p>
   </section>
 
   <!-- FINAL -->
