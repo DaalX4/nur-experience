@@ -322,6 +322,7 @@
         opacity: 0.85
       },
       playButtonText: "ببینش",
+      playButtonFontSize: 15,
       /* "" = no uploaded poster, falls back to the frame's own warm
          parchment placeholder color (never a stark white hole) - see
          projector.js/projector.css. Any other value is a Wix Media
@@ -372,7 +373,15 @@
       continueDelaySec: 1.3,
       showSkip: true,
       showReplay: true,
-      loop: false
+      loop: false,
+      /* End-state actions (Replay/Continue/Retry/Skip) - ONE shared style
+         for all of them (Module: "no accidental color mismatch"), applied
+         via CSS vars rather than per-button color fields, so Replay and
+         Continue can never accidentally drift into different colors. */
+      endActionFontSize: 15,
+      endActionTextColor: "#f6efe0",
+      endActionBgColor: "#e9e2d2",
+      endActionGap: 14
     }
   };
 

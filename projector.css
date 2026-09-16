@@ -218,11 +218,19 @@
    Confirmed by reproducing it against the real production poster and
    fixing it with only this rule, nothing else. The video's own rule
    (.media-slot img,video below) already had this - only this poster rule
-   was missing it. */
+   was missing it.
+   inset is a FIXED value, deliberately NOT var(--proj-fg-inset-*) - that
+   shared var is what "اندازه رسانه/Media Size" (mediaSize) drives for the
+   VIDEO, and a real, confirmed bug was reported: moving that slider was
+   also resizing the poster, because both elements read the exact same
+   inset variable. The poster has its own scale control already
+   (--proj-poster-scale) for zoom - it never needed a shared inset, only
+   a stable viewport to zoom/pan within. This fixed 6% reproduces the old
+   visual default exactly. */
 .proj-poster{
   position:absolute;
   z-index:1;
-  inset:var(--proj-fg-inset-top,3%) var(--proj-fg-inset-right,6%) var(--proj-fg-inset-bottom,6%) var(--proj-fg-inset-left,6%);
+  inset:6%;
   width:100%;
   height:100%;
   display:block;
@@ -495,10 +503,14 @@
 .proj-gate-btn{
   display:none;
   border:1px solid color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 40%, transparent);
-  border-radius:12px;
-  padding:13px 34px;
+  border-radius:11px;
+  /* Slightly reduced from the original 13px/34px - the pill read as
+     oversized/bulky relative to a modest-sized frame (a real reported
+     complaint), especially at the frame's smaller end. Still comfortably
+     tappable, just less dominant. */
+  padding:10px 26px;
   font-family:var(--font-display);
-  font-size:16px;
+  font-size:var(--proj-playbtn-font-size,15px);
   letter-spacing:.02em;
   cursor:pointer;
   background:var(--proj-overlay-tint-strong,rgba(20,16,10,.45));
@@ -542,7 +554,48 @@
   transition:opacity .25s ease, text-decoration-color .25s ease;
 }
 .proj-gate-link:hover{ opacity:1; text-decoration-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 80%, transparent); }
-.proj-gate-link--primary{ font-weight:600; opacity:.95; color:var(--proj-overlay-accent,#f6efe0); }
+
+/* End-state actions (Replay / Continue) - two visually EQUAL, clearly
+   separate parchment pills, not underlined text links (the old shared
+   .proj-gate-link style read as one merged blob, and Continue's extra
+   --primary accent color could visually drift from Replay whenever the
+   admin's accent/text colors differed - a real reported inconsistency).
+   Deliberately its own warm ivory/dark-glass plate, matching proj-gate-btn's
+   language, not bright web-app chrome. One shared set of vars for both
+   buttons (font size/text color/background) - so they can never
+   accidentally end up looking different from each other. */
+.proj-gate-actions--ended{
+  gap:var(--proj-end-gap,14px);
+  background:none;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+  padding:0;
+}
+.proj-end-btn{
+  display:none;
+  border:1px solid color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 30%, transparent);
+  border-radius:10px;
+  padding:9px 22px;
+  font-family:var(--font-display);
+  font-size:var(--proj-end-font-size,15px);
+  font-weight:500;
+  letter-spacing:.01em;
+  cursor:pointer;
+  background:var(--proj-end-bg-color,rgba(233,226,210,.14));
+  color:var(--proj-end-text-color,#f6efe0);
+  text-shadow:0 1px 3px rgba(0,0,0,.4);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  transition:background .25s ease, border-color .25s ease, transform .2s ease;
+}
+.proj-end-btn:hover,
+.proj-end-btn:focus-visible{
+  border-color:color-mix(in srgb, var(--proj-overlay-accent,#f6efe0) 60%, transparent);
+  background:color-mix(in srgb, var(--proj-end-bg-color,rgba(233,226,210,.14)) 100%, white 8%);
+  transform:translateY(-1px);
+  outline:none;
+}
+.proj-end-btn.show{display:inline-block}
 @media (prefers-reduced-motion: reduce){
   .proj-gate{transition:none}
 }

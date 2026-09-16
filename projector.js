@@ -815,6 +815,16 @@
     if (skipBtn) skipBtn.textContent = cfg.skipText || "ادامه بدون فیلم";
     if (replayBtn) replayBtn.textContent = cfg.replayText || "پخش دوباره";
     if (continueBtn) continueBtn.textContent = cfg.continueText || "ادامه";
+    root.setProperty("--proj-playbtn-font-size", (typeof cfg.playButtonFontSize === "number" ? cfg.playButtonFontSize : 15) + "px");
+
+    // End-state actions (Replay/Continue) - ONE shared style for both, so
+    // they can never accidentally end up looking different from each
+    // other (a real reported inconsistency - Continue used to carry an
+    // extra "primary accent" class Replay didn't).
+    root.setProperty("--proj-end-font-size", (typeof cfg.endActionFontSize === "number" ? cfg.endActionFontSize : 15) + "px");
+    root.setProperty("--proj-end-text-color", cfg.endActionTextColor || "#f6efe0");
+    root.setProperty("--proj-end-bg-color", hexToRgba(cfg.endActionBgColor, 16) || "rgba(233,226,210,.16)");
+    root.setProperty("--proj-end-gap", (typeof cfg.endActionGap === "number" ? cfg.endActionGap : 14) + "px");
 
     // Overlay appearance (Module 2/3 - admin's "ظاهر پیام‌های روی ویدیو").
     // Static per-config, unlike --proj-overlay-blur/dim/desat above which
@@ -924,12 +934,22 @@
   /* Admin-panel tab-preview only. Reuses onDoneCallback if one already
      exists (e.g. a real sequence is genuinely in progress and the admin
      is just glancing at the tab) instead of ever overwriting it - the
-     fix for Module 2's bug. Falls back to a harmless no-op only if
-     nothing has ever been set (nothing to route to yet in that case
-     anyway). */
+     fix for a real bug where opening the Projector tab silently replaced
+     a real visitor's routing callback. Falls back to jumping the admin's
+     OWN preview to the Final tab only if nothing has ever been set (a
+     pure admin-preview session, never a real visitor's in-flight
+     sequence) - this is what makes "صفحه بعد" visibly do something while
+     an admin is just previewing/testing the Projector tab on its own,
+     instead of silently no-op'ing (confirmed real complaint: clicking
+     Continue while previewing looked "broken" because nothing happened -
+     it never was routing a real visitor, there was simply nothing to
+     route to). A real visitor's callback always wins - this branch can
+     only ever run when onDoneCallback was never set to begin with. */
   function previewEnter(cfg) {
     wireOnce();
-    if (!onDoneCallback) onDoneCallback = () => {};
+    if (!onDoneCallback) {
+      onDoneCallback = () => { if (window.NUR_APP) window.NUR_APP.previewStage("stage-final"); };
+    }
     resetToEntry(cfg);
   }
 

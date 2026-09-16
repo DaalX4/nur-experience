@@ -197,6 +197,18 @@
 
         { type: "youtubeSource", path: ["projector", "youtubeUrl"], label: "لینک ویدیو یوتیوب", help: "فرمت‌های watch؟v=، youtu.be و shorts پشتیبانی می‌شوند. برای بررسی سریع، از بخش «پیش‌نمایش حالت‌ها» پایین همین صفحه استفاده کن.", showIf: { path: ["projector", "source"], equals: "youtube" }, group: "یوتیوب" },
 
+        /* Video/media size+position - own group, moved out of "پیشرفته"
+           (a real complaint: these are basic, commonly-needed controls to
+           fit an uploaded video inside the paper frame, not advanced/rare
+           settings) and completely independent from the poster's own
+           fit/scale/X/Y below - the poster used to share this same inset
+           with the video (a real confirmed bug: moving Media Size also
+           resized the poster), now fixed at the CSS level (see
+           projector.css's .proj-poster). */
+        { type: "slider", path: ["projector", "mediaSize"], label: "اندازه ویدیو در قاب", help: "فقط روی ویدیو/رسانه اثر می‌گذارد - روی پوستر هیچ اثری ندارد.", min: 60, max: 100, step: 2, unit: "%", group: "اندازه و جایگاه ویدیو" },
+        { type: "slider", path: ["projector", "centerX"], label: "جایگاه افقی ویدیو", min: 20, max: 80, step: 1, unit: "%", group: "اندازه و جایگاه ویدیو" },
+        { type: "slider", path: ["projector", "centerY"], label: "جایگاه عمودی ویدیو", min: 20, max: 80, step: 1, unit: "%", group: "اندازه و جایگاه ویدیو" },
+
         { type: "image", path: ["projector", "poster"], label: "پوستر / کاور", help: "قبل از شروع پخش نمایش داده می‌شود. اگر خالی بماند و منبع یوتیوب باشد، از تصویر بندانگشتی همان ویدیو استفاده می‌شود. هر بار که پوستر جدیدی آپلود کنی، جای‌گذاری آن به‌طور خودکار به حالت «کامل و وسط‌چین» برمی‌گردد تا نیازی به تنظیم دستی نباشد.", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور",
           resetOnChange: [
             { path: ["projector", "posterFit"], value: "contain" },
@@ -223,6 +235,7 @@
         { type: "color", path: ["projector", "title", "color"], label: "عنوان: رنگ", group: "متن‌ها: قبل از پخش" },
         { type: "slider", path: ["projector", "title", "opacity"], label: "عنوان: شفافیت", min: 0.2, max: 1, step: 0.05, unit: "", group: "متن‌ها: قبل از پخش" },
         { type: "text", path: ["projector", "playButtonText"], label: "متن دکمه شروع ویدیو", help: "روی پوستر، قبل از شروع پخش نمایش داده می‌شود.", group: "متن‌ها: قبل از پخش" },
+        { type: "slider", path: ["projector", "playButtonFontSize"], label: "اندازه فونت دکمه شروع", min: 12, max: 20, step: 1, unit: "px", group: "متن‌ها: قبل از پخش" },
 
         { type: "text", path: ["projector", "loadingText"], label: "متن هنگام آماده شدن ویدیو", help: "همون لحظه‌ای که کاربر دکمه شروع را زده و ویدیو در حال آماده شدن است.", group: "متن‌ها: هنگام آماده شدن" },
         { type: "text", path: ["projector", "longLoadingText"], label: "متن وقتی آماده شدن طول می‌کشد", help: "اگر آماده شدن بیشتر از حد معمول طول بکشد، جایگزین متن بالا می‌شود و دکمه‌های تلاش دوباره/ادامه بدون فیلم هم ظاهر می‌شوند.", group: "متن‌ها: هنگام آماده شدن" },
@@ -241,18 +254,22 @@
         { type: "color", path: ["projector", "overlay", "textColor"], label: "رنگ متن پیام", group: "ظاهر پیام‌های روی ویدیو" },
         { type: "color", path: ["projector", "overlay", "accentColor"], label: "رنگ دکمه/لینک اصلی", group: "ظاهر پیام‌های روی ویدیو" },
 
-        { type: "slider", path: ["projector", "mediaSize"], label: "اندازه رسانه (Media Size)", min: 60, max: 100, step: 2, unit: "%", group: "رفتار پخش" },
-        { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%", group: "رفتار پخش" },
+        /* Edge Fade is a visual/layout effect (the vignette softening the
+           media's edges into the frame), not playback behavior - moved
+           out of "رفتار پخش" into its own appearance group. */
+        { type: "slider", path: ["projector", "edgeFade"], label: "محو شدن لبه‌ها (Edge Fade)", min: 0, max: 100, step: 5, unit: "%", group: "ظاهر رسانه" },
 
         { type: "buttons", path: ["projector", "autoContinue"], label: "ادامه خودکار بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
         { type: "slider", path: ["projector", "continueDelaySec"], label: "مکث بعد از پخش", min: 0, max: 4, step: 0.1, unit: " ثانیه", group: "رفتار پایان ویدیو" },
         { type: "buttons", path: ["projector", "showReplay"], label: "نمایش «پخش دوباره» بعد از پخش", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
         { type: "buttons", path: ["projector", "showSkip"], label: "نمایش «ادامه بدون فیلم» هنگام تاخیر", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "رفتار پایان ویدیو" },
+        { type: "slider", path: ["projector", "endActionFontSize"], label: "اندازه متن دکمه‌های پایان (پخش دوباره / صفحه بعد)", min: 12, max: 20, step: 1, unit: "px", group: "رفتار پایان ویدیو" },
+        { type: "color", path: ["projector", "endActionTextColor"], label: "رنگ متن دکمه‌های پایان", group: "رفتار پایان ویدیو" },
+        { type: "color", path: ["projector", "endActionBgColor"], label: "رنگ پس‌زمینه دکمه‌های پایان", group: "رفتار پایان ویدیو" },
+        { type: "slider", path: ["projector", "endActionGap"], label: "فاصله بین دو دکمه پایان", min: 6, max: 36, step: 1, unit: "px", group: "رفتار پایان ویدیو" },
 
         { type: "previewButtons", group: "پیش‌نمایش حالت‌ها" },
 
-        { type: "slider", path: ["projector", "centerX"], label: "مرکز - افقی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", group: "پیشرفته" },
-        { type: "slider", path: ["projector", "centerY"], label: "مرکز - عمودی (اختیاری)", min: 20, max: 80, step: 1, unit: "%", group: "پیشرفته" },
         { type: "slider", path: ["projector", "bgFillIntensity"], label: "پرکردن پس‌زمینه با بلور (اختیاری - پیش‌فرض خاموش)", min: 0, max: 100, step: 10, unit: "%", group: "پیشرفته" },
         { type: "buttons", path: ["projector", "loop"], label: "تکرار پیوسته (پیش‌فرض خاموش - فقط آپلود مستقیم)", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "پیشرفته" }
       ]
