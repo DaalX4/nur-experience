@@ -27,15 +27,20 @@
   margin:0;
   left:50%;
   top:50%;
-  /* Responsive, same idiom as .letter-stage-inner's card width - the
-     prototype used a fixed 900x600px which would overflow a phone
-     viewport. Native mask/frame asset is 3:2 (1536x1024). */
-  width:min(720px,88vw);
-  height:calc(min(720px,88vw) * 2 / 3);
+  /* Matches the approved prototype's default --frame-w:900px (its real
+     visual scale/presence), made responsive the same way
+     .letter-stage-inner's card width already is: capped by vw so it
+     never overflows a narrow viewport, and by vh too (the prototype had
+     no such cap, being a fixed-size desktop tool) so a short/landscape
+     viewport can't get a frame taller than the screen either. Native
+     mask/frame asset is 3:2 (1536x1024), so height stays width*2/3. */
+  --frame-w:min(900px,90vw,125vh);
+  width:var(--frame-w);
+  height:calc(var(--frame-w) * 2 / 3);
   /* Same -2%-of-width optical nudge as the prototype - the torn-paper
      art's tape/flower decoration only exists on the right side, so a
      mathematically-centered box reads as shifted right to the eye. */
-  transform:translate(-50%,-50%) translateX(calc(min(720px,88vw) * -0.02));
+  transform:translate(-50%,-50%) translateX(calc(var(--frame-w) * -0.02));
   filter:drop-shadow(0 22px 46px rgba(30,25,15,.22));
 }
 
