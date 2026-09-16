@@ -801,43 +801,73 @@
     return data.url;
   }
 
-  /* Projector media upload (image or video) - same generic Wix upload
-     endpoint as the paper-image field, just without the WebP re-encode
-     (video can't go through that canvas path, and re-compressing images
-     here isn't worth the complexity for a memories reel) and a longer
-     timeout since clips are much larger than a paper PNG. Only the
-     resulting Wix Media Manager URL is ever stored in config.projector.
-     items - never raw bytes, never a local blob URL - so it persists
-     globally through the normal Save flow. */
+  /* Projector media upload (image or video) - a DIRECT-to-Wix-Media-Manager
+     upload, not a proxy through our own function like the paper-image
+     field uses. That proxy approach (send the whole file as base64 inside
+     one JSON POST to our own Velo function) is fine for a re-encoded
+     WebP paper image (tiny), but a real video is commonly tens of MB,
+     which blows past Wix HTTP functions' own request-size ceiling and
+     fails as an opaque "Failed to fetch" with zero bytes transferred -
+     confirmed against the live endpoint. So this instead:
+       1) asks our function for a signed upload URL only (password-gated,
+          tiny JSON request - no size limit issue since no file bytes
+          are in it), then
+       2) PUTs the raw file straight from this browser to that Wix URL -
+          exactly the flow Wix documents for external clients - so the
+          file's bytes never pass through our own function at all.
+     Only the resulting Wix Media Manager URL is ever stored in
+     config.projector.items - never raw bytes, never a local blob URL -
+     so it persists globally through the normal Save flow. Requires the
+     nurUploadUrl backend function - see DEPLOY.md. */
   async function uploadMediaFile(file) {
     const password = getAdminPassword();
     if (!password) throw new Error("رمز وارد نشد");
-    const base64 = await blobToBase64(file);
     const mimeType = file.type || "application/octet-stream";
     const extFromName = (file.name.split(".").pop() || "").toLowerCase();
     const ext = extFromName || (mimeType.split("/")[1] || "bin");
     const fileName = "nur-projector-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
-    let res;
+
+    let urlRes;
     try {
-      res = await fetch(api.REMOTE_UPLOAD_URL, {
+      urlRes = await fetch(api.REMOTE_UPLOAD_URL_DIRECT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, fileName, mimeType, base64 }),
-        signal: controller.signal
+        body: JSON.stringify({ password, fileName, mimeType })
       });
-    } finally {
-      clearTimeout(timeoutId);
+    } catch (err) {
+      // A missing Wix function (not yet added - see DEPLOY.md) and a real
+      // network drop both surface as this same generic browser error
+      // (no CORS headers come back from a route Wix doesn't recognize),
+      // so the message covers both rather than guessing which one it is.
+      throw new Error("اتصال به سرور آپلود برقرار نشد - اگر تازه این قابلیت را اضافه کرده‌ای، مطمئن شو تابع nurUploadUrl طبق DEPLOY.md روی Wix اضافه و منتشر شده");
     }
-    if (res.status === 401) {
+    if (urlRes.status === 401) {
       sessionStorage.removeItem(ADMIN_PW_KEY);
       throw new Error("رمز اشتباه است");
     }
-    if (!res.ok) throw new Error("آپلود ناموفق (" + res.status + ")");
-    const data = await res.json();
-    if (!data.ok || !data.url) throw new Error(data.error || "پاسخ نامعتبر از سرور");
-    return data.url;
+    if (!urlRes.ok) throw new Error("دریافت آدرس آپلود ناموفق (" + urlRes.status + ")");
+    const urlData = await urlRes.json();
+    if (!urlData.ok || !urlData.uploadUrl) throw new Error(urlData.error || "پاسخ نامعتبر از سرور");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 180000);
+    let putRes;
+    try {
+      putRes = await fetch(urlData.uploadUrl + "?filename=" + encodeURIComponent(fileName), {
+        method: "PUT",
+        headers: { "Content-Type": mimeType },
+        body: file,
+        signal: controller.signal
+      });
+    } catch (err) {
+      throw new Error("آپلود فایل به سرور رسانه ناموفق بود");
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (!putRes.ok) throw new Error("آپلود فایل ناموفق (" + putRes.status + ")");
+    const putData = await putRes.json();
+    if (!putData || !putData.file || !putData.file.url) throw new Error("پاسخ نامعتبر از سرور رسانه");
+    return putData.file.url;
   }
 
   function doSave() {

@@ -29,8 +29,21 @@
      optimized) paper image to the Wix Media Manager and returns its public
      URL - see admin-panel.js's image field type. Only that URL is ever
      saved into config/NurConfig; the image bytes themselves never pass
-     through REMOTE_CONFIG_URL or get stored there. */
+     through REMOTE_CONFIG_URL or get stored there. Paper images are tiny
+     (re-encoded WebP), so proxying the bytes through this one JSON POST
+     is fine - see REMOTE_UPLOAD_URL_DIRECT below for anything larger. */
   const REMOTE_UPLOAD_URL = "https://www.daalvi.com/_functions/nurUploadImage";
+
+  /* Password-gated endpoint used for projector media (images AND video,
+     admin-panel.js's media-manager field). Unlike REMOTE_UPLOAD_URL, this
+     one does NOT carry the file bytes - it only returns a signed Wix
+     Media Manager upload URL that the browser then PUTs the raw file to
+     directly. Video files are commonly tens of MB; base64-JSON-through-
+     our-own-function (REMOTE_UPLOAD_URL's approach) hits Wix's HTTP
+     function request-size ceiling well before that and fails with an
+     opaque "Failed to fetch" - this endpoint exists specifically to keep
+     large files off that path. See DEPLOY.md for the backend code. */
+  const REMOTE_UPLOAD_URL_DIRECT = "https://www.daalvi.com/_functions/nurUploadUrl";
 
   /* Every value here reproduces the CURRENT shipped design exactly - the
      admin panel starts out changing nothing until the user actually moves
@@ -293,6 +306,7 @@
     STORAGE_KEY: NUR_STORAGE_KEY,
     REMOTE_CONFIG_URL,
     REMOTE_UPLOAD_URL,
+    REMOTE_UPLOAD_URL_DIRECT,
     DEFAULT_CONFIG,
     deepClone,
     mergeWithDefaults,
