@@ -147,7 +147,11 @@
   margin:0;
   margin-top:var(--nur-final-sig-y);
   opacity:.78;
-  font-size:var(--nur-final-sig-font-size);
+  /* min() caps the credit line so a large admin-chosen size (Module 35 -
+     the old 24px ceiling was raised considerably) can never overflow a
+     narrow viewport - the vw cap only ever engages once the screen is too
+     narrow to comfortably fit the chosen px size, never on desktop. */
+  font-size:min(var(--nur-final-sig-font-size), 13vw);
   font-weight:500;
   color:#e8cf8a;
   text-shadow:0 0 10px rgba(232,207,138,.3);
@@ -169,18 +173,25 @@
    never a dead link. */
 #stage-final .final-socials{
   display:flex;
+  flex-wrap:wrap;
   align-items:center;
   justify-content:center;
-  gap:clamp(20px,4vw,34px);
-  margin-top:clamp(30px,6vh,52px);
+  /* Real CSS `gap` (Module 39) - never per-icon margins - so all four
+     icons are mathematically guaranteed to stay evenly spaced no matter
+     what value the admin picks; flex-wrap+justify-center keeps the row
+     centered as a whole even if it ever has to wrap on a very narrow
+     screen. min() keeps a large chosen gap from overflowing a narrow
+     viewport (Module 40). */
+  gap:min(var(--nur-final-social-gap,30px), 9vw);
+  margin-top:min(var(--nur-final-social-top-gap,40px), 10vh);
 }
 #stage-final .final-social{
   --float-dur:7s;
   display:block;
-  width:clamp(26px,3vw,34px);
-  height:clamp(26px,3vw,34px);
+  width:var(--nur-final-social-size,30px);
+  height:var(--nur-final-social-size,30px);
   filter:sepia(1) saturate(2.4) brightness(.92) hue-rotate(-8deg)
-         drop-shadow(0 0 7px rgba(232,207,138,.35));
+         drop-shadow(0 0 var(--nur-final-social-glow-blur,7px) var(--nur-final-social-glow-color,rgba(232,207,138,.35)));
   opacity:.82;
   animation:finalSocialBreathe var(--float-dur) ease-in-out infinite;
   transition:opacity .3s ease, filter .3s ease, transform .3s ease;
@@ -192,7 +203,7 @@
   opacity:1;
   transform:translateY(-2px);
   filter:sepia(1) saturate(2.6) brightness(1.05) hue-rotate(-8deg)
-         drop-shadow(0 0 12px rgba(232,207,138,.55));
+         drop-shadow(0 0 var(--nur-final-social-glow-blur-hover,12px) var(--nur-final-social-glow-color-hover,rgba(232,207,138,.55)));
   outline:none;
 }
 @keyframes finalSocialBreathe{

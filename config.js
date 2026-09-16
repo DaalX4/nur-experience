@@ -220,6 +220,20 @@
       signatureFontSize: 15,
       signatureWordSpacing: 0,
       phase2DelaySec: 4,
+      /* Layout controls for the social row (Module 33-40) - deliberately
+         ONE shared value per property (gap/size/glow) rather than per-icon
+         controls, since the four icons must always stay evenly spaced and
+         visually identical to each other. socialsTopGap is the space
+         between the credit line above and this row; socialGap is the
+         space BETWEEN the icons themselves (real CSS `gap`, not manual
+         per-icon margins, so they can never drift out of even spacing -
+         see index.html's .final-socials). Defaults reproduce the exact
+         old hardcoded clamp()'d look at a typical desktop width, so
+         nothing shifts for an already-live streamer until touched. */
+      socialsTopGap: 40,
+      socialGap: 30,
+      socialIconSize: 30,
+      socialGlow: 55,
       /* Four fixed slots (not a free-form list) - the icon artwork itself
          is fixed per slot (assets/icon-*.webp, hand-painted line art
          already matching the project's other decorative art), only the

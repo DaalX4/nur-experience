@@ -212,6 +212,26 @@
     root.setProperty("--nur-final-sig-y", config.final.signatureOffsetY + "px");
     root.setProperty("--nur-final-sig-font-size", config.final.signatureFontSize + "px");
     root.setProperty("--nur-final-sig-word-spacing", config.final.signatureWordSpacing + "px");
+
+    // Social row layout (Module 33-40) - one shared value per property,
+    // never per-icon, so the four icons can only ever move together and
+    // stay evenly spaced (see index.html's .final-socials `gap`).
+    const f = config.final;
+    root.setProperty("--nur-final-social-top-gap", (typeof f.socialsTopGap === "number" ? f.socialsTopGap : 40) + "px");
+    root.setProperty("--nur-final-social-gap", (typeof f.socialGap === "number" ? f.socialGap : 30) + "px");
+    root.setProperty("--nur-final-social-size", (typeof f.socialIconSize === "number" ? f.socialIconSize : 30) + "px");
+    // Glow strength (0-100) drives both the icons' resting and hover
+    // drop-shadow - derived here (not raw CSS calc on a color) since
+    // computing an rgba() alpha from a custom property isn't reliably
+    // supported across browsers yet. Formula tuned so the OLD hardcoded
+    // values (7px/.35 resting, 12px/.55 hover) fall out of the new default
+    // of 55, so nothing shifts until the admin moves the slider.
+    const glow = typeof f.socialGlow === "number" ? Math.max(0, Math.min(100, f.socialGlow)) : 55;
+    root.setProperty("--nur-final-social-glow-blur", (3 + glow * 0.0909).toFixed(1) + "px");
+    root.setProperty("--nur-final-social-glow-color", "rgba(232,207,138," + Math.min(0.9, 0.12 + glow * 0.00418).toFixed(2) + ")");
+    root.setProperty("--nur-final-social-glow-blur-hover", (5.5 + glow * 0.1182).toFixed(1) + "px");
+    root.setProperty("--nur-final-social-glow-color-hover", "rgba(232,207,138," + Math.min(0.95, 0.2 + glow * 0.00636).toFixed(2) + ")");
+
     document.getElementById("finalMain").textContent = config.final.main;
     document.getElementById("finalSub").textContent = config.final.sub;
     document.getElementById("finalSignature").textContent = config.final.signature;
