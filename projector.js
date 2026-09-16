@@ -756,6 +756,11 @@
     root.setProperty("--proj-fg-inset-left", pad + "%");
     root.setProperty("--proj-fg-shrink", "1");
 
+    root.setProperty("--proj-poster-fit", cfg.posterFit === "cover" ? "cover" : "contain");
+    root.setProperty("--proj-poster-scale", typeof cfg.posterScale === "number" ? cfg.posterScale : 1);
+    root.setProperty("--proj-poster-x", (typeof cfg.posterX === "number" ? cfg.posterX : 50) + "%");
+    root.setProperty("--proj-poster-y", (typeof cfg.posterY === "number" ? cfg.posterY : 50) + "%");
+
     const cx = (typeof cfg.centerX === "number" ? cfg.centerX : 50) + "%";
     const cy = (typeof cfg.centerY === "number" ? cfg.centerY : 50) + "%";
     root.setProperty("--proj-fg-obj-pos", cx + " " + cy);

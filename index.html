@@ -65,13 +65,36 @@
     0 0 28px rgba(184,222,166,.18);
 }
 
-/* Keep Claude's layout, but give the ending its own readable width. */
+/* Keep Claude's layout, but give the ending its own readable width.
+   display:grid + both phases sharing grid-area 1/1 (same idiom already
+   used for the letter's two faces) means phase1/phase2 overlap in
+   exactly the same box instead of stacking in normal flow - swapping
+   which one is visible never reflows or shifts the vertical centering,
+   it's a pure opacity/blur crossfade in place. */
 #stage-final .scene-text{
   position:relative;
   z-index:2;
   width:min(88vw,980px);
   margin-inline:auto;
   text-align:center;
+  display:grid;
+}
+#stage-final .final-phase1,
+#stage-final .final-phase2{
+  grid-area:1/1;
+}
+
+/* PHASE 1 - the emotional message, exactly as before. Its own entrance
+   animation (finalMessageReveal, below) is unchanged; .final-phase1 only
+   adds the LATER fade-OUT when phase 2 takes over (Module 12) - see
+   app.js's revealSignature(). */
+#stage-final .final-phase1{
+  transition:opacity 1.4s ease, filter 1.4s ease;
+}
+#stage-final .final-phase1.fade-out{
+  opacity:0;
+  filter:blur(14px);
+  pointer-events:none;
 }
 
 #stage-final .final-message{
@@ -103,26 +126,81 @@
   word-spacing:var(--nur-final-word-spacing);
 }
 
-/* Signature - revealed by app.js a few seconds after the main message,
-   with a very slow, gentle twinkle once visible (never a pulse/flash). */
+/* PHASE 2 - the credit line + socials. Starts invisible; app.js's
+   revealSignature() adds .show once .final-phase1 has faded out, so the
+   two never cross-dissolve into a muddy overlap - one clears, then the
+   other arrives. The signature's own gentle twinkle keyframe runs
+   continuously regardless (cheap, invisible until the parent reveals
+   it) rather than being gated by a second class - one less moving part. */
+#stage-final .final-phase2{
+  opacity:0;
+  filter:blur(10px);
+  transition:opacity 1.6s ease, filter 1.6s ease;
+  pointer-events:none;
+}
+#stage-final .final-phase2.show{
+  opacity:1;
+  filter:blur(0);
+  pointer-events:auto;
+}
 #stage-final .final-signature{
   margin:0;
   margin-top:var(--nur-final-sig-y);
-  opacity:0;
+  opacity:.78;
   font-size:var(--nur-final-sig-font-size);
   font-weight:500;
   color:#e8cf8a;
   text-shadow:0 0 10px rgba(232,207,138,.3);
-  transition:opacity 2.4s ease;
   word-spacing:var(--nur-final-sig-word-spacing);
-}
-#stage-final .final-signature.visible{
-  opacity:.78;
-  animation:signatureTwinkle 6s ease-in-out 2.4s infinite;
+  animation:signatureTwinkle 6s ease-in-out infinite;
 }
 @keyframes signatureTwinkle{
   0%,100%{opacity:.78; text-shadow:0 0 8px rgba(232,207,138,.22)}
   50%{opacity:.95; text-shadow:0 0 14px rgba(232,207,138,.4)}
+}
+
+/* Social icons - hand-painted line-art PNGs (assets/icon-*.webp), white
+   on transparent, tinted warm via CSS filter (no separate colored asset
+   needed) to match the signature's gold. Deliberately no circle/pill
+   background or border (Module 14) - just the mark itself, with a soft
+   glow standing in for a "button" affordance and a slow independent
+   breathing pulse so the row feels quietly alive, not static. An icon
+   with no URL configured stays hidden (index.html's [hidden] default),
+   never a dead link. */
+#stage-final .final-socials{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(20px,4vw,34px);
+  margin-top:clamp(30px,6vh,52px);
+}
+#stage-final .final-social{
+  --float-dur:7s;
+  display:block;
+  width:clamp(26px,3vw,34px);
+  height:clamp(26px,3vw,34px);
+  filter:sepia(1) saturate(2.4) brightness(.92) hue-rotate(-8deg)
+         drop-shadow(0 0 7px rgba(232,207,138,.35));
+  opacity:.82;
+  animation:finalSocialBreathe var(--float-dur) ease-in-out infinite;
+  transition:opacity .3s ease, filter .3s ease, transform .3s ease;
+}
+#stage-final .final-social[hidden]{display:none}
+#stage-final .final-social img{width:100%; height:100%; display:block}
+#stage-final .final-social:hover,
+#stage-final .final-social:focus-visible{
+  opacity:1;
+  transform:translateY(-2px);
+  filter:sepia(1) saturate(2.6) brightness(1.05) hue-rotate(-8deg)
+         drop-shadow(0 0 12px rgba(232,207,138,.55));
+  outline:none;
+}
+@keyframes finalSocialBreathe{
+  0%,100%{opacity:.78}
+  50%{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){
+  #stage-final .final-social{animation:none}
 }
 
 /* Only runs when the existing app makes the final stage active. */
@@ -229,10 +307,11 @@
     animation-duration:.01ms !important;
     animation-delay:0ms !important;
   }
-  #stage-final .final-signature{
+  #stage-final .final-phase1,
+  #stage-final .final-phase2{
     transition-duration:.01ms;
   }
-  #stage-final .final-signature.visible{
+  #stage-final .final-signature{
     animation:none;
     opacity:.85;
   }
@@ -667,12 +746,34 @@
     <p class="proj-preview-badge" id="projPreviewBadge" aria-hidden="true"></p>
   </section>
 
-  <!-- FINAL -->
+  <!-- FINAL — two text phases sharing one stable background (see
+       styles.css's .final-phase1/.final-phase2 and app.js's
+       revealSignature()). Only this inner text ever crossfades; the
+       night-sky bloom/sparkle behind it plays once on stage entry and is
+       never re-triggered by the phase swap. -->
   <section class="stage" id="stage-final" data-stage>
     <div class="scene-text">
-      <p class="final-message final-message-main" id="finalMain"></p>
-      <p class="final-message final-message-sub" id="finalSub"></p>
-      <p class="final-signature" id="finalSignature"></p>
+      <div class="final-phase1" id="finalPhase1">
+        <p class="final-message final-message-main" id="finalMain"></p>
+        <p class="final-message final-message-sub" id="finalSub"></p>
+      </div>
+      <div class="final-phase2" id="finalPhase2">
+        <p class="final-signature" id="finalSignature"></p>
+        <nav class="final-socials" id="finalSocials" aria-label="شبکه‌های اجتماعی">
+          <a class="final-social" id="finalSocialKick" href="#" target="_blank" rel="noopener noreferrer" hidden aria-label="Kick">
+            <img src="assets/icon-kick.webp" alt="">
+          </a>
+          <a class="final-social" id="finalSocialInstagram" href="#" target="_blank" rel="noopener noreferrer" hidden aria-label="Instagram">
+            <img src="assets/icon-instagram.webp" alt="">
+          </a>
+          <a class="final-social" id="finalSocialYoutube" href="#" target="_blank" rel="noopener noreferrer" hidden aria-label="YouTube">
+            <img src="assets/icon-youtube.webp" alt="">
+          </a>
+          <a class="final-social" id="finalSocialTelegram" href="#" target="_blank" rel="noopener noreferrer" hidden aria-label="Telegram">
+            <img src="assets/icon-telegram.webp" alt="">
+          </a>
+        </nav>
+      </div>
     </div>
   </section>
 

@@ -200,15 +200,37 @@
     },
 
     final: {
-      main: "این نور حالا پیش توئه🌠",
-      sub: "ممنون که همراه این مسیر شدی، امیدوارم وقتی وقتش رسید، تو هم دلیل روشن شدن شب یکی دیگه باشی❤️",
+      main: "این نور دیگه حالا پیش توئه، مراقبش باش 🌠",
+      sub: "ممنون که همراه این مسیر شدی؛ امیدوارم وقتی وقتش رسید، تو هم دلیل روشن شدن شب کسی دیگه باشی ❤️",
       offsetY: 0,
       mainFontSize: 34,
       wordSpacing: 0,
+      /* PHASE 2 - after phase2DelaySec, the phase-1 message above fades
+         out and this credit line + the social icons below it fade in, in
+         the exact same spot - ONLY this text swaps, the shared night-sky
+         background/bloom never re-transitions (see app.js's
+         revealSignature() and the .final-phase1/.final-phase2 rules in
+         index.html/styles.css). signature/signatureOffsetY/fontSize/
+         wordSpacing are the SAME fields that already existed (kept as-is
+         so an already-customized live value carries over unchanged) -
+         only their role/behavior changed, from "extra line appended
+         below the message" to "the credit line phase 2 reveals". */
       signature: "درست شده با عشق توسط دال‌وی",
       signatureOffsetY: 96,
       signatureFontSize: 15,
-      signatureWordSpacing: 0
+      signatureWordSpacing: 0,
+      phase2DelaySec: 4,
+      /* Four fixed slots (not a free-form list) - the icon artwork itself
+         is fixed per slot (assets/icon-*.webp, hand-painted line art
+         already matching the project's other decorative art), only the
+         destination URL is admin-editable. An empty url hides that one
+         icon rather than linking nowhere. */
+      socials: [
+        { icon: "kick", url: "" },
+        { icon: "instagram", url: "" },
+        { icon: "youtube", url: "" },
+        { icon: "telegram", url: "" }
+      ]
     },
 
     /* Countdown duration + the optional cinematic pulse on each tick.
@@ -290,12 +312,22 @@
          parchment placeholder color (never a stark white hole) - see
          projector.js/projector.css. Any other value is a Wix Media
          Manager URL from the admin panel's Poster field (same upload
-         path as letterPageN's paperImage), rendered with the EXACT same
-         crop/fit/position as the video so the poster-to-video crossfade
-         never jumps. Deliberately no automatic still-frame extraction
-         from the video (heavy/unreliable in-browser) - a dedicated
-         upload is the whole feature. */
+         path as letterPageN's paperImage). Deliberately no automatic
+         still-frame extraction from the video (heavy/unreliable in-
+         browser) - a dedicated upload is the whole feature.
+         posterFit/Scale/X/Y are INTENTIONALLY separate from the video's
+         own centerX/centerY/mediaSize - a poster the admin uploads can
+         have any arbitrary aspect ratio/crop the video doesn't, so
+         tying them together meant fixing the poster's fit could only
+         ever come at the cost of also shifting the live video. contain/
+         50/50/1 reproduces the exact old shared-var look until the admin
+         actually touches these, so nothing shifts for an existing
+         streamer's already-tuned poster. */
       poster: "",
+      posterFit: "contain",
+      posterScale: 1,
+      posterX: 50,
+      posterY: 50,
       /* Every viewer-facing Projector string, editable from the admin
          panel's "متن‌های پروژکتور" section instead of hardcoded - see
          projector.js's showXGate() functions, which all read from here

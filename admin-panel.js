@@ -197,7 +197,11 @@
 
         { type: "youtubeSource", path: ["projector", "youtubeUrl"], label: "لینک ویدیو یوتیوب", help: "فرمت‌های watch؟v=، youtu.be و shorts پشتیبانی می‌شوند. برای بررسی سریع، از بخش «پیش‌نمایش حالت‌ها» پایین همین صفحه استفاده کن.", showIf: { path: ["projector", "source"], equals: "youtube" }, group: "یوتیوب" },
 
-        { type: "image", path: ["projector", "poster"], label: "پوستر / کاور", help: "قبل از شروع پخش نمایش داده می‌شود و باید دقیقاً مثل ویدیو در قاب جا بگیرد. اگر خالی بماند و منبع یوتیوب باشد، از تصویر بندانگشتی همان ویدیو استفاده می‌شود.", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور" },
+        { type: "image", path: ["projector", "poster"], label: "پوستر / کاور", help: "قبل از شروع پخش نمایش داده می‌شود. اگر خالی بماند و منبع یوتیوب باشد، از تصویر بندانگشتی همان ویدیو استفاده می‌شود.", defaultSrc: "", buttonLabel: "انتخاب و آپلود پوستر", allowRemove: true, group: "پوستر / کاور" },
+        { type: "buttons", path: ["projector", "posterFit"], label: "نحوه جا شدن پوستر در قاب", help: "«کامل داخل قاب» کل تصویر را بدون برش نشان می‌دهد؛ «پر کردن قاب» ممکن است لبه‌های تصویر را کمی ببرد.", options: [{ label: "کامل داخل قاب", value: "contain" }, { label: "پر کردن قاب", value: "cover" }], group: "پوستر / کاور" },
+        { type: "slider", path: ["projector", "posterScale"], label: "بزرگ‌نمایی پوستر", min: 0.5, max: 2, step: 0.05, unit: "×", group: "پوستر / کاور" },
+        { type: "slider", path: ["projector", "posterX"], label: "جای‌گذاری افقی پوستر", min: 0, max: 100, step: 1, unit: "%", group: "پوستر / کاور" },
+        { type: "slider", path: ["projector", "posterY"], label: "جای‌گذاری عمودی پوستر", min: 0, max: 100, step: 1, unit: "%", group: "پوستر / کاور" },
 
         { type: "text", path: ["projector", "title", "text"], label: "عنوان بالای قاب", help: "همیشه از لحظه ورود تا پایان مرحله پروژکتور روی صفحه می‌ماند.", group: "متن‌ها: قبل از پخش" },
         { type: "slider", path: ["projector", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 32, step: 1, unit: "px", group: "متن‌ها: قبل از پخش" },
@@ -243,15 +247,21 @@
       label: "پایانی",
       screen: { stage: "stage-final" },
       fields: [
-        { type: "textarea", path: ["final", "main"], label: "خط اول (تاکید بیشتر)" },
-        { type: "textarea", path: ["final", "sub"], label: "خط دوم" },
-        { type: "slider", path: ["final", "offsetY"], label: "جابجایی بالا/پایین", min: -200, max: 200, step: 1, unit: "px" },
-        { type: "slider", path: ["final", "mainFontSize"], label: "اندازه فونت خط اول", min: 20, max: 60, step: 1, unit: "px" },
-        { type: "slider", path: ["final", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px" },
-        { type: "text", path: ["final", "signature"], label: "امضای دال‌وی" },
-        { type: "slider", path: ["final", "signatureOffsetY"], label: "فاصله امضا تا متن اصلی", min: 20, max: 240, step: 2, unit: "px" },
-        { type: "slider", path: ["final", "signatureFontSize"], label: "اندازه فونت امضا", min: 10, max: 24, step: 1, unit: "px" },
-        { type: "slider", path: ["final", "signatureWordSpacing"], label: "فاصله کلمات امضا", min: 0, max: 20, step: 1, unit: "px" }
+        { type: "textarea", path: ["final", "main"], label: "خط اول پیام (تاکید بیشتر)", help: "همون لحظه‌ای که صفحه پایانی باز می‌شود دیده می‌شود.", group: "پیام پایانی (فاز اول)" },
+        { type: "textarea", path: ["final", "sub"], label: "ادامه پیام", group: "پیام پایانی (فاز اول)" },
+        { type: "slider", path: ["final", "offsetY"], label: "جابجایی بالا/پایین", min: -200, max: 200, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
+        { type: "slider", path: ["final", "mainFontSize"], label: "اندازه فونت خط اول", min: 20, max: 60, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
+        { type: "slider", path: ["final", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
+
+        { type: "slider", path: ["final", "phase2DelaySec"], label: "تاخیر قبل از نمایش اعتبار", min: 1, max: 15, step: 0.5, unit: " ثانیه", help: "چند ثانیه بعد از باز شدن صفحه پایانی، پیام بالا محو می‌شود و اعتبار/شبکه‌های اجتماعی جایگزینش می‌شود.", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "text", path: ["final", "signature"], label: "متن اعتبار (زیر پیام اصلی)", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "slider", path: ["final", "signatureOffsetY"], label: "فاصله اعتبار تا بالای بخش", min: 20, max: 240, step: 2, unit: "px", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "slider", path: ["final", "signatureFontSize"], label: "اندازه فونت اعتبار", min: 10, max: 24, step: 1, unit: "px", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "slider", path: ["final", "signatureWordSpacing"], label: "فاصله کلمات اعتبار", min: 0, max: 20, step: 1, unit: "px", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "text", path: ["final", "socials", 0, "url"], label: "لینک Kick", help: "اگر خالی بماند، آیکون نمایش داده نمی‌شود.", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "text", path: ["final", "socials", 1, "url"], label: "لینک اینستاگرام", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "text", path: ["final", "socials", 2, "url"], label: "لینک یوتیوب", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
+        { type: "text", path: ["final", "socials", 3, "url"], label: "لینک تلگرام", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" }
       ]
     }
   ];

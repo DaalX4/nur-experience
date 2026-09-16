@@ -216,6 +216,22 @@
     document.getElementById("finalSub").textContent = config.final.sub;
     document.getElementById("finalSignature").textContent = config.final.signature;
 
+    // Phase 2 social row - a fixed icon per slot (the artwork), only the
+    // destination URL is config-driven. No URL configured for a slot ->
+    // that icon stays hidden rather than linking nowhere (never a dead
+    // link on a page this personal).
+    const socialElIds = { kick: "finalSocialKick", instagram: "finalSocialInstagram", youtube: "finalSocialYoutube", telegram: "finalSocialTelegram" };
+    (config.final.socials || []).forEach((s) => {
+      const el = document.getElementById(socialElIds[s.icon]);
+      if (!el) return;
+      if (s.url) {
+        el.href = s.url;
+        el.hidden = false;
+      } else {
+        el.hidden = true;
+      }
+    });
+
     applySkyColors(config.sky);
     renderStreamerName(config);
 
@@ -463,14 +479,25 @@
     clearInterval(dotsTimer);
   }
 
-  /* The "درست شده با عشق..." signature fades in a few seconds after the
-     final message appears, then twinkles very gently forever after -
-     see the .final-signature / .visible rules in index.html. */
-  const SIGNATURE_DELAY_MS = 3800;
+  /* PHASE 1 -> PHASE 2 swap (Module 12): after config.final.phase2DelaySec,
+     the emotional message fades OUT, and only once that fade has actually
+     finished does the credit line + socials fade IN, in the exact same
+     spot (.scene-text's shared grid cell - see index.html). A real
+     sequential handoff, not a simultaneous cross-dissolve, so there is
+     never a moment where both look like they're competing for attention.
+     The night-sky bloom/sparkle behind all of this is untouched - it
+     already finished its own one-time entrance long before this fires. */
+  const PHASE1_FADE_MS = 1400; // must stay <= .final-phase1's own CSS transition duration
 
   function revealSignature() {
-    const signature = document.getElementById("finalSignature");
-    setTimeout(() => signature.classList.add("visible"), SIGNATURE_DELAY_MS);
+    const cfg = currentConfig.final || {};
+    const delayMs = Math.max(0, (typeof cfg.phase2DelaySec === "number" ? cfg.phase2DelaySec : 4) * 1000);
+    const phase1 = document.getElementById("finalPhase1");
+    const phase2 = document.getElementById("finalPhase2");
+    setTimeout(() => {
+      phase1.classList.add("fade-out");
+      setTimeout(() => phase2.classList.add("show"), PHASE1_FADE_MS);
+    }, delayMs);
   }
 
   const COUNTDOWN_EXIT_MS = 900; // must match @keyframes countdownExit's duration
