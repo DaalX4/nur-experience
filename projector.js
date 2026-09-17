@@ -875,7 +875,20 @@
       if (!ytPendingPlay || requestToken !== showRequestSeq) return; // superseded by a re-entry/retry while the API was loading
       youtubeFrameEl.hidden = false;
       if (ytPlayer && ytReady) {
-        try { ytPlayer.loadVideoById(id); } catch (err) { showStalledGate(); }
+        // Real gap this closes: loadVideoById() itself autoplays with
+        // sound requested - the exact same "blocked audible autoplay,
+        // nothing visibly happens" failure playYoutube() below already
+        // guards against, but this re-entry path (player already exists
+        // from an earlier attempt this page load) called it directly,
+        // skipping that guard entirely. Mute first here too, same as
+        // playYoutube() - onYoutubeStateChange's PLAYING handler already
+        // requests sound back once playback is actually confirmed,
+        // regardless of which path started it.
+        try {
+          ytPlayer.mute();
+          ytAudioHintShown = false;
+          ytPlayer.loadVideoById(id);
+        } catch (err) { showStalledGate(); }
         return;
       }
       if (ytPlayer) return; // constructing already, onReady below will pick it up
