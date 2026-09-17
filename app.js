@@ -500,11 +500,24 @@
    *  flipper (CSS shows only the matching .pageN face - see styles.css).
    * ------------------------------------------------------------------ */
   const letterFlipper = document.getElementById("letterFlipper");
+  // Real, confirmed bug: turning a letter page never called show() (the
+  // stage itself, #stage-letter, never changes - only the flipper's
+  // data-active swaps which face is visible), so it never got the scroll
+  // reset show() gives every actual stage change. Scrolling down to read
+  // page 1, then tapping next, opened page 2 at that same scroll offset
+  // instead of its own top. Same fix as show() - reset scroll explicitly
+  // here too.
+  function resetScroll() {
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  }
   document.getElementById("toPage2").addEventListener("click", () => {
     letterFlipper.dataset.active = "2";
+    resetScroll();
   });
   document.getElementById("toPage3").addEventListener("click", () => {
     letterFlipper.dataset.active = "3";
+    resetScroll();
   });
 
   /* ------------------------------------------------------------------ *
