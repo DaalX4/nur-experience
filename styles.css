@@ -61,20 +61,12 @@
      it. 653px is note-page*.png's natural width - the size these numbers
      were tuned at. See --nur-letter-name-font-size/--nur-letter1-font-size
      etc. below for how this gets used.
-     Third min() term: caps the card by HEIGHT on short viewports (short
-     laptop screens), not just width - note-page*.png is 653x1080, so
-     solving (card height + #stage-letter.active's 56px padding-top +
-     .letter-stage-inner's 32px margin-bottom) = 90svh for width gives
-     the card width that keeps the WHOLE letter composition, chrome
-     included, inside a safe 90svh - not just the card image itself.
-     Since literally everything overlaid on the letter (name, body text,
-     buttons, signature) already scales off this one variable, capping it
-     this way shrinks the WHOLE letter as one proportional composition -
-     same effect as the two existing terms, just triggered by height
-     instead of width. No-op whenever the viewport is tall enough that
-     this isn't the smallest of the three (i.e. unchanged from before on
-     any normal-height screen). */
-  --nur-card-scale:min(840px,92vw,calc((90svh - 88px) * 653 / 1080));
+     Width-only, deliberately - a height-based term here was tried and
+     reverted (real, confirmed regression): it shrank the whole letter far
+     past comfortable reading size on short/embedded viewports. Readable
+     text takes priority over fitting the whole card on screen - a letter
+     taller than the viewport scrolls normally, same as any long page. */
+  --nur-card-scale:min(600px,92vw);
   --nur-card-reference-width:653px;
 
   --nur-letter-name-x:6%;
