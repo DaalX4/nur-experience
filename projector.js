@@ -898,29 +898,52 @@
     });
   }
 
-  // Same audio settings as the upload path, applied through the IFrame
-  // API's own mute()/unMute()/setVolume() instead of a <video> element's
-  // properties - YouTube has no equivalent of the upload path's "audible
-  // autoplay got rejected" failure mode to fall back from (the player
-  // handles its own autoplay policy internally), so this is the simpler
-  // one-shot version of applyAudioSettings().
+  // Applies volume only - muting/unmuting is handled separately by
+  // playYoutube()/onYoutubeStateChange() below (see their comments for
+  // why: unlike the upload path, YT's playVideo() has no promise to
+  // reject, so "did audible autoplay actually work" can only be checked
+  // AFTER the state change fires, not up front here).
   function applyYoutubeAudioSettings() {
     if (!ytPlayer) return;
     const audio = (cfgCache && cfgCache.audio) || {};
     try {
-      if (audio.enabled === false) {
-        ytPlayer.mute();
-      } else {
-        ytPlayer.unMute();
-        ytPlayer.setVolume(typeof audio.volume === "number" ? Math.max(0, Math.min(100, audio.volume)) : 100);
-      }
+      ytPlayer.setVolume(typeof audio.volume === "number" ? Math.max(0, Math.min(100, audio.volume)) : 100);
     } catch (err) { /* ignore */ }
   }
 
+  /* Real, confirmed bug this closes: playVideo() used to be called with
+     sound requested up front. Getting here needs the full iframe_api
+     script fetch + YT.Player construction + its own onReady - much
+     slower than the upload path's <video>.play(), so by the time this
+     actually runs, the click that started it all is often no longer
+     "recent" enough for the browser to treat this as user-initiated -
+     unlike <video>.play(), playVideo() returns no promise/rejection to
+     catch, so a silently blocked audible autoplay looked exactly like
+     "the video doesn't play" (stuck loading, or PLAYING never fires).
+     Starting muted is never blocked by any browser's autoplay policy -
+     the video is now GUARANTEED to actually start. Sound is then
+     requested as a separate, best-effort step once PLAYING actually
+     fires (see onYoutubeStateChange) - the same "attempt audible, fall
+     back with a tap-to-enable-sound affordance" shape the upload path
+     already uses, just checked after the fact instead of via a promise. */
   function playYoutube() {
-    applyYoutubeAudioSettings();
+    try { ytPlayer.mute(); } catch (err) { /* ignore */ }
     ytAudioHintShown = false;
     try { ytPlayer.playVideo(); } catch (err) { showStalledGate(); }
+  }
+
+  function showYoutubeAudioFallbackAction() {
+    if (!audioHintEl) return;
+    hideAudioHint();
+    audioHintEl.classList.add("show", "proj-audio-hint--action");
+    audioHintTextEl.textContent = "فعال کردن صدا";
+    audioHintEl.onclick = () => {
+      try {
+        ytPlayer.unMute();
+        applyYoutubeAudioSettings();
+      } catch (err) { /* ignore */ }
+      hideAudioHint();
+    };
   }
 
   function onYoutubeStateChange(e) {
@@ -935,12 +958,25 @@
       armStallWatchdog();
       startYoutubeHeartbeat();
       // onStateChange can re-fire PLAYING after buffering resumes mid-
-      // watch - only show the reminder once per play/replay, not every
-      // time playback resumes.
+      // watch - only resolve the audio prompt once per play/replay, not
+      // every time playback resumes.
       if (!ytAudioHintShown) {
         ytAudioHintShown = true;
         const audio = (cfgCache && cfgCache.audio) || {};
-        if (audio.enabled !== false) showAudioReminder();
+        if (audio.enabled !== false) {
+          try {
+            ytPlayer.unMute();
+            applyYoutubeAudioSettings();
+          } catch (err) { /* ignore */ }
+          // unMute() is itself synchronous, but browsers that are going
+          // to silently re-mute an autoplay-blocked player do so
+          // immediately - a fresh isMuted() read right after is enough
+          // to tell which of the two happened.
+          let stillMuted = false;
+          try { stillMuted = ytPlayer.isMuted(); } catch (err) { /* ignore */ }
+          if (stillMuted) showYoutubeAudioFallbackAction();
+          else showAudioReminder();
+        }
       }
     } else if (e.data === S.BUFFERING) {
       armStallWatchdog(); // generous - normal mid-playback buffering shouldn't instantly read as broken
@@ -974,11 +1010,18 @@
     if (ytPlayer && ytReady) {
       try {
         ytPlayer.seekTo(0);
+        // Replay is itself a fresh, direct button click - unlike the
+        // FIRST play (which goes through the slow iframe_api load and
+        // can lose that "recent gesture" status), unmuting here happens
+        // synchronously in response to this click, so it's safe to just
+        // unmute directly rather than the mute-first/check-after dance
+        // playYoutube() needs.
+        const audio = (cfgCache && cfgCache.audio) || {};
+        if (audio.enabled !== false) ytPlayer.unMute();
         applyYoutubeAudioSettings();
         ytAudioHintShown = false; // Module 6 - reminder shows again on Replay
         ytPlayer.playVideo();
         armStallWatchdog();
-        const audio = (cfgCache && cfgCache.audio) || {};
         if (audio.enabled !== false) { ytAudioHintShown = true; showAudioReminder(); }
       } catch (err) { beginPlaybackYoutube(); }
     } else {
