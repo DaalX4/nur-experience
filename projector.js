@@ -578,6 +578,22 @@
     clearTimeout(longLoadingEscalationId);
     armLoadingTimeout();
 
+    /* play()'s promise resolving only means playback was ACCEPTED, not
+       that a frame has actually reached the screen yet - there can be a
+       real, if brief, gap where the <video> has nothing decoded to paint.
+       Since reveal() below hides the poster and cuts the incoming media
+       layer straight to opacity:1 (no crossfade - see .media-layer's own
+       comment), that gap exposed .frame-media's own background color
+       (the "avoids a white flash" cream fill) as a visible flash before
+       the real frame caught up. A double requestAnimationFrame (a
+       standard wait-for-actual-paint technique, not a guessed delay) lets
+       at least one real compositor frame land first - not a fixed
+       timeout, since it's tied to the browser's own paint cycle rather
+       than a guessed duration. */
+    function revealAfterPaint(el) {
+      requestAnimationFrame(() => requestAnimationFrame(() => reveal(el)));
+    }
+
     function reveal(el) {
       if (requestToken !== showRequestSeq) return;
       clearTimeout(loadingTimeoutId);
@@ -681,7 +697,7 @@
         applyAudioSettings(el);
         const wantedAudible = !el.muted;
         el.play().then(() => {
-          reveal(el);
+          revealAfterPaint(el);
           if (wantedAudible) showAudioReminder();
         }).catch(() => {
           if (wantedAudible) {
@@ -693,7 +709,7 @@
             // (Module 7), and offer a one-tap way back to sound.
             el.muted = true;
             el.play().then(() => {
-              reveal(el);
+              revealAfterPaint(el);
               showAudioFallbackAction(el);
             }).catch(() => {
               if (requestToken === showRequestSeq) onItemError();

@@ -568,6 +568,15 @@
     const delayMs = Math.max(0, (typeof cfg.phase2DelaySec === "number" ? cfg.phase2DelaySec : 4) * 1000);
     const phase1 = document.getElementById("finalPhase1");
     const phase2 = document.getElementById("finalPhase2");
+    // Defensive reset: neither class is ever removed once set (phase1's
+    // fade-out and phase2's show are both one-way in normal use). Revisiting
+    // Final within the same page load without a full reload - e.g. Replay
+    // on the Projector, or the admin panel jumping stages - would otherwise
+    // start this second run with phase2 already visible and phase1 already
+    // faded, skipping the entrance sequence entirely. A real first-time
+    // visitor never hits this, but it costs nothing to guarantee.
+    phase1.classList.remove("fade-out");
+    phase2.classList.remove("show");
     setTimeout(() => {
       phase1.classList.add("fade-out");
       setTimeout(() => phase2.classList.add("show"), PHASE1_FADE_MS);
