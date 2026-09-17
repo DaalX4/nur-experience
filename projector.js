@@ -92,48 +92,20 @@
   let preloadUrl = null;
 
   /* -------------------------------------------------------------------- *
-   *  YouTube mode (Module 9-18) - a second, independent media source.
-   *  Exactly ONE video (youtubeUrl), never a queue - every module
-   *  describing this says "the YouTube video", never a list, so this is
-   *  a paste-a-link feature, not a second upload architecture. Uses the
-   *  official IFrame Player API only (no scraping, no hacks against the
-   *  player) and maps its states onto the SAME gate functions above -
-   *  there is one Nur state model, not two.
+   *  YouTube mode (Module 9-18, simplified) - an emergency fallback only,
+   *  used when direct upload isn't available. Deliberately NOT the
+   *  IFrame Player API anymore - that requires an external script, a
+   *  player object, and inferring its state after the fact (mute-first,
+   *  poll for isMuted(), guess whether autoplay was blocked, etc.), none
+   *  of which held up reliably once actually nested inside Wix's own
+   *  embed iframe (confirmed, repeated real-world failures). Replaced
+   *  with a plain <iframe> at the official embed URL with autoplay=1,
+   *  created directly inside the Play click - YouTube's own player then
+   *  handles everything (controls, buffering, replay) with its native
+   *  UI, which works regardless of nesting because a real click landing
+   *  inside a real YouTube iframe never depends on a postMessage call
+   *  arriving in time. See beginPlaybackYoutube() below.
    *  ---------------------------------------------------------------------*/
-  let ytApiPromise = null;
-  let ytPlayer = null;
-  let ytReady = false;
-  let ytPendingPlay = false;
-  let ytHeartbeatId = null;
-  let ytLastTime = -1;
-  let ytAudioHintShown = false;
-
-  /* A <video> element fires "timeupdate" continuously during playback,
-     which is what armStallWatchdog() naturally leans on. YT.Player's
-     onStateChange only fires on STATE TRANSITIONS, not continuously - so
-     without this, arming the watchdog once on the PLAYING transition and
-     then never again would make the watchdog fire on every video longer
-     than STALL_TIMEOUT_MS, even while playing back perfectly normally
-     (confirmed by hitting exactly this while testing). Polling
-     getCurrentTime() and only re-arming when it has actually advanced
-     reproduces the same "real progress -> reset the timer" guarantee. */
-  function startYoutubeHeartbeat() {
-    stopYoutubeHeartbeat();
-    ytHeartbeatId = setInterval(() => {
-      if (!ytPlayer) return;
-      let t;
-      try { t = ytPlayer.getCurrentTime(); } catch (err) { return; }
-      if (typeof t === "number" && Math.abs(t - ytLastTime) > 0.05) {
-        ytLastTime = t;
-        armStallWatchdog();
-      }
-    }, 1500);
-  }
-
-  function stopYoutubeHeartbeat() {
-    clearInterval(ytHeartbeatId);
-    ytHeartbeatId = null;
-  }
 
   /* Accepts watch?v=, youtu.be/, embed/, shorts/ (with or without extra
      query params/timestamps) - returns null for anything else instead of
@@ -152,28 +124,6 @@
       if (m) return m[1];
     }
     return null;
-  }
-
-  /* Lazy-loaded ONLY when source is actually "youtube" (Module 17 - never
-     for Uploaded Media viewers). YT's own bootstrap calls the global
-     onYouTubeIframeAPIReady, which may already be claimed by something
-     else on the page (it isn't, here) - chaining is enough insurance
-     either way. Resolves once, cached, so repeated Play/Retry taps never
-     re-fetch the script. */
-  function loadYouTubeApi() {
-    if (ytApiPromise) return ytApiPromise;
-    ytApiPromise = new Promise((resolve) => {
-      if (window.YT && window.YT.Player) { resolve(window.YT); return; }
-      const prevReady = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        if (typeof prevReady === "function") prevReady();
-        resolve(window.YT);
-      };
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
-    });
-    return ytApiPromise;
   }
 
   function makeItem(id, type, src, caption, pace, trimStart, trimEnd) {
@@ -432,7 +382,6 @@
     longLoadingEscalationId = null;
     stallTimeoutId = null;
     audioHintTimeoutId = null;
-    stopYoutubeHeartbeat();
   }
 
   function hideGate() {
@@ -549,10 +498,9 @@
      clever detection - means: if the media isn't even trying to play,
      don't warn about it stalling. */
   function isActivelyPlaying() {
-    if (cfgCache && cfgCache.source === "youtube") {
-      if (!ytPlayer || !window.YT) return false;
-      try { return ytPlayer.getPlayerState() === window.YT.PlayerState.PLAYING; } catch (err) { return false; }
-    }
+    // YouTube mode no longer uses this - the stall watchdog is only ever
+    // armed for the upload/<video> path now (see beginPlaybackYoutube()'s
+    // own comment for why YouTube dropped state polling entirely).
     return !!(currentEl && currentEl.tagName === "VIDEO" && !currentEl.paused && !currentEl.ended);
   }
 
@@ -857,202 +805,52 @@
     }
   }
 
-  /* -------------------------------------------------------------------- *
-   *  YouTube playback - mirrors the upload path's shape (loading gate ->
-   *  reveal/hide gate -> stall watchdog -> endSequence) but drives it
-   *  from YT.PlayerState events instead of <video> events. Same gate
-   *  functions, same timers, same Auto Continue/Replay/Continue logic -
-   *  one Nur state model for both sources (Module 13).
-   *  ---------------------------------------------------------------------*/
+  /* Creates a plain official YouTube embed iframe with autoplay=1,
+     directly inside the Play click - no player object, no state
+     polling, no mute-then-check dance. YouTube's own native controls
+     (visible inside the frame) handle play/pause/volume/replay from
+     here on; a real click landing inside a real YouTube iframe works
+     regardless of nesting, unlike a postMessage-driven playVideo() call
+     arriving from an ancestor page after the fact.
+     There is no reliable "video ended" signal without the IFrame API,
+     so #projContinueBtn (outside the frame, see index.html) is shown
+     immediately rather than waiting for one - the viewer is never stuck
+     with no way forward, and can move on whenever they're ready. */
   function beginPlaybackYoutube() {
     const id = extractYouTubeId(cfgCache.youtubeUrl);
     if (!id) { showStalledGate(); return; }
-    showLoadingGate(false);
-    armLoadingTimeout();
-    ytPendingPlay = true;
-    const requestToken = ++showRequestSeq;
-    loadYouTubeApi().then((YT) => {
-      if (!ytPendingPlay || requestToken !== showRequestSeq) return; // superseded by a re-entry/retry while the API was loading
-      youtubeFrameEl.hidden = false;
-      if (ytPlayer && ytReady) {
-        // Real gap this closes: loadVideoById() itself autoplays with
-        // sound requested - the exact same "blocked audible autoplay,
-        // nothing visibly happens" failure playYoutube() below already
-        // guards against, but this re-entry path (player already exists
-        // from an earlier attempt this page load) called it directly,
-        // skipping that guard entirely. Mute first here too, same as
-        // playYoutube() - onYoutubeStateChange's PLAYING handler already
-        // requests sound back once playback is actually confirmed,
-        // regardless of which path started it.
-        try {
-          ytPlayer.mute();
-          ytAudioHintShown = false;
-          ytPlayer.loadVideoById(id);
-        } catch (err) { showStalledGate(); }
-        return;
-      }
-      if (ytPlayer) return; // constructing already, onReady below will pick it up
-      // Hand YT the INNER mount div, never the outer wrapper - YT.Player
-      // replaces whatever element it's given with its own <iframe>, so the
-      // wrapper (which every hidden-toggle above/below targets) must stay
-      // untouched or it goes stale the moment this line runs.
-      ytPlayer = new YT.Player(youtubeMountEl, {
-        videoId: id,
-        playerVars: {
-          controls: 0, modestbranding: 1, rel: 0, iv_load_policy: 3,
-          fs: 0, disablekb: 1, playsinline: 1, origin: location.origin
-        },
-        events: {
-          onReady: () => { ytReady = true; if (ytPendingPlay) playYoutube(); },
-          onStateChange: onYoutubeStateChange,
-          onError: onYoutubeError
-        }
-      });
-    });
-  }
-
-  // Applies volume only - muting/unmuting is handled separately by
-  // playYoutube()/onYoutubeStateChange() below (see their comments for
-  // why: unlike the upload path, YT's playVideo() has no promise to
-  // reject, so "did audible autoplay actually work" can only be checked
-  // AFTER the state change fires, not up front here).
-  function applyYoutubeAudioSettings() {
-    if (!ytPlayer) return;
-    const audio = (cfgCache && cfgCache.audio) || {};
-    try {
-      ytPlayer.setVolume(typeof audio.volume === "number" ? Math.max(0, Math.min(100, audio.volume)) : 100);
-    } catch (err) { /* ignore */ }
-  }
-
-  /* Real, confirmed bug this closes: playVideo() used to be called with
-     sound requested up front. Getting here needs the full iframe_api
-     script fetch + YT.Player construction + its own onReady - much
-     slower than the upload path's <video>.play(), so by the time this
-     actually runs, the click that started it all is often no longer
-     "recent" enough for the browser to treat this as user-initiated -
-     unlike <video>.play(), playVideo() returns no promise/rejection to
-     catch, so a silently blocked audible autoplay looked exactly like
-     "the video doesn't play" (stuck loading, or PLAYING never fires).
-     Starting muted is never blocked by any browser's autoplay policy -
-     the video is now GUARANTEED to actually start. Sound is then
-     requested as a separate, best-effort step once PLAYING actually
-     fires (see onYoutubeStateChange) - the same "attempt audible, fall
-     back with a tap-to-enable-sound affordance" shape the upload path
-     already uses, just checked after the fact instead of via a promise. */
-  function playYoutube() {
-    try { ytPlayer.mute(); } catch (err) { /* ignore */ }
-    ytAudioHintShown = false;
-    try { ytPlayer.playVideo(); } catch (err) { showStalledGate(); }
-  }
-
-  function showYoutubeAudioFallbackAction() {
-    if (!audioHintEl) return;
+    hideGate();
     hideAudioHint();
-    audioHintEl.classList.add("show", "proj-audio-hint--action");
-    audioHintTextEl.textContent = "فعال کردن صدا";
-    audioHintEl.onclick = () => {
-      try {
-        ytPlayer.unMute();
-        applyYoutubeAudioSettings();
-      } catch (err) { /* ignore */ }
-      hideAudioHint();
-    };
-  }
-
-  function onYoutubeStateChange(e) {
-    if (!window.YT) return;
-    const S = window.YT.PlayerState;
-    if (e.data === S.PLAYING) {
-      clearTimeout(loadingTimeoutId);
-      clearTimeout(longLoadingEscalationId);
-      hideGate();
-      setOverlayActive(false);
-      hidePoster();
-      armStallWatchdog();
-      startYoutubeHeartbeat();
-      // onStateChange can re-fire PLAYING after buffering resumes mid-
-      // watch - only resolve the audio prompt once per play/replay, not
-      // every time playback resumes.
-      if (!ytAudioHintShown) {
-        ytAudioHintShown = true;
-        const audio = (cfgCache && cfgCache.audio) || {};
-        if (audio.enabled !== false) {
-          try {
-            ytPlayer.unMute();
-            applyYoutubeAudioSettings();
-          } catch (err) { /* ignore */ }
-          // unMute() is itself synchronous, but browsers that are going
-          // to silently re-mute an autoplay-blocked player do so
-          // immediately - a fresh isMuted() read right after is enough
-          // to tell which of the two happened.
-          let stillMuted = false;
-          try { stillMuted = ytPlayer.isMuted(); } catch (err) { /* ignore */ }
-          if (stillMuted) showYoutubeAudioFallbackAction();
-          else showAudioReminder();
-        }
-      }
-    } else if (e.data === S.BUFFERING) {
-      armStallWatchdog(); // generous - normal mid-playback buffering shouldn't instantly read as broken
-    } else if (e.data === S.ENDED) {
-      clearTimeout(stallTimeoutId);
-      stopYoutubeHeartbeat();
-      endSequence(); // exact same hold -> Replay/Continue (or Auto Continue) logic as the upload path
-    }
-  }
-
-  function onYoutubeError() {
-    showStalledGate();
+    setOverlayActive(false);
+    hidePoster();
+    youtubeMountEl.innerHTML = "";
+    const iframe = document.createElement("iframe");
+    iframe.src = "https://www.youtube.com/embed/" + id + "?autoplay=1&rel=0&modestbranding=1&playsinline=1";
+    iframe.title = "YouTube video player";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture";
+    iframe.allowFullscreen = true;
+    youtubeMountEl.appendChild(iframe);
+    youtubeFrameEl.hidden = false;
+    continueBtn.classList.add("show");
   }
 
   function retryYoutube() {
-    ytPendingPlay = true;
-    if (ytPlayer && ytReady) { playYoutube(); return; }
     beginPlaybackYoutube();
   }
 
+  // YouTube's own controls already offer replay/seek natively inside the
+  // frame - the simplest way to guarantee a truly fresh restart from our
+  // side is to just rebuild the embed the same way a first play does.
   function replayYoutube() {
-    hideGate();
-    // Same fix as the upload path's replayFromStart() - a seekTo() on an
-    // already-"playing" player does not reliably re-fire onStateChange,
-    // so onYoutubeStateChange's PLAYING branch (which normally resets the
-    // overlay) may never run here. Reset explicitly instead of assuming
-    // it will happen.
-    setOverlayActive(false);
-    hidePoster();
-    ytPendingPlay = true;
-    if (ytPlayer && ytReady) {
-      try {
-        ytPlayer.seekTo(0);
-        // Replay is itself a fresh, direct button click - unlike the
-        // FIRST play (which goes through the slow iframe_api load and
-        // can lose that "recent gesture" status), unmuting here happens
-        // synchronously in response to this click, so it's safe to just
-        // unmute directly rather than the mute-first/check-after dance
-        // playYoutube() needs.
-        const audio = (cfgCache && cfgCache.audio) || {};
-        if (audio.enabled !== false) ytPlayer.unMute();
-        applyYoutubeAudioSettings();
-        ytAudioHintShown = false; // Module 6 - reminder shows again on Replay
-        ytPlayer.playVideo();
-        armStallWatchdog();
-        if (audio.enabled !== false) { ytAudioHintShown = true; showAudioReminder(); }
-      } catch (err) { beginPlaybackYoutube(); }
-    } else {
-      beginPlaybackYoutube();
-    }
+    beginPlaybackYoutube();
   }
 
-  /* Called on every entry (real, preview, or re-entry) - stops any
-     already-playing YouTube video and hides its box rather than leaving
-     it running behind a fresh preplay poster. Safe no-op if no player
-     exists yet (the common case: nothing has ever played). */
+  /* Called on every entry (real, preview, or re-entry) - clears any
+     existing YouTube embed and hides its box rather than leaving it
+     running behind a fresh preplay poster. Safe no-op if nothing has
+     played yet. */
   function resetYoutubePlayback() {
-    ytPendingPlay = false;
-    ytAudioHintShown = false;
-    stopYoutubeHeartbeat();
-    if (ytPlayer && ytReady) {
-      try { ytPlayer.pauseVideo(); } catch (err) { /* ignore */ }
-    }
+    if (youtubeMountEl) youtubeMountEl.innerHTML = "";
     if (youtubeFrameEl) youtubeFrameEl.hidden = true;
   }
 
@@ -1359,10 +1157,9 @@
     }
     // Module 17 - only the active source ever loads anything beyond the
     // frame's own decorative assets above (those are shared by both).
-    if (cfg.source === "youtube") {
-      if (extractYouTubeId(cfg.youtubeUrl)) loadYouTubeApi(); // script only - no player/video data yet
-      return;
-    }
+    // Nothing left to warm up for YouTube - the embed iframe is created
+    // fresh on Play, no script/player to preload anymore.
+    if (cfg.source === "youtube") return;
     if (preloadEl) return;
     const items = Array.isArray(cfg.items) ? cfg.items : [];
     const first = items[0];
