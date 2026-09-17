@@ -208,6 +208,9 @@
 
     root.setProperty("--nur-final-y", config.final.offsetY + "px");
     root.setProperty("--nur-final-font-size", config.final.mainFontSize + "px");
+    root.setProperty("--nur-final-main-y", (typeof config.final.mainOffsetY === "number" ? config.final.mainOffsetY : 0) + "px");
+    root.setProperty("--nur-final-sub-font-size", (typeof config.final.subFontSize === "number" ? config.final.subFontSize : 22) + "px");
+    root.setProperty("--nur-final-sub-y", (typeof config.final.subOffsetY === "number" ? config.final.subOffsetY : 0) + "px");
     root.setProperty("--nur-final-word-spacing", config.final.wordSpacing + "px");
     root.setProperty("--nur-final-sig-y", config.final.signatureOffsetY + "px");
     root.setProperty("--nur-final-sig-font-size", config.final.signatureFontSize + "px");

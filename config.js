@@ -202,8 +202,17 @@
     final: {
       main: "این نور دیگه حالا پیش توئه، مراقبش باش 🌠",
       sub: "ممنون که همراه این مسیر شدی؛ امیدوارم وقتی وقتش رسید، تو هم دلیل روشن شدن شب کسی دیگه باشی ❤️",
+      /* offsetY moves the WHOLE final composition (phase 1 AND phase 2)
+         together - unchanged, still here for that. mainOffsetY/subOffsetY
+         are independent nudges for just the top line and just the
+         continuation line, on top of that - this is what actually lets
+         the admin control the GAP between the two by moving either one
+         on its own, instead of only being able to move them together. */
       offsetY: 0,
       mainFontSize: 34,
+      mainOffsetY: 0,
+      subFontSize: 22,
+      subOffsetY: 0,
       wordSpacing: 0,
       /* PHASE 2 - after phase2DelaySec, the phase-1 message above fades
          out and this credit line + the social icons below it fade in, in

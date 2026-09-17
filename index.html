@@ -116,14 +116,31 @@
   font-weight:700;
   line-height:1.5;
   word-spacing:var(--nur-final-word-spacing);
+  /* Independent vertical nudge (Module: "split the shared position
+     control into separate top/bottom controls") - position:relative/top,
+     deliberately NOT transform:translateY(), since the entrance
+     animation below (finalMessageReveal) already animates transform on
+     this same element and its 100% keyframe locks transform:translateY(0)
+     in place once the animation finishes (fill-mode:both) - a second
+     translateY here would just get silently overwritten. top is a
+     completely different property, so it stacks cleanly with the
+     animation instead of fighting it. Default 0px = no change from the
+     existing look. */
+  position:relative;
+  top:var(--nur-final-main-y,0px);
 }
 #stage-final .final-message-sub{
   margin-top:22px;
-  font-size:clamp(18px,2vw,26px);
+  font-size:var(--nur-final-sub-font-size,clamp(18px,2vw,26px));
   font-weight:500;
   line-height:1.9;
   color:#eae8dd;
   word-spacing:var(--nur-final-word-spacing);
+  /* Same technique as .final-message-main above - this is what actually
+     lets the admin change the GAP between the two lines, since it moves
+     independently of margin-top and of the entrance animation. */
+  position:relative;
+  top:var(--nur-final-sub-y,0px);
 }
 
 /* PHASE 2 - the credit line + socials. Starts invisible; app.js's

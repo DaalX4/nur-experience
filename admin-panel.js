@@ -323,8 +323,11 @@
       fields: [
         { type: "textarea", path: ["final", "main"], label: "خط اول پیام (تاکید بیشتر)", help: "همون لحظه‌ای که صفحه پایانی باز می‌شود دیده می‌شود.", group: "پیام پایانی (فاز اول)" },
         { type: "textarea", path: ["final", "sub"], label: "ادامه پیام", group: "پیام پایانی (فاز اول)" },
-        { type: "slider", path: ["final", "offsetY"], label: "جابجایی بالا/پایین", min: -200, max: 200, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
+        { type: "slider", path: ["final", "offsetY"], label: "جابجایی کل پیام (بالا/پایین)", help: "هر دو خط را با هم جابجا می‌کند.", min: -200, max: 200, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
         { type: "slider", path: ["final", "mainFontSize"], label: "اندازه فونت خط اول", min: 20, max: 60, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
+        { type: "slider", path: ["final", "mainOffsetY"], label: "جابجایی خط اول (مستقل)", help: "فقط خط اول را جابجا می‌کند - برای تنظیم فاصله بین دو خط از این و کنترل زیر با هم استفاده کن.", min: -100, max: 100, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
+        { type: "slider", path: ["final", "subFontSize"], label: "اندازه فونت ادامه پیام", min: 14, max: 32, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
+        { type: "slider", path: ["final", "subOffsetY"], label: "جابجایی ادامه پیام (مستقل)", help: "فقط خط دوم را جابجا می‌کند.", min: -100, max: 100, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
         { type: "slider", path: ["final", "wordSpacing"], label: "فاصله کلمات", min: 0, max: 20, step: 1, unit: "px", group: "پیام پایانی (فاز اول)" },
 
         { type: "slider", path: ["final", "phase2DelaySec"], label: "تاخیر قبل از نمایش اعتبار", min: 1, max: 15, step: 0.5, unit: " ثانیه", help: "چند ثانیه بعد از باز شدن صفحه پایانی، پیام بالا محو می‌شود و اعتبار/شبکه‌های اجتماعی جایگزینش می‌شود.", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
