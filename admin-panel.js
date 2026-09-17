@@ -1467,10 +1467,6 @@
             <button type="button" class="nurap-close" aria-label="بستن">✕</button>
           </div>
         </div>
-        <!-- TEMPORARY - remove once the local-vs-deployed mismatch is
-             confirmed resolved. Proves which physical build a given
-             browser tab actually loaded. -->
-        <div style="padding:4px 16px; font-size:10px; color:#6f7690; text-align:center; border-bottom:1px solid rgba(255,255,255,.06);">NUR BUILD: PROJECTOR-INTEGRATION-1</div>
         <div class="nurap-tabs"></div>
         <div class="nurap-body"></div>
         <div class="nurap-status"></div>
