@@ -373,6 +373,22 @@
     }
     applyConfig(currentConfig);
 
+    // Reveal the intro ONLY now, with real content already in place.
+    // #stage-intro deliberately ships with no "active" class in the raw
+    // HTML (unlike every other stage would, if they had one) - .stage's
+    // entrance animation (sceneIn) is pure CSS and starts the instant the
+    // class is present, with or without JS/config having run yet. Baking
+    // "active" into the markup (as it used to be) meant the greeting's
+    // static "درود" text - and, before that, the empty name/body divs -
+    // was already fading in on its own the moment the browser painted,
+    // finishing its animation before or independently of applyConfig()
+    // ever populating the name/body text above. Whatever text existed at
+    // that moment (a bare "درود", or the old localStorage/default config)
+    // is what a visitor briefly saw. Adding "active" here instead, after
+    // this same await, means the fade-in and the real content always
+    // start together - never one before the other.
+    document.getElementById("stage-intro").classList.add("active");
+
     if ("requestIdleCallback" in window) {
       requestIdleCallback(preloadStageImages, { timeout: 2000 });
     } else {
