@@ -296,8 +296,6 @@
     root.setProperty("--star", sky.starColor || "#fdf6e3");
   }
 
-  applyConfig(currentConfig);
-
   /* The envelope + all 3 letter-page images belong to LATER stages - the
      intro screen (the only thing a visitor sees at first) uses none of
      them. Left as plain eager <img src>, all ~1MB+ of them would compete
@@ -308,42 +306,79 @@
      click) - the intro takes several seconds to read, so by the time a
      visitor actually reaches the envelope or letter pages these have
      normally finished downloading in the background already, with no
-     visible delay at the actual transition. */
+     visible delay at the actual transition.
+     Scheduled from inside boot(), AFTER the first applyConfig() call
+     (below) - applyConfig is what actually sets each note-page image's
+     data-src (default asset or an admin-uploaded override); scheduling
+     this beforehand let it run before that ever happened, so it found
+     nothing to preload and those images silently never loaded at all. */
   function preloadStageImages() {
     document.querySelectorAll("img[data-src]").forEach((img) => {
       img.src = img.dataset.src;
       img.dataset.loaded = "1";
     });
   }
-  if ("requestIdleCallback" in window) {
-    requestIdleCallback(preloadStageImages, { timeout: 2000 });
-  } else {
-    setTimeout(preloadStageImages, 300);
+
+  /* Boot render — waits (briefly, bounded) for the remote config before
+     the FIRST paint of any text. Root cause this closes: a brand-new
+     visitor's browser has an empty localStorage, so calling applyConfig
+     with the local cache/DEFAULT_CONFIG immediately would show the
+     placeholder name ("ArioPlay") and placeholder copy first, then swap
+     to the real streamer's config a moment later once the fetch resolves
+     - visible as a large name/word flashing in and being replaced,
+     exactly like the old countdown "1" flash (a default state rendering
+     before the real one is ready). Racing the fetch against a short cap
+     means a normal connection resolves well inside the cap (no flash,
+     ever, for the common case) while a slow/broken one still falls back
+     to the instant local render exactly as before - never a loading
+     screen, just a very short, one-time wait before text appears. */
+  const nameOverride = new URLSearchParams(location.search).get("u");
+  let remoteApplied = false;
+  function acceptRemoteConfig(remoteConfig) {
+    if (!remoteConfig || localConfigCommitted) return false;
+    const merged = configApi.mergeWithDefaults(remoteConfig);
+    configApi.saveConfig(merged); // refresh the local cache so the next load starts from this
+    currentConfig = merged;
+    return true;
   }
 
-  const nameOverride = new URLSearchParams(location.search).get("u");
-  if (nameOverride) {
-    // Local-testing convenience only - skips the network fetch entirely.
-    effectiveStreamerName = nameOverride.replace(/^@/, "");
-    renderStreamerName(currentConfig);
-  } else {
-    fetchRemoteConfig().then((remoteConfig) => {
-      if (!remoteConfig) return; // fetch failed/timed out - keep the local cache/defaults already rendered
-      // If the admin has committed a local edit (Save/Reset/Import) while
-      // this boot-time fetch was still in flight, that edit must win - this
-      // fetch reflects server state from BEFORE that edit, so applying it
-      // now would silently revert what was just saved. Confirmed as a real
-      // bug: uploading a paper image (read+encode+upload takes a few real
-      // seconds) gives this fetch plenty of time to still be pending when
-      // Save is clicked, and it was unconditionally overwriting currentConfig
-      // when it resolved afterward.
-      if (localConfigCommitted) return;
-      const merged = configApi.mergeWithDefaults(remoteConfig);
-      configApi.saveConfig(merged); // refresh the local cache so the next load starts from this
-      currentConfig = merged;
-      applyConfig(merged);
-    });
-  }
+  (async function boot() {
+    if (nameOverride) {
+      // Local-testing convenience only - skips the network fetch entirely.
+      effectiveStreamerName = nameOverride.replace(/^@/, "");
+    } else {
+      const fetchPromise = fetchRemoteConfig();
+      const early = await Promise.race([
+        fetchPromise,
+        new Promise((resolve) => setTimeout(() => resolve(undefined), 500)),
+      ]);
+      if (early !== undefined && acceptRemoteConfig(early)) {
+        remoteApplied = true;
+      }
+      // If the cap won the race, keep listening - the fetch is still in
+      // flight and, if it lands late, must still correct the page (same
+      // fallback guarantee as before this change).
+      fetchPromise.then((remoteConfig) => {
+        if (remoteApplied) return;
+        // If the admin has committed a local edit (Save/Reset/Import) while
+        // this boot-time fetch was still in flight, that edit must win - this
+        // fetch reflects server state from BEFORE that edit, so applying it
+        // now would silently revert what was just saved. Confirmed as a real
+        // bug: uploading a paper image (read+encode+upload takes a few real
+        // seconds) gives this fetch plenty of time to still be pending when
+        // Save is clicked, and it was unconditionally overwriting currentConfig
+        // when it resolved afterward.
+        if (acceptRemoteConfig(remoteConfig)) applyConfig(currentConfig);
+      });
+    }
+    applyConfig(currentConfig);
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(preloadStageImages, { timeout: 2000 });
+    } else {
+      setTimeout(preloadStageImages, 300);
+    }
+  })();
 
   /* Public hooks admin-panel.js uses - the panel never touches the DOM
      directly, only this config object.
