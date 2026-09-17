@@ -825,17 +825,14 @@
     hidePoster();
     youtubeMountEl.innerHTML = "";
     const iframe = document.createElement("iframe");
-    // mute=1 is required for a REALLY reliable autoplay=1 - browsers only
-    // ever guarantee autoplay when muted (unmuted autoplay is inherently
-    // unreliable, and even less so once actually nested inside another
-    // site's iframe, which is exactly what showed up as "shows YouTube's
-    // own red play button instead of just starting" - that IS YouTube's
-    // own fallback for "the browser wouldn't let me autoplay with sound").
-    // The viewer gets a fully reliable, immediate start; YouTube's own
-    // visible speaker icon (native control, bottom-left) is one tap to
-    // turn sound on - the same "starts muted, native unmute icon" pattern
-    // every other autoplaying embed on the web uses, for the same reason.
-    iframe.src = "https://www.youtube.com/embed/" + id + "?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1";
+    // No mute=1, deliberately - this iframe is only ever created here,
+    // synchronously inside the real Play click handler, so autoplay=1
+    // is itself already backed by a genuine user gesture and does not
+    // need to be muted to be honored. The viewer explicitly asked to
+    // watch (this function only runs because they clicked Play) - sound
+    // should be on from the first frame, not something they have to
+    // find YouTube's own volume icon to turn on afterward.
+    iframe.src = "https://www.youtube.com/embed/" + id + "?autoplay=1&rel=0&modestbranding=1&playsinline=1";
     iframe.title = "YouTube video player";
     iframe.allow = "autoplay; encrypted-media; picture-in-picture";
     iframe.allowFullscreen = true;
