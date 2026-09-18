@@ -938,6 +938,13 @@ body::before{
    Responsive
    ========================================================================== */
 @media (max-width:760px){
+  /* The desktop clamp(570px,...) floor beats its own 92vw cap on a phone
+     (clamp's min wins over max) - the card was 570px wide inside a
+     ~375px screen, clipped off the left. Phones get the original
+     width-only rule back: full readable width, height follows the image,
+     normal vertical scroll for the rest. */
+  :root{--nur-card-scale:min(600px,94vw)}
+
   .stage.active{padding:40px 0}
   .scene-text p{font-size:18px;line-height:1.75;margin-bottom:12px}
   .scene-text.small p{font-size:16px;margin-bottom:8px}
