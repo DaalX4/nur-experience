@@ -520,8 +520,11 @@
   // instead of its own top. Same fix as show() - reset scroll explicitly
   // here too.
   function resetScroll() {
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    // Instant, not smooth: swapping pages changes the document's height
+    // mid-crossfade, and Chrome abandons an in-flight smooth scroll when
+    // the layout shifts under it - confirmed intermittently leaving the
+    // next page partway down instead of at its top.
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
   document.getElementById("toPage2").addEventListener("click", () => {
     letterFlipper.dataset.active = "2";
