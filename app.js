@@ -18,6 +18,13 @@
     document.documentElement.style.setProperty("--nur-vh", data.height + "px");
   });
 
+  /* Tells the parent Wix page this app is ready to receive the viewport
+   * height, so the Velo side doesn't have to guess a fixed delay - it can
+   * wait for this ping and then send the real height once, reliably. */
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: "nur-ready" }, "*");
+  }
+
   /* ------------------------------------------------------------------ *
    *  Config-driven rendering. Every piece of copy and every position
    *  this app shows lives in config.js's config object (window.NUR_CONFIG_API),
