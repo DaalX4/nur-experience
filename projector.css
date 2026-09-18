@@ -368,6 +368,24 @@
 }
 .frame-overlay.ready{visibility:visible}
 
+/* Branding/watermark on the frame border - same idiom as .letter-signature
+   (right/top % + a font-size scaled against the artwork's reference
+   width, here the frame's own 900px design width via --frame-w). Reuses
+   the shared .note-field ink color/text-shadow; a sibling of .frame-media
+   (not a child) so its torn-edge mask can't clip it. */
+.proj-signature{
+  right:var(--proj-sig-x,78%);
+  top:var(--proj-sig-y,90%);
+  font-family:var(--font-display);
+  white-space:nowrap;
+  pointer-events:none;
+  font-size:calc(var(--proj-sig-font-size,12px) * var(--frame-w) / 900px);
+  opacity:var(--proj-sig-opacity,.55);
+  transform:rotate(var(--proj-sig-rotation,0deg));
+  transform-origin:right top;
+}
+.proj-signature[hidden]{display:none}
+
 /* Caption for the current memory, shown just below the frame - same
    idiom as every other text block in this project (fontSize/color/
    opacity/word-spacing only, no italic/letter-spacing). Positioned from

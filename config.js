@@ -401,6 +401,12 @@
         color: "#c9cddc",
         opacity: 0.85
       },
+      /* Same branding/watermark control as letterPage1/2/3's `signature`
+         (text/x/y/fontSize/opacity/rotation, x = distance from the RIGHT,
+         y = distance from the TOP, both % of the frame) plus an on/off
+         switch. Sits on the frame's paper border, bottom-left by default
+         (the bottom-right already carries the tape/flower art). */
+      signature: { enabled: true, text: "Daalvi", x: 78, y: 90, fontSize: 12, opacity: 0.55, rotation: 0 },
       playButtonText: "ببینش",
       coverCta: {
         fontSize: 15,

@@ -230,6 +230,18 @@
       document.getElementById("letterPageNum" + n).textContent = pageNum.text;
     });
 
+    const psig = (config.projector && config.projector.signature) || {};
+    root.setProperty("--proj-sig-x", (typeof psig.x === "number" ? psig.x : 78) + "%");
+    root.setProperty("--proj-sig-y", (typeof psig.y === "number" ? psig.y : 90) + "%");
+    root.setProperty("--proj-sig-font-size", (typeof psig.fontSize === "number" ? psig.fontSize : 12) + "px");
+    root.setProperty("--proj-sig-opacity", typeof psig.opacity === "number" ? psig.opacity : 0.55);
+    root.setProperty("--proj-sig-rotation", (typeof psig.rotation === "number" ? psig.rotation : 0) + "deg");
+    const projSigEl = document.getElementById("projSignature");
+    if (projSigEl) {
+      projSigEl.textContent = psig.text || "";
+      projSigEl.hidden = !(psig.enabled !== false && psig.text);
+    }
+
     root.setProperty("--nur-final-y", config.final.offsetY + "px");
     root.setProperty("--nur-final-font-size", config.final.mainFontSize + "px");
     root.setProperty("--nur-final-main-y", (typeof config.final.mainOffsetY === "number" ? config.final.mainOffsetY : 0) + "px");

@@ -213,6 +213,16 @@
         { type: "slider", path: ["projector", "audio", "hintOpacity"], label: "شفافیت", min: 40, max: 100, step: 5, unit: "%", group: "صدا" },
         { type: "slider", path: ["projector", "audio", "hintGlow"], label: "شدت درخشش", min: 0, max: 100, step: 5, unit: "%", group: "صدا" },
 
+        /* Branding/watermark on the frame - same fields as the letter pages'
+           signature control, plus an on/off switch. */
+        { type: "buttons", path: ["projector", "signature", "enabled"], label: "امضا/واترمارک روی قاب", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], rerenderOnChange: true, group: "امضا/واترمارک (قاب پروژکتور)" },
+        { type: "text", path: ["projector", "signature", "text"], label: "امضا/واترمارک", showIf: { path: ["projector", "signature", "enabled"], equals: true }, group: "امضا/واترمارک (قاب پروژکتور)" },
+        { type: "slider", path: ["projector", "signature", "x"], label: "امضا: X (فاصله از راست)", min: 0, max: 100, step: 1, unit: "%", showIf: { path: ["projector", "signature", "enabled"], equals: true }, group: "امضا/واترمارک (قاب پروژکتور)" },
+        { type: "slider", path: ["projector", "signature", "y"], label: "امضا: Y (فاصله از بالا)", min: 0, max: 100, step: 1, unit: "%", showIf: { path: ["projector", "signature", "enabled"], equals: true }, group: "امضا/واترمارک (قاب پروژکتور)" },
+        { type: "slider", path: ["projector", "signature", "fontSize"], label: "امضا: اندازه فونت", min: 8, max: 30, step: 1, unit: "px", showIf: { path: ["projector", "signature", "enabled"], equals: true }, group: "امضا/واترمارک (قاب پروژکتور)" },
+        { type: "slider", path: ["projector", "signature", "opacity"], label: "امضا: شفافیت", min: 0.1, max: 1, step: 0.05, unit: "", showIf: { path: ["projector", "signature", "enabled"], equals: true }, group: "امضا/واترمارک (قاب پروژکتور)" },
+        { type: "slider", path: ["projector", "signature", "rotation"], label: "امضا: چرخش (اختیاری)", min: -45, max: 45, step: 1, unit: "deg", showIf: { path: ["projector", "signature", "enabled"], equals: true }, group: "امضا/واترمارک (قاب پروژکتور)" },
+
         /* Video/media size+position - own group, moved out of "پیشرفته"
            (a real complaint: these are basic, commonly-needed controls to
            fit an uploaded video inside the paper frame, not advanced/rare
