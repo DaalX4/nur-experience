@@ -27,6 +27,17 @@
      this existed, so nothing changes for a visit outside the Wix embed
      (e.g. testing this file directly) or before the message arrives. */
   --nur-vh:100vh;
+  /* Restrained, continuous "the experience shouldn't look tiny in the
+     middle of a huge monitor" scale for major stage content (intro,
+     envelope, countdown, projector, final/credit). 1 at normal laptop
+     widths (<=1366px), rising smoothly to 1.12 at 2560px - a length
+     divided by a length is unitless in calc(), which is what makes this
+     a plain multiplier instead of a length. Never used with
+     transform:scale (that would zoom hit-testing/blur with it); each
+     consumer multiplies its own font-size/frame-width by this instead,
+     same one-shared-number pattern --nur-card-scale already uses for
+     the letter card. */
+  --nur-scale:clamp(1, calc(1 + (100vw - 1366px) / 1194px * 0.12), 1.12);
   --bg-1:#0a1226;          /* deep midnight blue */
   --bg-2:#16224a;          /* mid night blue, cleaner/more saturated than before */
   --text:#f0eee6;          /* warm off-white */
@@ -74,8 +85,13 @@
      reverted (real, confirmed regression): it shrank the whole letter far
      past comfortable reading size on short/embedded viewports. Readable
      text takes priority over fitting the whole card on screen - a letter
-     taller than the viewport scrolls normally, same as any long page. */
-  --nur-card-scale:min(600px,92vw);
+     taller than the viewport scrolls normally, same as any long page.
+     clamp() floor stays exactly 600px (unchanged from before) so normal
+     laptops are pixel-identical to today; the preferred term only grows
+     past that floor on wide desktop monitors, capped at 680px (or 92vw,
+     whichever is smaller, so a narrow-but-tall desktop window still
+     can't overflow) - still width-only, still no height term. */
+  --nur-card-scale:clamp(600px, 35vw, min(680px,92vw));
   --nur-card-reference-width:653px;
 
   --nur-letter-name-x:6%;
@@ -459,13 +475,13 @@ body::before{
   transform:translate(var(--nur-intro-x),var(--nur-intro-y));
 }
 #stage-intro .scene-text p.greeting{
-  font-size:var(--nur-intro-greeting-font-size);
+  font-size:calc(var(--nur-intro-greeting-font-size) * var(--nur-scale));
   margin-bottom:var(--nur-intro-greeting-gap);
   word-spacing:var(--nur-intro-word-spacing);
 }
 #stage-intro .scene-body p{
   white-space:pre-wrap;
-  font-size:var(--nur-intro-font-size);
+  font-size:calc(var(--nur-intro-font-size) * var(--nur-scale));
   line-height:var(--nur-intro-line-height);
   margin:0 0 var(--nur-intro-gap);
   color:var(--text);
@@ -485,7 +501,7 @@ body::before{
 }
 #stage-before-open .scene-text.small p:not(.greeting){
   white-space:pre-line;
-  font-size:var(--nur-envelope-font-size);
+  font-size:calc(var(--nur-envelope-font-size) * var(--nur-scale));
   word-spacing:var(--nur-envelope-word-spacing);
 }
 
@@ -572,8 +588,24 @@ body::before{
    letter, not a scrollbox) - align it to the top of its stage so opening
    the envelope reveals the salutation first, not the middle of the page */
 #stage-letter.active{
-  justify-content:flex-start;
-  padding-top:56px;
+  /* "safe center": centers the letter when it fits the viewport (the
+     large-monitor case - was previously glued to the top with dead
+     space below, looking off-center); falls back to top-alignment,
+     exactly like flex-start, the instant the letter is taller than the
+     viewport, so the salutation is still the first thing revealed and
+     normal scrolling still works on short/embedded viewports - nothing
+     changes there. */
+  justify-content:safe center;
+  /* Trimmed from the base .stage.active 60px/60px and the old 56px/60px
+     here - every px of reserved padding is room the safe-center fallback
+     above needs to actually center the (now slightly larger, see
+     --nur-card-scale) letter on common large-monitor heights instead of
+     silently tipping into its top-aligned overflow fallback. Still
+     asymmetric on purpose (top < bottom) so the top-aligned fallback
+     case keeps a bit less headroom above the salutation than below the
+     card, matching the original design intent. */
+  padding-top:40px;
+  padding-bottom:40px;
 }
 
 .letter-stage-inner{
@@ -582,7 +614,7 @@ body::before{
      card on narrow screens instead of staying fixed while the card
      shrinks - keep this in sync with any change here, they must match. */
   width:var(--nur-card-scale);
-  margin:0 auto 32px;
+  margin:0 auto 24px;
   filter:drop-shadow(0 22px 50px rgba(0,0,0,.45));
 }
 /* the letter "turning" is a soft blur/fade crossfade between the two
@@ -870,7 +902,11 @@ body::before{
   position:relative;
   z-index:1;
   font-family:var(--font-body); /* clean, unambiguous digits over ornament */
-  font-size:clamp(56px,12vw,104px);
+  /* the vw term alone already saturates at its 104px ceiling by ~1200px
+     wide, so without --nur-scale the number stops growing at all well
+     before large desktop monitors - the scale multiplier picks up
+     exactly where the vw clamp flattens out. */
+  font-size:calc(clamp(56px,12vw,104px) * var(--nur-scale));
   font-weight:600;
   color:var(--text);
   line-height:1;
@@ -879,7 +915,7 @@ body::before{
   position:relative;
   z-index:1;
   margin-top:16px;
-  font-size:clamp(16px,2vw,19px);
+  font-size:calc(clamp(16px,2vw,19px) * var(--nur-scale));
   font-weight:400;
   color:var(--muted);
 }

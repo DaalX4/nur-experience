@@ -35,7 +35,12 @@
      no such cap, being a fixed-size desktop tool) so a short/landscape
      viewport can't get a frame taller than the screen either. Native
      mask/frame asset is 3:2 (1536x1024), so height stays width*2/3. */
-  --frame-w:min(900px,90vw,125vh);
+  /* min()'s own 900px ceiling is fixed regardless of screen size, same
+     gap --nur-scale exists to close elsewhere (see styles.css :root) -
+     multiplying it in lets the frame grow modestly on large monitors
+     without touching the vw/vh terms that already keep it from
+     overflowing a small or short viewport. */
+  --frame-w:calc(min(900px,90vw,125vh) * var(--nur-scale));
   --frame-h:calc(var(--frame-w) * 2 / 3);
   /* Same -2%-of-width optical nudge as the prototype - the torn-paper
      art's tape/flower decoration only exists on the right side, so a
