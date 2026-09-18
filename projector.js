@@ -66,7 +66,7 @@
     deep:     { vignette: 1.5, blurPx: 0.55 }
   };
 
-  const FRAME_OVERLAY_SRC = "assets/memory-frame.png";
+  const FRAME_OVERLAY_SRC = "assets/memory-frame.webp";
   const FRAME_MASK_SRC = "assets/memory-frame-mask.png";
 
   let started = false;

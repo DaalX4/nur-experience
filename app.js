@@ -2,30 +2,6 @@
   "use strict";
 
   /* ------------------------------------------------------------------ *
-   *  Wix embed viewport bridge (desktop/laptop only) - receives the REAL
-   *  browser viewport height from the parent Wix page over postMessage,
-   *  since 100vh inside this iframe only ever reflects the iframe's OWN
-   *  box, which Wix's Editor sizes independently of the visitor's actual
-   *  window. Every centered stage's min-height already reads from the
-   *  --nur-vh custom property (see styles.css's :root) instead of a
-   *  literal 100vh, defaulting to 100vh until/unless this fires - so a
-   *  visit outside the Wix embed (e.g. testing this file directly) is
-   *  completely unaffected. No reply is ever sent back; this is a pure
-   *  one-way, fire-and-forget update, not a resize negotiation. */
-  window.addEventListener("message", (event) => {
-    const data = event.data;
-    if (!data || data.type !== "nur-viewport" || typeof data.height !== "number") return;
-    document.documentElement.style.setProperty("--nur-vh", data.height + "px");
-  });
-
-  /* Tells the parent Wix page this app is ready to receive the viewport
-   * height, so the Velo side doesn't have to guess a fixed delay - it can
-   * wait for this ping and then send the real height once, reliably. */
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: "nur-ready" }, "*");
-  }
-
-  /* ------------------------------------------------------------------ *
    *  Config-driven rendering. Every piece of copy and every position
    *  this app shows lives in config.js's config object (window.NUR_CONFIG_API),
    *  editable live via admin-panel.js (Ctrl+Shift+E). This file's job is
@@ -680,7 +656,10 @@
     const proj = currentConfig.projector;
     if (proj && proj.enabled && window.NUR_PROJECTOR) {
       show("stage-projector");
+      let handedOff = false; // a fast double-click on Continue must not run the Final entrance twice
       window.NUR_PROJECTOR.start(proj, () => {
+        if (handedOff) return;
+        handedOff = true;
         show("stage-final");
         revealSignature();
       });

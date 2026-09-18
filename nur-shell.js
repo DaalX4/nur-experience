@@ -1,18 +1,11 @@
 /* Production Wix Classic Custom Element - hosts NUR full-viewport on the
- * published site, bypassing the fixed Editor-height limitation of the
- * "Embed a Site" HTML component (#html4). Desktop/laptop only, matches
- * the rest of the NUR project.
+ * published site. Desktop/laptop only.
  *
- * Architecture: this element sets itself to position:fixed;inset:0;100vw/100vh
- * (confirmed possible on the published site - custom elements are NOT
- * sandboxed in an iframe there, unlike in Editor/Preview mode, where
- * Wix does sandbox them for security) and loads NUR inside a plain
- * child iframe sized 100%/100% of that box. Because the child iframe's
- * own box already equals the real window size (not a Wix-Editor-sized
- * box like #html4's), NUR's own 100vh is already correct with no
- * postMessage bridge needed - the existing --nur-vh listener in app.js
- * still exists and is harmless (it simply never fires here), so nothing
- * else in NUR needs to change or know which embed method is in use. */
+ * The element pins itself to position:fixed;inset:0;100vw/100vh (custom
+ * elements are NOT sandboxed in an iframe on the published site, only in
+ * Editor/Preview) and loads NUR in a plain child iframe sized 100%/100%,
+ * so NUR's own 100vh is already the visitor's real window height - no
+ * postMessage/Velo bridge is needed or used. */
 class NurShell extends HTMLElement {
   connectedCallback() {
     this.style.position = "fixed";
