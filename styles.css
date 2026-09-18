@@ -945,6 +945,16 @@ body::before{
      normal vertical scroll for the rest. */
   :root{--nur-card-scale:min(600px,94vw)}
 
+  /* Intro on phones: ~18% smaller title/body/buttons so the whole
+     composition fits one screen, and the two actions stay side by side
+     instead of wrapping under the text. The ID selectors match the
+     desktop rules they scale (same specificity, later in the file); the
+     admin-set values still drive the size, this only multiplies them. */
+  #stage-intro .scene-text p.greeting{font-size:calc(var(--nur-intro-greeting-font-size) * var(--nur-scale) * .82)}
+  #stage-intro .scene-body p{font-size:calc(var(--nur-intro-font-size) * var(--nur-scale) * .82)}
+  #stage-intro .scene-actions{flex-wrap:nowrap;gap:10px}
+  #stage-intro .btn{padding:11px 22px;font-size:15px;white-space:nowrap}
+
   .stage.active{padding:40px 0}
   .scene-text p{font-size:18px;line-height:1.75;margin-bottom:12px}
   .scene-text.small p{font-size:16px;margin-bottom:8px}

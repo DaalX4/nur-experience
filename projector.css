@@ -698,3 +698,30 @@
 @media (prefers-reduced-motion: reduce){
   .proj-gate{transition:none}
 }
+
+/* ==========================================================================
+   Phones only (<=760px): the cover CTA, action buttons, Next Page button
+   and audio reminder read too large on a phone-sized frame. Each rule
+   multiplies the admin-set value (inline --proj-* vars) instead of
+   replacing it, so the panel controls still work. Desktop is untouched.
+   ========================================================================== */
+@media (max-width:760px){
+  .proj-gate-btn{
+    font-size:calc(var(--proj-cover-font-size,15px) * .72);
+    padding:7px 18px;
+    border-radius:9px;
+  }
+  .proj-action-btn{
+    font-size:calc(var(--proj-action-font-size,15px) * .77);
+    padding:7px 16px;
+  }
+  .proj-next-btn{
+    transform:translate(calc(-50% + var(--proj-optical-x) + var(--proj-next-x,0px)), var(--proj-next-y,0px)) scale(calc(var(--proj-next-scale,1) * .66));
+  }
+  .proj-next-btn:active{
+    transform:translate(calc(-50% + var(--proj-optical-x) + var(--proj-next-x,0px)), var(--proj-next-y,0px)) scale(calc(var(--proj-next-scale,1) * .66 * .96));
+  }
+  .proj-audio-hint{padding:5px 10px;gap:5px}
+  .proj-audio-hint-icon{font-size:calc(var(--proj-audio-hint-icon-size,20px) * .78)}
+  .proj-audio-hint-text{font-size:calc(var(--proj-audio-hint-text-size,13px) * .78)}
+}
