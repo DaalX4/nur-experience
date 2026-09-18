@@ -40,7 +40,7 @@
      multiplying it in lets the frame grow modestly on large monitors
      without touching the vw/vh terms that already keep it from
      overflowing a small or short viewport. */
-  --frame-w:calc(min(900px,90vw,125vh) * var(--nur-scale));
+  --frame-w:calc(min(900px,90vw,125vh) * var(--nur-scale-projector));
   --frame-h:calc(var(--frame-w) * 2 / 3);
   /* Same -2%-of-width optical nudge as the prototype - the torn-paper
      art's tape/flower decoration only exists on the right side, so a

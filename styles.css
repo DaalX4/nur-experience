@@ -28,16 +28,26 @@
      (e.g. testing this file directly) or before the message arrives. */
   --nur-vh:100vh;
   /* Restrained, continuous "the experience shouldn't look tiny in the
-     middle of a huge monitor" scale for major stage content (intro,
-     envelope, countdown, projector, final/credit). 1 at normal laptop
-     widths (<=1366px), rising smoothly to 1.12 at 2560px - a length
-     divided by a length is unitless in calc(), which is what makes this
-     a plain multiplier instead of a length. Never used with
-     transform:scale (that would zoom hit-testing/blur with it); each
-     consumer multiplies its own font-size/frame-width by this instead,
-     same one-shared-number pattern --nur-card-scale already uses for
-     the letter card. */
-  --nur-scale:clamp(1, calc(1 + (100vw - 1366px) / 1194px * 0.12), 1.12);
+     middle of a huge monitor, or slightly too large on a normal laptop"
+     scale for major stage content (intro, envelope, countdown,
+     projector, final/credit). All three variants share the exact same
+     2560px ceiling (1.12 - confirmed already looking right there, left
+     untouched) and only differ in their <=1366px floor, so the large-
+     monitor appearance never changes while each stage gets its own
+     laptop-sized trim. A length divided by a length is unitless in
+     calc(), which is what makes this a plain multiplier instead of a
+     length. Never used with transform:scale (that would zoom hit-
+     testing/blur with it); each consumer multiplies its own font-size/
+     frame-width by this instead, same one-shared-number pattern
+     --nur-card-scale already uses for the letter card. */
+  --nur-scale:clamp(0.96, calc(0.96 + (100vw - 1366px) / 1194px * 0.16), 1.12); /* intro / final / credit: ~4% smaller on laptop */
+  --nur-scale-projector:clamp(0.95, calc(0.95 + (100vw - 1366px) / 1194px * 0.17), 1.12); /* ~5% smaller on laptop */
+  /* Countdown's actual laptop/large-monitor sizing lives in index.html's
+     #stage-countdown .countdown-number/.countdown-label rules (a more
+     specific + !important override that wins over styles.css's plain
+     .countdown-number/.countdown-label) - tuned directly as vw
+     coefficients there instead of a shared --nur-scale-* variable, so
+     there's no third scale variable here. */
   --bg-1:#0a1226;          /* deep midnight blue */
   --bg-2:#16224a;          /* mid night blue, cleaner/more saturated than before */
   --text:#f0eee6;          /* warm off-white */
@@ -86,12 +96,14 @@
      past comfortable reading size on short/embedded viewports. Readable
      text takes priority over fitting the whole card on screen - a letter
      taller than the viewport scrolls normally, same as any long page.
-     clamp() floor stays exactly 600px (unchanged from before) so normal
-     laptops are pixel-identical to today; the preferred term only grows
-     past that floor on wide desktop monitors, capped at 680px (or 92vw,
-     whichever is smaller, so a narrow-but-tall desktop window still
-     can't overflow) - still width-only, still no height term. */
-  --nur-card-scale:clamp(600px, 35vw, min(680px,92vw));
+     clamp() floor trimmed slightly (600px -> 570px, a ~5% reduction) so
+     the letter isn't quite as large on normal laptop widths; the
+     preferred term still only grows past that floor on wide desktop
+     monitors, still capped at exactly 680px (or 92vw, whichever is
+     smaller, so a narrow-but-tall desktop window still can't overflow) -
+     the large-monitor ceiling is unchanged, still width-only, still no
+     height term. */
+  --nur-card-scale:clamp(570px, 35vw, min(680px,92vw));
   --nur-card-reference-width:653px;
 
   --nur-letter-name-x:6%;
@@ -902,11 +914,11 @@ body::before{
   position:relative;
   z-index:1;
   font-family:var(--font-body); /* clean, unambiguous digits over ornament */
-  /* the vw term alone already saturates at its 104px ceiling by ~1200px
-     wide, so without --nur-scale the number stops growing at all well
-     before large desktop monitors - the scale multiplier picks up
-     exactly where the vw clamp flattens out. */
-  font-size:calc(clamp(56px,12vw,104px) * var(--nur-scale));
+  /* NOTE: index.html's #stage-countdown .countdown-number rule
+     (more specific + !important) is what actually renders on this
+     project's real countdown stage - this plain-class rule only applies
+     if that override is ever removed. Tune the size there, not here. */
+  font-size:clamp(56px,12vw,104px);
   font-weight:600;
   color:var(--text);
   line-height:1;
@@ -915,7 +927,7 @@ body::before{
   position:relative;
   z-index:1;
   margin-top:16px;
-  font-size:calc(clamp(16px,2vw,19px) * var(--nur-scale));
+  font-size:clamp(16px,2vw,19px);
   font-weight:400;
   color:var(--muted);
 }
