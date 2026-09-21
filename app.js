@@ -374,9 +374,16 @@
       effectiveStreamerName = nameOverride.replace(/^@/, "");
     } else {
       const fetchPromise = fetchRemoteConfig();
+      // A first-ever visit has no local cache, so rendering early would show
+      // the placeholder streamer name/copy (DEFAULT_CONFIG) before the real
+      // config lands - wait for the fetch itself (already capped at 4s by
+      // fetchRemoteConfig). A returning visitor's cache is already close to
+      // right, so they keep the short 500ms cap.
+      let hasLocalCache = false;
+      try { hasLocalCache = !!localStorage.getItem(configApi.STORAGE_KEY); } catch (err) { /* ignore */ }
       const early = await Promise.race([
         fetchPromise,
-        new Promise((resolve) => setTimeout(() => resolve(undefined), 500)),
+        new Promise((resolve) => setTimeout(() => resolve(undefined), hasLocalCache ? 500 : 4500)),
       ]);
       if (early !== undefined && acceptRemoteConfig(early)) {
         remoteApplied = true;
