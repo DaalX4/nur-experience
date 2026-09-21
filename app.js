@@ -247,8 +247,18 @@
     root.setProperty("--nur-final-social-glow-blur-hover", (5.5 + glow * 0.1182).toFixed(1) + "px");
     root.setProperty("--nur-final-social-glow-color-hover", "rgba(232,207,138," + Math.min(0.95, 0.2 + glow * 0.00636).toFixed(2) + ")");
 
-    document.getElementById("finalMain").textContent = config.final.main;
-    document.getElementById("finalSub").textContent = config.final.sub;
+    // "ادامه‌دهندگان نور" page (final phase 1): three text blocks, each with
+    // text + font size + x/y offset. Sizes/offsets are unitless numbers here;
+    // index.html's .cont-* rules multiply by 1px.
+    const cont = (config.final && config.final.continuers) || {};
+    [["top", "contTop", 32], ["title", "contTitle", 23], ["bottom", "contBottom", 17]].forEach(([key, id, defaultFs]) => {
+      const c = cont[key] || {};
+      const el = document.getElementById(id);
+      if (el) el.textContent = typeof c.text === "string" ? c.text : "";
+      root.setProperty(`--nur-cont-${key}-fs`, typeof c.fontSize === "number" ? c.fontSize : defaultFs);
+      root.setProperty(`--nur-cont-${key}-x`, typeof c.x === "number" ? c.x : 0);
+      root.setProperty(`--nur-cont-${key}-y`, typeof c.y === "number" ? c.y : 0);
+    });
     document.getElementById("finalSignature").textContent = config.final.signature;
 
     // Phase 2 social row - a fixed icon per slot (the artwork), only the
@@ -329,6 +339,10 @@
       img.src = img.dataset.src;
       img.dataset.loaded = "1";
     });
+    // The continuers page's avatar is an SVG <image> inside a hidden stage,
+    // which the browser may not fetch until it is first shown - warm the
+    // cache now so it never pops in late.
+    new Image().src = "assets/avatar-rezaayeene.webp";
   }
 
   /* Boot render — waits (briefly, bounded) for the remote config before

@@ -209,6 +209,17 @@
          the admin control the GAP between the two by moving either one
          on its own, instead of only being able to move them together. */
       offsetY: 0,
+      /* PHASE 1 is now the "ادامه‌دهندگان نور" page (index.html's
+         .continuers). Its three text blocks live here: text + fontSize (px)
+         + x/y (px, right/down positive) - nothing else about that page is
+         configurable. main/sub/mainFontSize/... below are LEGACY (the old
+         two-line message this page replaced): kept only so an existing
+         saved config still merges cleanly; nothing reads them any more. */
+      continuers: {
+        top:    { text: "این نور دیگه بخشی از تو شده،\nولی پایان راه نیست.", fontSize: 32, x: 0, y: 0 },
+        title:  { text: "ادامه‌دهندگان نور",                                   fontSize: 23, x: 0, y: 0 },
+        bottom: { text: "مسیر بعدی نور، می‌تونه با تو ادامه پیدا کنه...",       fontSize: 17, x: 0, y: 0 }
+      },
       mainFontSize: 34,
       mainOffsetY: 0,
       subFontSize: 22,
@@ -228,7 +239,7 @@
       signatureOffsetY: 96,
       signatureFontSize: 15,
       signatureWordSpacing: 0,
-      phase2DelaySec: 4,
+      phase2DelaySec: 12, /* long enough to read the continuers page (was 4 for the old two-line message) */
       /* Layout controls for the social row (Module 33-40) - deliberately
          ONE shared value per property (gap/size/glow) rather than per-icon
          controls, since the four icons must always stay evenly spaced and
