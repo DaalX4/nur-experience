@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نوبت توئه</title>
+<!-- First-paint sky: styles.css bakes the default navy sky, so before app.js
+     applies the real config the very first frame used to be the wrong color.
+     This runs before first paint: it applies the cached sky colors at once
+     (same math as applySkyColors in app.js); with no cache (true first visit)
+     it holds the page black + hidden until app.js has applied the real config,
+     then fades in (see .nur-boot rules). -->
+<script>
+(function(){var d=document.documentElement;try{
+var s=JSON.parse(localStorage.getItem("nurConfig.v1")||"null");s=s&&s.sky;
+if(s&&/^#[0-9a-f]{6}$/i.test(s.color)){
+var n=parseInt(s.color.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255,c=function(v){return Math.max(0,Math.min(255,v))},
+x=function(v){return(c(v)<16?"0":"")+c(v).toString(16)},st=d.style;
+st.setProperty("--bg-1",s.color);st.setProperty("--bg-2","#"+x(r+12)+x(g+16)+x(b+36));
+if(s.starColor)st.setProperty("--star",s.starColor);
+}else{d.classList.add("nur-boot");setTimeout(function(){d.classList.remove("nur-boot")},6000);}
+}catch(e){d.classList.add("nur-boot");setTimeout(function(){d.classList.remove("nur-boot")},6000);}})();
+</script>
+<style>
+html.nur-boot,html.nur-boot-out{background:#000}
+html.nur-boot body{opacity:0}
+html.nur-boot-out body{animation:nurBootIn .5s ease both}
+@keyframes nurBootIn{from{opacity:0}to{opacity:1}}
+</style>
 <!-- DigiSarve is the body/heading font for every stage including the very
      first paint (intro) - preloaded so the browser fetches it in parallel
      with CSS parsing instead of discovering it only after styles.css is
@@ -25,11 +48,11 @@
      never seen, so it's always fetched from origin, never an old cached
      copy, and every visitor's index.html always loads ITS OWN matching
      version of everything, never a mix. -->
-<link rel="stylesheet" href="styles.css?v=20260917-25">
+<link rel="stylesheet" href="styles.css?v=20260917-26">
 <!-- Projector/Memory stage styles - tiny (no media), safe to always load;
      see projector.js for why the frame/mask IMAGES only ever fetch when
      the feature is actually turned on. -->
-<link rel="stylesheet" href="projector.css?v=20260917-25">
+<link rel="stylesheet" href="projector.css?v=20260917-26">
 
 <style>
 /* ===== Final-stage polish only: intentionally isolated from the rest of the project ===== */
@@ -1032,10 +1055,10 @@
 
 </main>
 
-<script src="config.js?v=20260917-25"></script>
-<script src="app.js?v=20260917-25"></script>
-<script src="projector.js?v=20260917-25"></script>
-<script src="admin-panel.js?v=20260917-25"></script>
+<script src="config.js?v=20260917-26"></script>
+<script src="app.js?v=20260917-26"></script>
+<script src="projector.js?v=20260917-26"></script>
+<script src="admin-panel.js?v=20260917-26"></script>
 
 </body>
 </html>

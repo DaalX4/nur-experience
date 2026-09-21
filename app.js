@@ -405,6 +405,13 @@
       });
     }
     applyConfig(currentConfig);
+    (function releaseBootVeil() {
+      const root = document.documentElement;
+      if (!root.classList.contains("nur-boot")) return;
+      root.classList.add("nur-boot-out");
+      root.classList.remove("nur-boot");
+      setTimeout(() => root.classList.remove("nur-boot-out"), 700);
+    })();
 
     // Reveal the intro ONLY now, with real content already in place.
     // #stage-intro deliberately ships with no "active" class in the raw
