@@ -481,10 +481,27 @@
   /* ------------------------------------------------------------------ *
    *  Scene switching — soft blur/fade crossfade, one scene at a time
    * ------------------------------------------------------------------ */
+  /* Final-stage sequence timers (continuers page -> fade -> Credit; see
+     revealSignature). Tracked here so a restart or leaving the stage can
+     always cancel a pending one - untracked timers from an earlier entry
+     used to fire later, fading a fresh visit early (or overlapping the
+     Credit phase). */
+  const finalSeq = { fade: null, show: null };
+  function cancelFinalSequence() {
+    clearTimeout(finalSeq.fade);
+    clearTimeout(finalSeq.show);
+    finalSeq.fade = null;
+    finalSeq.show = null;
+  }
+
   function show(id) {
     const current = document.querySelector("[data-stage].active");
     const next = document.getElementById(id);
     if (current === next) return;
+
+    // Leaving Final for any other stage ends its sequence: nothing from it
+    // may fire later against a stage that is no longer showing.
+    if (current && current.id === "stage-final") cancelFinalSequence();
 
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -617,11 +634,18 @@
     // start this second run with phase2 already visible and phase1 already
     // faded, skipping the entrance sequence entirely. A real first-time
     // visitor never hits this, but it costs nothing to guarantee.
+    cancelFinalSequence(); // a second entry must never inherit the first one's timers
     phase1.classList.remove("fade-out");
     phase2.classList.remove("show");
-    setTimeout(() => {
+    const finalStage = document.getElementById("stage-final");
+    finalSeq.fade = setTimeout(() => {
+      finalSeq.fade = null;
+      if (!finalStage.classList.contains("active")) return;
       phase1.classList.add("fade-out");
-      setTimeout(() => phase2.classList.add("show"), PHASE1_FADE_MS);
+      finalSeq.show = setTimeout(() => {
+        finalSeq.show = null;
+        if (finalStage.classList.contains("active")) phase2.classList.add("show");
+      }, PHASE1_FADE_MS);
     }, delayMs);
   }
 
@@ -797,6 +821,11 @@
     clearInterval(countdownTimer);
     stopDots();
     show(stageId);
+    // Showing Final from the panel runs the same timed sequence a visitor
+    // gets (continuers page for the configured seconds, then Credit) - it
+    // used to show the page with no timer at all, i.e. it never advanced.
+    // Re-clicking the tab restarts it.
+    if (stageId === "stage-final") revealSignature();
     if (stageId === "stage-projector" && window.NUR_PROJECTOR) {
       // Admin preview only - a real visitor only ever reaches this stage
       // through goToFinalOrProjector() above, which calls start() with

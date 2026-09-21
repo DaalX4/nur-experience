@@ -197,6 +197,8 @@
 
         { type: "youtubeSource", path: ["projector", "youtubeUrl"], label: "لینک ویدیو یوتیوب", help: "فرمت‌های watch؟v=، youtu.be و shorts پشتیبانی می‌شوند. برای بررسی سریع، از بخش «پیش‌نمایش حالت‌ها» پایین همین صفحه استفاده کن.", showIf: { path: ["projector", "source"], equals: "youtube" }, group: "یوتیوب" },
 
+        { type: "slider", path: ["final", "phase2DelaySec"], label: "مدت نمایش صفحه ادامه‌دهندگان نور (تا رفتن به اعتبار)", min: 1, max: 15, step: 0.5, unit: " ثانیه", help: "چند ثانیه صفحه ادامه‌دهندگان نور نمایش داده می‌شود؛ بعد محو می‌شود و صفحه اعتبار جایگزینش می‌شود. باید به‌اندازه‌ی کافی باشد که متن‌ها خوانده شوند.", group: "مدت نمایش صفحه ادامه‌دهندگان نور" },
+
         { type: "buttons", path: ["projector", "audio", "enabled"], label: "پخش صدا", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "صدا" },
         { type: "slider", path: ["projector", "audio", "volume"], label: "بلندی صدا", min: 0, max: 100, step: 5, unit: "%", group: "صدا" },
         { type: "buttons", path: ["projector", "audio", "hintEnabled"], label: "نمایش یادآور صدا", options: [{ label: "روشن", value: true }, { label: "خاموش", value: false }], group: "صدا" },
@@ -346,7 +348,6 @@
 
         { type: "slider", path: ["final", "offsetY"], label: "جابجایی کل بخش اعتبار (بالا/پایین)", help: "فقط بخش اعتبار و شبکه‌های اجتماعی را جابجا می‌کند.", min: -200, max: 200, step: 1, unit: "px", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
 
-        { type: "slider", path: ["final", "phase2DelaySec"], label: "تاخیر قبل از نمایش اعتبار", min: 1, max: 15, step: 0.5, unit: " ثانیه", help: "چند ثانیه بعد از باز شدن صفحه پایانی، صفحه ادامه‌دهندگان نور محو می‌شود و اعتبار/شبکه‌های اجتماعی جایگزینش می‌شود. باید به‌اندازه‌ی کافی باشد که متن‌ها خوانده شوند.", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
         { type: "text", path: ["final", "signature"], label: "متن اعتبار (زیر پیام اصلی)", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
         { type: "slider", path: ["final", "signatureOffsetY"], label: "فاصله اعتبار تا بالای بخش", min: 20, max: 240, step: 2, unit: "px", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
         { type: "slider", path: ["final", "signatureFontSize"], label: "اندازه فونت اعتبار", min: 10, max: 64, step: 1, unit: "px", help: "در صفحه‌های کوچک، اگر عدد انتخابی خیلی بزرگ باشد به‌صورت خودکار کمی کوچک‌تر نمایش داده می‌شود تا از قاب بیرون نزند.", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
