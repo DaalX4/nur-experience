@@ -333,6 +333,11 @@
       label: "پایانی",
       screen: { stage: "stage-final" },
       fields: [
+        // Same config value as the "مدت نمایش..." slider in تب "تنظیمات پروژکتور"
+        // (final.phase2DelaySec) - added here too, in this section, just so it's
+        // reachable while testing this page without switching tabs. One value,
+        // two places to edit it; not a duplicate field.
+        { type: "slider", path: ["final", "phase2DelaySec"], label: "مدت نمایش این صفحه (تا رفتن به اعتبار)", min: 1, max: 15, step: 0.5, unit: " ثانیه", help: "چند ثانیه این صفحه نمایش داده می‌شود؛ بعد محو می‌شود و صفحه اعتبار جایگزینش می‌شود.", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "textarea", path: ["final", "continuers", "top", "text"], label: "پیام بالا", help: "خط‌های پیام را با Enter جدا کن.", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "top", "fontSize"], label: "پیام بالا: اندازه فونت", min: 12, max: 64, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "top", "x"], label: "پیام بالا: جابجایی افقی (چپ / راست)", min: -240, max: 240, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
