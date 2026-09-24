@@ -1122,7 +1122,10 @@
     }
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      // 25s (was 6s): after the save itself, the server also removes
+      // unused NUR media files from Wix, which can take a few seconds - a
+      // 6s cap would report a failed publish for a save that succeeded.
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
       const res = await fetch(api.REMOTE_CONFIG_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1136,7 +1139,14 @@
         return;
       }
       if (!res.ok) throw new Error("nurConfig POST returned " + res.status);
-      setStatus("ذخیره شد ✓ (سراسری برای همه)");
+      let cleanupNote = "";
+      try {
+        const data = await res.json();
+        const mc = data && data.mediaCleanup;
+        if (mc && mc.error) cleanupNote = " - پاکسازی فایل‌های قدیمی ناموفق: " + mc.error;
+        else if (mc && mc.removed > 0) cleanupNote = " - " + mc.removed + " فایل قدیمی از وی‌ایکس پاک شد";
+      } catch (e) { /* older backend / no JSON body: just no note */ }
+      setStatus("ذخیره شد ✓ (سراسری برای همه)" + cleanupNote);
     } catch (err) {
       setStatus("ذخیره محلی شد، اما انتشار سراسری ناموفق بود");
     }
