@@ -46,6 +46,15 @@
   const REMOTE_STREAMER_SAVE_URL = "https://www.daalvi.com/_functions/nurStreamerSave";
   const PUBLIC_BASE_URL = "https://www.daalvi.com/";
 
+  /* The shared "ادامه‌دهندگان نور" chain: ONE global list for every streamer page (read by all
+     pages, edited from the admin panel). The default is exactly the chain NUR has always shown. */
+  const REMOTE_CONTINUERS_URL = "https://www.daalvi.com/_functions/nurContinuers";
+  const REMOTE_CONTINUERS_SAVE_URL = "https://www.daalvi.com/_functions/nurContinuersSave";
+  const CONTINUERS_CACHE_KEY = "nurContinuers.v1";
+  const DEFAULT_CONTINUERS = [
+    { id: "c1", name: "rezaayeene", kick: "https://kick.com/rezaayeene", avatar: "assets/avatar-rezaayeene.webp" }
+  ];
+
   /* Password-gated endpoint that uploads an (already client-side WebP-
      optimized) paper image to the Wix Media Manager and returns its public
      URL - see admin-panel.js's image field type. Only that URL is ever
@@ -570,6 +579,10 @@
     REMOTE_STREAMER_CREATE_URL,
     REMOTE_STREAMER_SAVE_URL,
     PUBLIC_BASE_URL,
+    REMOTE_CONTINUERS_URL,
+    REMOTE_CONTINUERS_SAVE_URL,
+    CONTINUERS_CACHE_KEY,
+    DEFAULT_CONTINUERS,
     REMOTE_UPLOAD_URL,
     REMOTE_UPLOAD_URL_DIRECT,
     DEFAULT_CONFIG,

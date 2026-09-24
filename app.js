@@ -386,6 +386,74 @@
     return true;
   }
 
+  /* ------------------------------------------------------------------ *
+   *  Shared Continuers chain. ONE global list (not part of any streamer's
+   *  config), drawn by continuers-chain.js into #contChain. Cached locally for
+   *  instant render; the server copy is fetched once in the background.
+   *  Anything unexpected -> the built-in default chain (what NUR always showed).
+   * ------------------------------------------------------------------ */
+  const contSvg = document.getElementById("contChain");
+  const CONT_CLS = { breathe: "cont-breathe", flicker: "cont-flicker", spin: "cont-spin", q: "cont-q", ping: "cont-ping", pulse: "cont-pulse", user: "cont-user", init: "cont-init" };
+  let continuersList = null;
+  let continuersCommitted = false;       // an admin edit in this tab wins over a late server answer
+  let chainNarrow = window.innerWidth < 600;
+  function validContinuers(a) {
+    if (!Array.isArray(a)) return null;
+    const out = [];
+    a.slice(0, 10).forEach((x, i) => {
+      if (x && typeof x.name === "string" && x.name.trim()) {
+        out.push({ id: String(x.id || "c" + i), name: x.name.trim().slice(0, 40), kick: typeof x.kick === "string" ? x.kick : "", avatar: typeof x.avatar === "string" ? x.avatar : "" });
+      }
+    });
+    return out;
+  }
+  function defaultContinuers() { return configApi.DEFAULT_CONTINUERS.map((x) => Object.assign({}, x)); }
+  function loadContinuersCache() {
+    try { return validContinuers(JSON.parse(localStorage.getItem(configApi.CONTINUERS_CACHE_KEY) || "null")); } catch (err) { return null; }
+  }
+  function saveContinuersCache(list) {
+    try { localStorage.setItem(configApi.CONTINUERS_CACHE_KEY, JSON.stringify(list)); } catch (err) { /* ignore */ }
+  }
+  function renderChain(list) {
+    continuersList = list;
+    if (!contSvg || !window.NUR_CHAIN) return;
+    try {
+      const res = window.NUR_CHAIN.build(list, { cls: CONT_CLS, idp: "cont-", narrow: chainNarrow });
+      contSvg.setAttribute("viewBox", res.viewBox);
+      contSvg.style.setProperty("--ar", res.ar.toFixed(4));
+      contSvg.innerHTML = res.markup;
+    } catch (err) { /* keep whatever is drawn */ }
+  }
+  async function fetchContinuers() {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(configApi.REMOTE_CONTINUERS_URL, { signal: controller.signal, cache: "no-store" });
+      clearTimeout(timeoutId);
+      if (!res.ok) return undefined;
+      const data = await res.json();
+      if (data && data.items === null) return null;          // nothing saved yet -> default
+      return validContinuers(data && data.items) || undefined;
+    } catch (err) {
+      return undefined;                                       // unreachable -> keep what we have
+    }
+  }
+  function initContinuers() {
+    renderChain(loadContinuersCache() || defaultContinuers());
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renderChain(continuersList));
+    window.addEventListener("resize", () => {
+      const nw = window.innerWidth < 600;
+      if (nw !== chainNarrow) { chainNarrow = nw; renderChain(continuersList); }
+    });
+    fetchContinuers().then((remote) => {
+      if (remote === undefined || continuersCommitted) return;
+      const next = remote === null ? defaultContinuers() : remote;
+      if (JSON.stringify(next) !== JSON.stringify(continuersList)) renderChain(next);
+      if (remote === null) { try { localStorage.removeItem(configApi.CONTINUERS_CACHE_KEY); } catch (err) { /* ignore */ } }
+      else saveContinuersCache(remote);
+    });
+  }
+
   (async function boot() {
     if (nameOverride) {
       // Local-testing convenience only - skips the network fetch entirely.
@@ -423,6 +491,7 @@
       });
     }
     applyConfig(currentConfig);
+    initContinuers();
     (function releaseBootVeil() {
       const root = document.documentElement;
       if (!root.classList.contains("nur-boot")) return;
@@ -475,7 +544,10 @@
       applyConfig(config);
     },
     LETTER_BUTTON_IDS,
-    previewStage: (stageId, letterPage) => previewStage(stageId, letterPage)
+    previewStage: (stageId, letterPage) => previewStage(stageId, letterPage),
+    getContinuers: () => continuersList,
+    previewContinuers: (list) => renderChain(list),
+    commitContinuers: (list) => { continuersCommitted = true; saveContinuersCache(list); renderChain(list); }
   };
 
   /* ------------------------------------------------------------------ *

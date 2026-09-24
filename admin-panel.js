@@ -333,6 +333,7 @@
       label: "پایانی",
       screen: { stage: "stage-final" },
       fields: [
+        { type: "continuersManager", label: "زنجیره‌ی ادامه‌دهندگان (مشترک بین همه‌ی استریمرها)", group: "زنجیره‌ی ادامه‌دهندگان نور (مشترک)" },
         // Same config value as the "مدت نمایش..." slider in تب "تنظیمات پروژکتور"
         // (final.phase2DelaySec) - added here too, in this section, just so it's
         // reachable while testing this page without switching tabs. One value,
@@ -473,6 +474,8 @@
         livePreview();
       });
       row.appendChild(input);
+    } else if (field.type === "continuersManager") {
+      row.appendChild(buildContinuersManager());
     } else if (field.type === "youtubeSource") {
       // URL field + live "detected video ID" readout (Module 11) - no
       // network call, just the same extraction regex projector.js uses
@@ -1696,6 +1699,267 @@
     }
   }
 
+  /* ---- Shared Continuers chain manager --------------------------------------
+     ONE global list for every streamer page. Every change (add / replace / remove / drag to
+     reorder) is applied to the live page at once, cached locally and pushed to the shared
+     endpoint (password once per session). Kick link -> name + avatar automatically; if Kick does
+     not answer, name and photo can be given by hand (any image format). */
+  function cmList() { return (window.NUR_APP.getContinuers() || []).map((x) => Object.assign({}, x)); }
+  async function cmPush(list) {
+    const password = getAdminPassword();
+    if (!password) { setStatus("زنجیره فقط در این مرورگر عوض شد (رمز وارد نشد)"); return; }
+    try {
+      const controller = new AbortController();
+      const tm = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(api.REMOTE_CONTINUERS_SAVE_URL, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, items: list }), signal: controller.signal
+      });
+      clearTimeout(tm);
+      if (res.status === 401) { sessionStorage.removeItem(ADMIN_PW_KEY); setStatus("رمز اشتباه است - زنجیره فقط در این مرورگر عوض شد"); return; }
+      if (!res.ok) throw new Error("save " + res.status);
+      setStatus("زنجیره ذخیره شد ✓ (برای همه‌ی صفحه‌ها)");
+    } catch (err) {
+      setStatus("ذخیره‌ی سراسری زنجیره ناموفق بود - فقط در این مرورگر عوض شد");
+    }
+  }
+  function cmCommit(list) { window.NUR_APP.commitContinuers(list); cmPush(list); }
+
+  function buildContinuersManager() {
+    const MAXP = (window.NUR_CHAIN && window.NUR_CHAIN.MAX) || 10;
+    const root = document.createElement("div");
+    root.className = "nurcm";
+    root.innerHTML =
+      '<div class="nurcm-note">این زنجیره برای همه‌ی استریمرها مشترک است؛ هر تغییر همان لحظه روی همه‌ی صفحه‌ها ذخیره می‌شود. حداکثر ' + MAXP + ' نفر.</div>' +
+      '<label>لینک کانال Kick را بچسبان</label>' +
+      '<div class="nurcm-row"><input type="text" class="nurap-input" data-r="kick" dir="ltr" placeholder="https://kick.com/username"><button type="button" class="nurap-btn nurap-btn--ghost" data-r="fetch">دریافت</button></div>' +
+      '<div class="nurcm-st" data-r="st"></div>' +
+      '<div class="nurcm-prev" data-r="prev"><canvas data-r="pcv" width="136" height="136" title="عکس را بکش تا در وسط دایره بیفتد"></canvas><div style="flex:1;min-width:0"><label style="margin-top:0">نام</label><input type="text" class="nurap-input" data-r="pname" dir="ltr" placeholder="username"><label>بزرگنمایی</label><input type="range" data-r="pzoom" min="1" max="3" step="0.02" value="1" style="width:100%"></div></div>' +
+      '<div class="nurcm-note">عکس را روی دایره بکش تا وسط بیفتد؛ اسلایدر = بزرگنمایی.</div>' +
+      '<label>عکس: هر فرمتی (PNG، JPG، WebP، GIF…) - فایل، کشیدن‌ودراپ روی دایره، یا Ctrl+V</label>' +
+      '<div class="nurcm-row"><input type="text" class="nurap-input" data-r="pav" dir="ltr" placeholder="https://..."><button type="button" class="nurap-btn nurap-btn--ghost" data-r="fileBtn">فایل…</button><input type="file" data-r="file" accept="image/*" style="display:none"></div>' +
+      '<div class="nurcm-row"><button type="button" class="nurap-btn nurap-btn--primary" data-r="ok">افزودن</button><button type="button" class="nurap-btn nurap-btn--ghost" data-r="cancel" style="display:none">لغو</button></div>' +
+      '<label>افراد فعلی <span data-r="cnt"></span></label><div data-r="list"></div>';
+    const q = (n) => root.querySelector('[data-r="' + n + '"]');
+    const cv = q("pcv"), c2d = cv.getContext("2d");
+    let editIndex = -1, cur = { name: "", kick: "", avatar: "" }, lastSlug = "", reqId = 0, frTimer = null;
+    let fr = { img: null, zoom: 1, cx: 0, cy: 0, src: "", raw: false };
+
+    function setSt(msg, kind) { const e = q("st"); e.textContent = msg || ""; e.className = "nurcm-st" + (kind ? " " + kind : ""); }
+    function slugFromLink(v) {
+      v = String(v || "").trim();
+      const m = v.match(/kick\.com\/([A-Za-z0-9_\-]+)/i);
+      if (m) return m[1];
+      return /^[A-Za-z0-9_\-]{2,40}$/.test(v) ? v : "";
+    }
+    /* --- framing: any photo -> one square, circle-centred crop, baked into a small WebP --- */
+    function side() { return Math.min(fr.img.naturalWidth, fr.img.naturalHeight) / fr.zoom; }
+    function clampFrame() {
+      const s = side(), w = fr.img.naturalWidth, h = fr.img.naturalHeight;
+      fr.cx = Math.max(s / 2, Math.min(w - s / 2, fr.cx)); fr.cy = Math.max(s / 2, Math.min(h - s / 2, fr.cy));
+    }
+    function drawFrame() {
+      c2d.clearRect(0, 0, 136, 136);
+      if (!fr.img) { c2d.fillStyle = "#0d1731"; c2d.fillRect(0, 0, 136, 136); return; }
+      clampFrame();
+      const s = side();
+      c2d.drawImage(fr.img, fr.cx - s / 2, fr.cy - s / 2, s, s, 0, 0, 136, 136);
+    }
+    function commitFrame() {
+      if (!fr.img) return;
+      drawFrame();
+      if (fr.raw) { cur.avatar = fr.src; return; }
+      try { cur.avatar = cv.toDataURL("image/webp", 0.85); } catch (e) { cur.avatar = fr.src || ""; }
+    }
+    function clearAvatar() { fr = { img: null, zoom: 1, cx: 0, cy: 0, src: "", raw: false }; cur.avatar = ""; q("pzoom").value = 1; q("pav").value = ""; drawFrame(); }
+    function autoFrame(img) {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      fr.zoom = 1; fr.cx = w / 2; fr.cy = h > w * 1.05 ? h * 0.42 : h / 2; q("pzoom").value = 1;
+      if ("FaceDetector" in window) {
+        try {
+          new window.FaceDetector({ fastMode: true, maxDetectedFaces: 3 }).detect(img).then((faces) => {
+            if (!faces || !faces.length || fr.img !== img) return;
+            const b = faces.map((x) => x.boundingBox).sort((a, c) => c.width * c.height - a.width * a.height)[0];
+            fr.cx = b.x + b.width / 2; fr.cy = b.y + b.height / 2;
+            fr.zoom = Math.max(1, Math.min(3, Math.min(w, h) / (Math.max(b.width, b.height) * 2.4)));
+            q("pzoom").value = fr.zoom; commitFrame();
+          }).catch(() => {});
+        } catch (e) { /* no face detection here */ }
+      }
+    }
+    function loadAvatar(src) {
+      src = String(src || "").trim();
+      if (!src) { clearAvatar(); return Promise.resolve(false); }
+      return new Promise((resolve) => {
+        const done = (img, raw) => {
+          if (!img.naturalWidth) { setSt("این عکس باز نشد یا فرمتش پشتیبانی نمی‌شود", "warn"); resolve(false); return; }
+          fr.img = img; fr.src = src; fr.raw = !!raw; autoFrame(img); commitFrame();
+          q("pav").value = /^data:|^blob:/.test(src) ? "" : src; resolve(true);
+        };
+        const img = new Image();
+        if (/^https?:/i.test(src)) img.crossOrigin = "anonymous";
+        img.onload = () => done(img, false);
+        img.onerror = () => {
+          if (!/^https?:/i.test(src)) { setSt("این عکس باز نشد یا فرمتش پشتیبانی نمی‌شود", "warn"); resolve(false); return; }
+          const img2 = new Image();
+          img2.onload = () => done(img2, true);
+          img2.onerror = () => { setSt("این عکس باز نشد", "warn"); resolve(false); };
+          img2.src = src;
+        };
+        img.src = src;
+      });
+    }
+    function loadFile(file) {
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      loadAvatar(url).then((ok) => { if (ok) setSt("عکس آماده شد ✓ - در دایره جابجا/بزرگ کن", "ok"); URL.revokeObjectURL(url); });
+    }
+    (function dragFrame() {
+      let drag = null;
+      cv.addEventListener("pointerdown", (e) => { if (!fr.img || fr.raw) return; cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, cx: fr.cx, cy: fr.cy }; });
+      cv.addEventListener("pointermove", (e) => {
+        if (!drag) return;
+        const k = side() / 96;
+        fr.cx = drag.cx - (e.clientX - drag.x) * k; fr.cy = drag.cy - (e.clientY - drag.y) * k; drawFrame();
+      });
+      const end = () => { if (!drag) return; drag = null; commitFrame(); };
+      cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+      q("pzoom").addEventListener("input", function () { if (!fr.img || fr.raw) return; fr.zoom = parseFloat(this.value) || 1; drawFrame(); clearTimeout(frTimer); frTimer = setTimeout(commitFrame, 120); });
+    })();
+
+    function resetForm() {
+      editIndex = -1; cur = { name: "", kick: "", avatar: "" }; lastSlug = "";
+      q("kick").value = ""; q("pname").value = ""; setSt(""); clearAvatar();
+      q("ok").textContent = "افزودن"; q("cancel").style.display = "none";
+      renderList();
+    }
+    function doFetch() {
+      const slug = slugFromLink(q("kick").value);
+      if (!slug) { setSt("لینک کیک معتبر نیست - نام و عکس را دستی وارد کن", "warn"); return; }
+      const my = ++reqId;
+      cur.kick = "https://kick.com/" + slug;
+      if (slug !== lastSlug) { lastSlug = slug; cur.name = slug; q("pname").value = slug; clearAvatar(); }   // new person: never keep the previous picture/name
+      setSt("در حال گرفتن مشخصات از Kick…");
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 4500);
+      fetch("https://kick.com/api/v2/channels/" + encodeURIComponent(slug), { signal: ctl.signal, headers: { Accept: "application/json" } })
+        .then((r) => { clearTimeout(tm); if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then((j) => {
+          if (my !== reqId) return;
+          const u = j && j.user;
+          if (!u) throw new Error("no user");
+          cur.name = u.username || slug; q("pname").value = cur.name;
+          if (u.profile_pic) {
+            return loadAvatar(u.profile_pic).then((ok) => {
+              if (my !== reqId) return;
+              setSt(ok ? "مشخصات از Kick گرفته شد ✓ - در صورت نیاز عکس را وسط دایره تنظیم کن" : "نام گرفته شد ولی عکس باز نشد - عکس را دستی بده", ok ? "ok" : "warn");
+            });
+          }
+          clearAvatar();
+          setSt("نام گرفته شد؛ این کانال عکس پروفایل ندارد - عکس را دستی بده (فایل / کشیدن / Ctrl+V)", "warn");
+        })
+        .catch(() => { clearTimeout(tm); if (my !== reqId) return; setSt("خودکار گرفته نشد - نام از لینک پر شد؛ عکس را دستی بده (فایل / کشیدن / Ctrl+V)", "warn"); });
+    }
+    q("fetch").addEventListener("click", doFetch);
+    q("kick").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doFetch(); } });
+    q("kick").addEventListener("paste", () => setTimeout(doFetch, 30));
+    q("pname").addEventListener("input", function () { cur.name = this.value; });
+    q("pav").addEventListener("change", function () { loadAvatar(this.value); });
+    q("fileBtn").addEventListener("click", () => q("file").click());
+    q("file").addEventListener("change", function () { const f = this.files && this.files[0]; this.value = ""; loadFile(f); });
+    const prev = q("prev");
+    ["dragenter", "dragover"].forEach((ev) => prev.addEventListener(ev, (e) => { e.preventDefault(); prev.classList.add("drag"); }));
+    ["dragleave", "drop"].forEach((ev) => prev.addEventListener(ev, (e) => { e.preventDefault(); prev.classList.remove("drag"); }));
+    prev.addEventListener("drop", (e) => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadFile(f); });
+    root.addEventListener("paste", (e) => {
+      const f = e.clipboardData && e.clipboardData.files && e.clipboardData.files[0];
+      if (f && /^image\//.test(f.type)) { e.preventDefault(); loadFile(f); }
+    });
+
+    q("ok").addEventListener("click", () => {
+      const list = cmList();
+      const name = (q("pname").value || cur.name || slugFromLink(q("kick").value) || "").trim();
+      if (!name) { setSt("نام لازم است", "warn"); return; }
+      const item = { id: editIndex >= 0 && list[editIndex] ? list[editIndex].id : "c" + Date.now().toString(36), name, kick: cur.kick || "", avatar: cur.avatar || "" };
+      if (editIndex >= 0 && list[editIndex]) list[editIndex] = item;      // replace = update that same node
+      else if (list.length < MAXP) list.push(item);
+      else { setSt("حداکثر " + MAXP + " نفر", "warn"); return; }
+      cmCommit(list); resetForm();
+    });
+    q("cancel").addEventListener("click", resetForm);
+
+    function moveItem(from, to) {
+      if (from === to) return;
+      const list = cmList(), it = list.splice(from, 1)[0];
+      list.splice(to, 0, it);
+      if (editIndex === from) editIndex = to;
+      else if (editIndex >= 0) {
+        if (from < editIndex && to >= editIndex) editIndex--;
+        else if (from > editIndex && to <= editIndex) editIndex++;
+      }
+      cmCommit(list); renderList();
+    }
+    function attachGrip(grip, row, from) {
+      grip.addEventListener("pointerdown", (e) => {
+        if (e.button !== undefined && e.button > 0) return;
+        e.preventDefault();
+        try { grip.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+        const rows = [].slice.call(q("list").querySelectorAll(".nurcm-item"));
+        const mids = rows.map((r) => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; });
+        const h = row.getBoundingClientRect().height, startY = e.clientY;
+        let target = from;
+        row.classList.add("dragging");
+        const onMove = (ev) => {
+          const dy = ev.clientY - startY;
+          row.style.transform = "translateY(" + dy + "px)";
+          const center = mids[from] + dy;
+          target = rows.filter((r, j) => j !== from && mids[j] < center).length;
+          rows.forEach((r, j) => {
+            if (j === from) return;
+            let shift = 0;
+            if (from < target && j > from && j <= target) shift = -h;
+            else if (from > target && j >= target && j < from) shift = h;
+            r.style.transform = shift ? "translateY(" + shift + "px)" : "";
+          });
+        };
+        const onEnd = () => {
+          grip.removeEventListener("pointermove", onMove); grip.removeEventListener("pointerup", onEnd); grip.removeEventListener("pointercancel", onEnd);
+          if (target !== from) moveItem(from, target);
+          else { rows.forEach((r) => { r.style.transform = ""; }); row.classList.remove("dragging"); }
+        };
+        grip.addEventListener("pointermove", onMove); grip.addEventListener("pointerup", onEnd); grip.addEventListener("pointercancel", onEnd);
+      });
+    }
+    function renderList() {
+      const list = cmList(), box = q("list");
+      box.textContent = "";
+      q("cnt").textContent = "(" + list.length + "/" + MAXP + ")";
+      q("ok").disabled = editIndex < 0 && list.length >= MAXP;
+      list.forEach((it, i) => {
+        const row = document.createElement("div"); row.className = "nurcm-item" + (i === editIndex ? " editing" : "");
+        const grip = document.createElement("span"); grip.className = "nurcm-grip"; grip.textContent = "\u22EE\u22EE"; grip.title = "بکش تا جای این نفر عوض شود";
+        const im = document.createElement("img"); im.className = "nurcm-mini"; im.alt = ""; im.src = it.avatar || "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#0d1731"/></svg>');
+        const nm = document.createElement("span"); nm.className = "nurcm-nm"; nm.textContent = (i + 1) + ". " + it.name;
+        const rp = document.createElement("button"); rp.type = "button"; rp.className = "nurap-btn nurap-btn--ghost"; rp.textContent = "جایگزین";
+        rp.addEventListener("click", () => {
+          editIndex = i; cur = { name: it.name, kick: it.kick || "", avatar: it.avatar || "" };
+          lastSlug = slugFromLink(it.kick || ""); q("kick").value = it.kick || ""; q("pname").value = it.name; loadAvatar(it.avatar || "");
+          q("ok").textContent = "جایگزین کردن نفر " + (i + 1); q("ok").disabled = false; q("cancel").style.display = ""; setSt("");
+          renderList();
+        });
+        const rm = document.createElement("button"); rm.type = "button"; rm.className = "nurap-btn nurap-btn--danger"; rm.textContent = "حذف";
+        rm.addEventListener("click", () => {
+          const l2 = cmList(); l2.splice(i, 1); cmCommit(l2);
+          if (editIndex === i) resetForm(); else { if (editIndex > i) editIndex--; renderList(); }
+        });
+        row.append(grip, im, nm, rp, rm); box.appendChild(row);
+        attachGrip(grip, row, i);
+      });
+      if (!list.length) box.innerHTML = '<div class="nurcm-note">هنوز کسی نیست - فقط «؟» نمایش داده می‌شود.</div>';
+    }
+    drawFrame(); renderList();
+    return root;
+  }
+
   function buildPanel() {
     const el = document.createElement("div");
     el.id = "nurAdminPanel";
@@ -1846,6 +2110,22 @@
         #nurAdminPanel .nurap-st-create label{font-size:11px; opacity:.8}
         #nurAdminPanel .nurap-st-url{font-size:12px; direction:ltr; text-align:left; opacity:.9}
         #nurAdminPanel .nurap-st-adv{display:none; flex-direction:column; gap:4px}
+        #nurAdminPanel .nurcm{display:flex; flex-direction:column; gap:6px}
+        #nurAdminPanel .nurcm label{font-size:11.5px; opacity:.8; margin-top:4px}
+        #nurAdminPanel .nurcm .nurcm-row{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+        #nurAdminPanel .nurcm .nurcm-row > input[type=text]{flex:1; min-width:0}
+        #nurAdminPanel .nurcm .nurcm-note{font-size:11px; opacity:.75; line-height:1.6}
+        #nurAdminPanel .nurcm .nurcm-st{font-size:12px; min-height:16px; opacity:.9}
+        #nurAdminPanel .nurcm .nurcm-st.ok{color:#a8dcb4} #nurAdminPanel .nurcm .nurcm-st.warn{color:#ffd58a}
+        #nurAdminPanel .nurcm .nurcm-prev{display:flex; gap:10px; align-items:center; padding:8px; border-radius:10px; background:rgba(255,255,255,.04)}
+        #nurAdminPanel .nurcm .nurcm-prev.drag{outline:2px dashed rgba(143,193,154,.8)}
+        #nurAdminPanel .nurcm canvas{width:96px; height:96px; flex:0 0 96px; border-radius:50%; border:1px solid rgba(232,207,138,.6); background:#0d1731; cursor:grab; touch-action:none}
+        #nurAdminPanel .nurcm .nurcm-item{position:relative; display:flex; align-items:center; gap:8px; padding:5px 0; border-radius:8px; transition:transform .14s ease}
+        #nurAdminPanel .nurcm .nurcm-item.editing{outline:1px solid rgba(143,193,154,.6); padding:5px 6px}
+        #nurAdminPanel .nurcm .nurcm-item.dragging{z-index:5; transition:none; background:rgba(40,56,100,.96); box-shadow:0 8px 22px rgba(0,0,0,.5)}
+        #nurAdminPanel .nurcm .nurcm-grip{flex:0 0 18px; text-align:center; cursor:grab; user-select:none; touch-action:none; opacity:.7}
+        #nurAdminPanel .nurcm .nurcm-mini{width:30px; height:30px; border-radius:50%; object-fit:cover; background:#0d1731; border:1px solid rgba(232,207,138,.5); flex:0 0 30px}
+        #nurAdminPanel .nurcm .nurcm-nm{flex:1; min-width:0; direction:ltr; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
         #nurAdminPanel .nurap-st-info{display:none; font-size:11px; line-height:1.7; white-space:pre-line; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,.06); direction:rtl; user-select:text}
       </style>
       <div class="nurap-backdrop"></div>
