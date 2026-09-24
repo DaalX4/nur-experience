@@ -545,6 +545,7 @@
     },
     LETTER_BUTTON_IDS,
     previewStage: (stageId, letterPage) => previewStage(stageId, letterPage),
+    setAdminHold: (on) => setAdminHold(on),
     getContinuers: () => continuersList,
     previewContinuers: (list) => renderChain(list),
     commitContinuers: (list) => { continuersCommitted = true; saveContinuersCache(list); renderChain(list); }
@@ -726,6 +727,25 @@
      already finished its own one-time entrance long before this fires. */
   const PHASE1_FADE_MS = 1400; // must stay <= .final-phase1's own CSS transition duration
 
+  /* Admin preview hold: while the admin panel is open, the Continuers -> Credit timer is NOT
+     started (so the page stays put while it is being edited). Visitors never have the panel
+     open, so their timer/fade behaviour is exactly as before. Closing the panel resumes the
+     normal timer from a clean start. */
+  let adminHold = false;
+  function setAdminHold(on) {
+    adminHold = !!on;
+    const finalStage = document.getElementById("stage-final");
+    if (!finalStage || !finalStage.classList.contains("active")) return;
+    const phase1 = document.getElementById("finalPhase1"), phase2 = document.getElementById("finalPhase2");
+    if (adminHold) {
+      if (phase2.classList.contains("show")) return;           // already on Credit: leave it
+      cancelFinalSequence();                                   // stop a running timer / fade
+      phase1.classList.remove("fade-out");                     // keep Continuers visible
+    } else {
+      revealSignature();                                       // panel closed: clean, normal timer
+    }
+  }
+
   function revealSignature() {
     const cfg = currentConfig.final || {};
     const delayMs = Math.max(0, (typeof cfg.phase2DelaySec === "number" ? cfg.phase2DelaySec : 4) * 1000);
@@ -741,6 +761,7 @@
     cancelFinalSequence(); // a second entry must never inherit the first one's timers
     phase1.classList.remove("fade-out");
     phase2.classList.remove("show");
+    if (adminHold) return;                                     // admin editing: page stays until the panel is closed
     const finalStage = document.getElementById("stage-final");
     finalSeq.fade = setTimeout(() => {
       finalSeq.fade = null;

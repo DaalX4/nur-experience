@@ -2226,6 +2226,7 @@
     updateStreamerUi();
     refreshAllFields();
     panelEl.classList.add("nurap-open");
+    window.NUR_APP.setAdminHold(true);          // editing: the Continuers -> Credit timer is paused
     if (pageSlug) {
       fetchStreamerName(pageSlug).then((n) => {
         if (n && adminSlug === pageSlug && !adminDisplayName) {
@@ -2245,6 +2246,7 @@
        persists, closing without saving should not leave stray changes.
        previewConfig (not applyConfig) so this itself doesn't commit. */
     window.NUR_APP.previewConfig(api.deepClone(window.NUR_APP.getConfig()));
+    window.NUR_APP.setAdminHold(false);         // normal timer again, from a clean start
   }
 
   function togglePanel() {
