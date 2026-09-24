@@ -47,7 +47,7 @@
       if (!mSvg) {
         mSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         mSvg.setAttribute("width", "10"); mSvg.setAttribute("height", "10");
-        mSvg.style.cssText = "position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none";
+        mSvg.style.cssText = "position:fixed;left:0;top:0;width:10px;height:10px;overflow:hidden;visibility:hidden;pointer-events:none";
         document.body.appendChild(mSvg);
       }
       var t = document.createElementNS("http://www.w3.org/2000/svg", "text");
