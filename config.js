@@ -17,13 +17,34 @@
 (function (global) {
   "use strict";
 
-  const NUR_STORAGE_KEY = "nurConfig.v1";
+  /* Multi-streamer: the streamer's slug comes in as ?s=<slug> (nur-shell.js
+     adds it from the Wix page's own address, e.g. daalvi.com/ario -> ?s=ario).
+     No slug (or "nur") = the ORIGINAL single-streamer behavior, exactly as
+     before: same storage key, same endpoints. A slug only switches which
+     stored config is read; everything else is unchanged. */
+  const NUR_SLUG = (function () {
+    try {
+      const s = (new URLSearchParams(location.search).get("s") || "").toLowerCase();
+      return /^[a-z0-9-]{1,30}$/.test(s) && s !== "nur" ? s : "";
+    } catch (err) {
+      return "";
+    }
+  })();
+  const NUR_STORAGE_KEY = NUR_SLUG ? "nurConfig.v1." + NUR_SLUG : "nurConfig.v1";
 
   /* Single shared endpoint for the whole config, read by every visitor on
      load and written by the admin panel's Save button (password-gated
      server-side - see DEPLOY.md). app.js and admin-panel.js both read this
      from here so there is exactly one URL to ever change. */
   const REMOTE_CONFIG_URL = "https://www.daalvi.com/_functions/nurConfig";
+
+  /* Per-streamer endpoints (see DEPLOY.md, "Multi-streamer"). The original
+     REMOTE_CONFIG_URL above keeps serving the original streamer / /nur. */
+  const REMOTE_STREAMER_URL = "https://www.daalvi.com/_functions/nurStreamer";
+  const REMOTE_STREAMER_LIST_URL = "https://www.daalvi.com/_functions/nurStreamerList";
+  const REMOTE_STREAMER_CREATE_URL = "https://www.daalvi.com/_functions/nurStreamerCreate";
+  const REMOTE_STREAMER_SAVE_URL = "https://www.daalvi.com/_functions/nurStreamerSave";
+  const PUBLIC_BASE_URL = "https://www.daalvi.com/";
 
   /* Password-gated endpoint that uploads an (already client-side WebP-
      optimized) paper image to the Wix Media Manager and returns its public
@@ -542,7 +563,13 @@
 
   global.NUR_CONFIG_API = {
     STORAGE_KEY: NUR_STORAGE_KEY,
+    SLUG: NUR_SLUG,
     REMOTE_CONFIG_URL,
+    REMOTE_STREAMER_URL,
+    REMOTE_STREAMER_LIST_URL,
+    REMOTE_STREAMER_CREATE_URL,
+    REMOTE_STREAMER_SAVE_URL,
+    PUBLIC_BASE_URL,
     REMOTE_UPLOAD_URL,
     REMOTE_UPLOAD_URL_DIRECT,
     DEFAULT_CONFIG,

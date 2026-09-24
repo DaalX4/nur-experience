@@ -382,8 +382,36 @@
   let panelEl = null;
   let statusTimer = null;
 
+  /* ---- Multi-streamer state ----------------------------------------------
+     pageSlug  = the streamer of the page being viewed ("" = the original one,
+                 i.e. the /nur page - exactly the old single-streamer setup).
+     adminSlug = the streamer this panel is currently EDITING. It starts equal
+                 to pageSlug every time the panel opens and can be switched from
+                 the Streamers bar. Save always goes to adminSlug only. */
+  const pageSlug = api.SLUG || "";
+  let adminSlug = pageSlug;
+  let savedSnapshot = JSON.stringify(draft);
+  let streamerRows = null; // [{slug,name}] from the server, loaded when the list is opened
+
+  function slugLink(slug) {
+    return api.PUBLIC_BASE_URL + (slug || "nur");
+  }
+
+  /* Commit the draft to THIS page (local cache + what the page itself shows).
+     Only when the panel is editing the page's own streamer - editing another
+     streamer must never overwrite this page's cache or config. */
+  function commitLocal() {
+    if (adminSlug === pageSlug) {
+      api.saveConfig(draft);
+      window.NUR_APP.applyConfig(api.deepClone(draft));
+    } else {
+      window.NUR_APP.previewConfig(api.deepClone(draft));
+    }
+  }
+
   function livePreview() {
     window.NUR_APP.previewConfig(api.deepClone(draft));
+    updateStreamerUi();
   }
 
   function setStatus(msg) {
@@ -1288,10 +1316,14 @@
   }
 
   function doSave() {
-    api.saveConfig(draft);
-    window.NUR_APP.applyConfig(api.deepClone(draft));
+    commitLocal();
     setStatus("ذخیره شد ✓");
-    pushConfigGlobal(api.deepClone(draft));
+    if (adminSlug) {
+      pushStreamerGlobal(adminSlug, api.deepClone(draft));
+    } else {
+      savedSnapshot = JSON.stringify(draft);
+      pushConfigGlobal(api.deepClone(draft));
+    }
   }
 
   function doResetSection() {
@@ -1308,16 +1340,19 @@
         draft[sectionKey] = api.deepClone(api.DEFAULT_CONFIG[sectionKey]);
       }
     });
-    api.saveConfig(draft);
-    window.NUR_APP.applyConfig(api.deepClone(draft));
+    commitLocal();
     refreshAllFields();
     setStatus("این بخش به حالت پیش‌فرض برگشت");
   }
 
   function doResetAll() {
     draft = api.deepClone(api.DEFAULT_CONFIG);
-    api.clearConfig();
-    window.NUR_APP.applyConfig(api.deepClone(draft));
+    if (adminSlug === pageSlug) {
+      api.clearConfig();
+      window.NUR_APP.applyConfig(api.deepClone(draft));
+    } else {
+      window.NUR_APP.previewConfig(api.deepClone(draft));
+    }
     refreshAllFields();
     setStatus("همه چیز به حالت پیش‌فرض برگشت");
   }
@@ -1341,8 +1376,7 @@
       try {
         const parsed = JSON.parse(String(reader.result));
         draft = api.mergeWithDefaults(parsed);
-        api.saveConfig(draft);
-        window.NUR_APP.applyConfig(api.deepClone(draft));
+        commitLocal();
         refreshAllFields();
         setStatus("تنظیمات وارد شد و ذخیره شد ✓");
       } catch (err) {
@@ -1350,6 +1384,234 @@
       }
     };
     reader.readAsText(file);
+  }
+
+  /* ---- Streamers bar ---------------------------------------------------- */
+  function copyText(text) {
+    // The Clipboard API is blocked in a cross-origin iframe unless the parent
+    // allows it, so fall back to the classic select+copy trick.
+    return (async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand("copy");
+          ta.remove();
+          return !!ok;
+        } catch (err2) {
+          return false;
+        }
+      }
+    })();
+  }
+
+  function streamerDisplayName() {
+    return draft.streamerName || adminSlug || "پیش‌فرض";
+  }
+
+  function updateStreamerUi() {
+    if (!panelEl) return;
+    const badge = panelEl.querySelector('[data-role="st-badge"]');
+    const save = panelEl.querySelector('[data-action="save"]');
+    if (!badge || !save) return;
+    const name = streamerDisplayName();
+    badge.textContent = "در حال ویرایش: " + name + " — " + slugLink(adminSlug).replace(/^https?:\/\//, "");
+    badge.classList.toggle("nurap-st-badge--other", adminSlug !== pageSlug);
+    if (adminSlug !== pageSlug) {
+      badge.textContent += "  (پیش‌نمایش روی این صفحه؛ صفحه‌ی خودش را با «باز کردن» ببین)";
+    }
+    save.textContent = "ذخیره برای " + name;
+  }
+
+  function showStreamerInfo(text) {
+    const info = panelEl.querySelector('[data-role="st-info"]');
+    info.textContent = text || "";
+    info.style.display = text ? "block" : "none";
+  }
+
+  function renderStreamerList() {
+    const box = panelEl.querySelector('[data-role="st-list"]');
+    box.textContent = "";
+    const rows = [{ slug: "", name: "پیش‌فرض (اصلی) — /nur" }].concat(streamerRows || []);
+    rows.forEach((r) => {
+      const row = document.createElement("div");
+      row.className = "nurap-st-row" + (r.slug === adminSlug ? " nurap-st-row--active" : "");
+      const label = document.createElement("span");
+      label.className = "nurap-st-name";
+      label.textContent = r.slug ? r.name + " (" + r.slug + ")" : r.name;
+      const mk = (text, fn) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "nurap-btn nurap-btn--ghost nurap-st-btn";
+        b.textContent = text;
+        b.addEventListener("click", fn);
+        return b;
+      };
+      row.append(
+        label,
+        mk("ویرایش", () => switchStreamer(r.slug)),
+        mk("باز کردن", () => window.open(slugLink(r.slug), "_blank", "noopener")),
+        mk("کپی لینک", async () => setStatus((await copyText(slugLink(r.slug))) ? "لینک کپی شد" : "کپی نشد - لینک: " + slugLink(r.slug)))
+      );
+      box.appendChild(row);
+    });
+  }
+
+  async function loadStreamerRows() {
+    const password = getAdminPassword();
+    if (!password) return false;
+    try {
+      const res = await fetch(api.REMOTE_STREAMER_LIST_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem(ADMIN_PW_KEY);
+        setStatus("رمز اشتباه است");
+        return false;
+      }
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error("list failed");
+      streamerRows = data.streamers || [];
+      return true;
+    } catch (err) {
+      setStatus("دریافت لیست استریمرها ناموفق بود");
+      return false;
+    }
+  }
+
+  async function toggleStreamerList() {
+    const box = panelEl.querySelector('[data-role="st-list"]');
+    if (box.style.display === "block") {
+      box.style.display = "none";
+      return;
+    }
+    if (!streamerRows && !(await loadStreamerRows())) return;
+    renderStreamerList();
+    box.style.display = "block";
+  }
+
+  async function switchStreamer(slug) {
+    if (slug === adminSlug) return;
+    if (JSON.stringify(draft) !== savedSnapshot && !window.confirm("تغییرات ذخیره‌نشده‌ی این استریمر از بین می‌رود. ادامه؟")) return;
+    let cfg = null;
+    if (slug === pageSlug) {
+      cfg = api.deepClone(window.NUR_APP.getConfig());
+    } else {
+      try {
+        const url = slug ? api.REMOTE_STREAMER_URL + "?slug=" + encodeURIComponent(slug) : api.REMOTE_CONFIG_URL;
+        const res = await fetch(url, { cache: "no-store" });
+        const data = await res.json();
+        if (slug ? data && data.found && data.config : data && data.config) cfg = api.mergeWithDefaults(data.config);
+      } catch (err) { /* cfg stays null */ }
+    }
+    if (!cfg) {
+      setStatus("بارگذاری تنظیمات این استریمر ناموفق بود - چیزی عوض نشد");
+      return;
+    }
+    adminSlug = slug;
+    draft = cfg;
+    savedSnapshot = JSON.stringify(draft);
+    showStreamerInfo("");
+    livePreview();
+    refreshAllFields();
+    renderStreamerList();
+  }
+
+  async function createStreamer() {
+    const password = getAdminPassword();
+    if (!password) return;
+    let name = window.prompt("نام استریمر جدید (آدرس صفحه از همین اسم ساخته می‌شود):");
+    if (!name || !name.trim()) return;
+    name = name.trim();
+    let slugHint;
+    if (!/^[A-Za-z0-9 _.-]+$/.test(name)) {
+      slugHint = window.prompt("آدرس صفحه باید انگلیسی باشد. آدرس را بنویس (مثلاً ario):");
+      if (!slugHint) return;
+    }
+    const cfg = api.deepClone(draft); // starts as a copy of the streamer you are on
+    cfg.streamerName = name;
+    try {
+      const res = await fetch(api.REMOTE_STREAMER_CREATE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, name, slug: slugHint, config: cfg })
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem(ADMIN_PW_KEY);
+        setStatus("رمز اشتباه است");
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setStatus(data && data.needSlug ? "این اسم/آدرس قابل استفاده نیست (رزرو شده یا خالی) - آدرس دیگری بده" : "ساخت استریمر ناموفق بود");
+        return;
+      }
+      const slug = data.slug;
+      const link = slugLink(slug);
+      const copied = await copyText(link);
+      streamerRows = null; // reload next time the list is opened
+      adminSlug = slug;
+      draft = cfg;
+      savedSnapshot = JSON.stringify(draft);
+      livePreview();
+      refreshAllFields();
+      panelEl.querySelector('[data-role="st-list"]').style.display = "none";
+      setStatus("استریمر ساخته شد ✓");
+      showStreamerInfo(
+        "لینک: " + link + (copied ? " (کپی شد)" : "") + "\n" +
+        "مرحله‌ی وی‌ایکس: صفحه‌ی «NUR Template» را Duplicate کن ← آدرس (URL) صفحه را بگذار «" + slug + "» ← Publish"
+      );
+    } catch (err) {
+      setStatus("ساخت استریمر ناموفق بود (اتصال به سرور)");
+    }
+  }
+
+  async function pushStreamerGlobal(slug, config) {
+    const password = getAdminPassword();
+    if (!password) {
+      setStatus("ذخیره‌ی سراسری انجام نشد (رمز وارد نشد)");
+      return;
+    }
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
+      const res = await fetch(api.REMOTE_STREAMER_SAVE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, slug, config }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (res.status === 401) {
+        sessionStorage.removeItem(ADMIN_PW_KEY);
+        setStatus("رمز اشتباه است - ذخیره‌ی سراسری انجام نشد");
+        return;
+      }
+      if (res.status === 404) {
+        setStatus("این استریمر روی سرور وجود ندارد - ذخیره‌ی سراسری انجام نشد");
+        return;
+      }
+      if (!res.ok) throw new Error("nurStreamerSave returned " + res.status);
+      let note = "";
+      try {
+        const data = await res.json();
+        const mc = data && data.mediaCleanup;
+        if (mc && mc.error) note = " - پاکسازی فایل‌های قدیمی ناموفق: " + mc.error;
+        else if (mc && mc.removed > 0) note = " - " + mc.removed + " فایل قدیمی از وی‌ایکس پاک شد";
+      } catch (e) { /* no JSON body */ }
+      if (adminSlug === slug) savedSnapshot = JSON.stringify(draft);
+      setStatus("ذخیره شد ✓ برای " + (config.streamerName || slug) + note);
+    } catch (err) {
+      setStatus("ذخیره‌ی سراسری ناموفق بود");
+    }
   }
 
   function buildPanel() {
@@ -1489,6 +1751,16 @@
         }
         #nurAdminPanel .nurap-dropzone:hover{border-color:rgba(143,193,154,.6)}
         #nurAdminPanel .nurap-dropzone--drag{border-color:#8fc19a; background:rgba(143,193,154,.1)}
+        #nurAdminPanel .nurap-streamers{padding:8px 12px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; flex-direction:column; gap:6px}
+        #nurAdminPanel .nurap-st-badge{font-size:12px; font-weight:700; padding:6px 8px; border-radius:8px; background:rgba(143,193,154,.16); color:#dff3e3; line-height:1.5; direction:rtl}
+        #nurAdminPanel .nurap-st-badge--other{background:rgba(224,170,60,.22); color:#ffe2a6}
+        #nurAdminPanel .nurap-st-list{display:none; max-height:180px; overflow:auto; gap:4px; flex-direction:column}
+        #nurAdminPanel .nurap-st-row{display:flex; align-items:center; gap:4px; padding:4px 6px; border-radius:8px; background:rgba(255,255,255,.04); flex-wrap:wrap}
+        #nurAdminPanel .nurap-st-row--active{outline:1px solid rgba(143,193,154,.7)}
+        #nurAdminPanel .nurap-st-name{flex:1 1 100%; font-size:12px}
+        #nurAdminPanel .nurap-st-btn{flex:0 0 auto; min-width:0; padding:4px 8px; font-size:11px}
+        #nurAdminPanel .nurap-st-actions{display:flex; gap:6px}
+        #nurAdminPanel .nurap-st-info{display:none; font-size:11px; line-height:1.7; white-space:pre-line; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,.06); direction:rtl; user-select:text}
       </style>
       <div class="nurap-backdrop"></div>
       <div class="nurap-panel">
@@ -1498,6 +1770,15 @@
             <button type="button" class="nurap-focus-toggle" data-action="focus-preview">پیش‌نمایش با تمرکز: خاموش</button>
             <button type="button" class="nurap-close" aria-label="بستن">✕</button>
           </div>
+        </div>
+        <div class="nurap-streamers">
+          <div class="nurap-st-badge" data-role="st-badge"></div>
+          <div class="nurap-st-actions">
+            <button type="button" class="nurap-btn nurap-btn--ghost nurap-st-btn" data-action="st-toggle">استریمرها ▾</button>
+            <button type="button" class="nurap-btn nurap-btn--ghost nurap-st-btn" data-action="st-new">+ استریمر جدید</button>
+          </div>
+          <div class="nurap-st-list" data-role="st-list"></div>
+          <div class="nurap-st-info" data-role="st-info"></div>
         </div>
         <div class="nurap-tabs"></div>
         <div class="nurap-body"></div>
@@ -1523,6 +1804,8 @@
     el.querySelector(".nurap-close").addEventListener("click", closePanel);
     el.querySelector(".nurap-backdrop").addEventListener("click", closePanel);
     el.querySelector('[data-action="save"]').addEventListener("click", doSave);
+    el.querySelector('[data-action="st-toggle"]').addEventListener("click", toggleStreamerList);
+    el.querySelector('[data-action="st-new"]').addEventListener("click", createStreamer);
     el.querySelector('[data-action="reset-section"]').addEventListener("click", doResetSection);
     el.querySelector('[data-action="reset-all"]').addEventListener("click", doResetAll);
     el.querySelector('[data-action="export"]').addEventListener("click", doExport);
@@ -1539,6 +1822,10 @@
   function openPanel() {
     if (!panelEl) panelEl = buildPanel();
     draft = api.deepClone(window.NUR_APP.getConfig());
+    adminSlug = pageSlug;
+    savedSnapshot = JSON.stringify(draft);
+    showStreamerInfo("");
+    updateStreamerUi();
     refreshAllFields();
     panelEl.classList.add("nurap-open");
   }

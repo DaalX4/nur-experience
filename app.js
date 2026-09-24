@@ -35,7 +35,25 @@
    *  streamer name (it skips the network call entirely) - it is never
    *  meant to be given out as a real link.
    * ------------------------------------------------------------------ */
+  // True when the config we ended up with is the ORIGINAL streamer's (used as
+  // the safe fallback for a slug page whose own config could not be loaded) -
+  // it is shown, but never written into that slug's local cache.
+  let remoteIsFallback = false;
   async function fetchRemoteConfig() {
+    remoteIsFallback = false;
+    if (configApi.SLUG) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const res = await fetch(configApi.REMOTE_STREAMER_URL + "?slug=" + encodeURIComponent(configApi.SLUG), { signal: controller.signal, cache: "no-store" });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.found && data.config && typeof data.config === "object") return data.config;
+        }
+      } catch (err) { /* fall through to the original single-streamer config */ }
+      remoteIsFallback = true;
+    }
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
@@ -363,7 +381,7 @@
   function acceptRemoteConfig(remoteConfig) {
     if (!remoteConfig || localConfigCommitted) return false;
     const merged = configApi.mergeWithDefaults(remoteConfig);
-    configApi.saveConfig(merged); // refresh the local cache so the next load starts from this
+    if (!remoteIsFallback) configApi.saveConfig(merged); // refresh the local cache so the next load starts from this
     currentConfig = merged;
     return true;
   }

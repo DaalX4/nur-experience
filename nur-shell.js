@@ -16,14 +16,24 @@ class NurShell extends HTMLElement {
     this.style.display = "block";
     this.style.background = "#0a1226"; /* matches NUR's own bg-1, avoids a flash of white while the iframe loads */
 
+    /* Multi-streamer: the page's own first path segment is the streamer's
+       slug (daalvi.com/ario -> "ario"). The original /nur page (and the home
+       page, and anything unexpected) passes no slug, so it loads exactly as
+       it always has. */
+    let slug = "";
+    try {
+      const first = (location.pathname.split("/").filter(Boolean)[0] || "").toLowerCase();
+      if (/^[a-z0-9-]{1,30}$/.test(first) && first !== "nur") slug = first;
+    } catch (err) { /* keep "" */ }
+
     const iframe = document.createElement("iframe");
-    iframe.src = "https://daalx4.github.io/nur-experience/";
+    iframe.src = "https://daalx4.github.io/nur-experience/" + (slug ? "?s=" + encodeURIComponent(slug) : "");
     iframe.title = "Nur";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
     iframe.style.border = "0";
     iframe.style.display = "block";
-    iframe.allow = "autoplay; encrypted-media; picture-in-picture";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture; clipboard-write";
     this.appendChild(iframe);
   }
 }
