@@ -10,6 +10,27 @@
    *  the panel never touches.
    * ------------------------------------------------------------------ */
   const configApi = window.NUR_CONFIG_API;
+
+  /* Numeric size variables (see the note in styles.css). Same formulas as before, computed here so they work
+     in EVERY browser - Firefox and older Chrome/Opera/Edge/Safari cannot do length/length division in CSS. */
+  const scaleProbe = document.createElement("div");
+  scaleProbe.style.cssText = "position:fixed;left:0;top:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none;width:var(--nur-card-scale)";
+  function applyScaleVars() {
+    const w = window.innerWidth, h = window.innerHeight, rootStyle = document.documentElement.style;
+    const clamp = (lo, x, hi) => Math.min(hi, Math.max(lo, x));
+    const scale = clamp(0.96, 0.96 + ((w - 1366) / 1194) * 0.16, 1.12);
+    const scaleProj = clamp(0.95, 0.95 + ((w - 1366) / 1194) * 0.17, 1.12);
+    rootStyle.setProperty("--nur-scale", scale.toFixed(5));
+    rootStyle.setProperty("--nur-scale-projector", scaleProj.toFixed(5));
+    if (!scaleProbe.parentNode && document.body) document.body.appendChild(scaleProbe);
+    const cardPx = scaleProbe.parentNode ? scaleProbe.getBoundingClientRect().width : 0;   // = the real --nur-card-scale (incl. its media queries)
+    if (cardPx > 50) rootStyle.setProperty("--nur-card-ratio", (cardPx / 653).toFixed(5));
+    const frameW = Math.min(900, 0.9 * w, 1.25 * h) * scaleProj;
+    rootStyle.setProperty("--proj-ratio", (frameW / 900).toFixed(5));
+  }
+  applyScaleVars();
+  let scaleRaf = 0;
+  window.addEventListener("resize", () => { cancelAnimationFrame(scaleRaf); scaleRaf = requestAnimationFrame(applyScaleVars); });
   let currentConfig = configApi.loadConfig();
   // Set once the admin commits a local edit (Save/Reset/Import - see
   // window.NUR_APP.applyConfig below) - guards the one-time boot fetch

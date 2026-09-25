@@ -379,7 +379,7 @@
   font-family:var(--font-display);
   white-space:nowrap;
   pointer-events:none;
-  font-size:calc(var(--proj-sig-font-size,12px) * var(--frame-w) / 900px);
+  font-size:calc(var(--proj-sig-font-size,12px) * var(--proj-ratio));
   opacity:var(--proj-sig-opacity,.55);
   transform:rotate(var(--proj-sig-rotation,0deg));
   transform-origin:right top;

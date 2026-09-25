@@ -31,8 +31,16 @@
      testing/blur with it); each consumer multiplies its own font-size/
      frame-width by this instead, same one-shared-number pattern
      --nur-card-scale already uses for the letter card. */
-  --nur-scale:clamp(0.96, calc(0.96 + (100vw - 1366px) / 1194px * 0.16), 1.12); /* intro / final / credit: ~4% smaller on laptop */
-  --nur-scale-projector:clamp(0.95, calc(0.95 + (100vw - 1366px) / 1194px * 0.17), 1.12); /* ~5% smaller on laptop */
+  /* These four are plain NUMBERS, set to their exact values by app.js (applyScaleVars) at load and on
+     resize: intro/final/credit scale = clamp(.96, .96 + (viewport-1366)/1194*.16, 1.12) (~4% smaller on a
+     laptop), projector scale likewise, letter-card ratio = card width / 653, projector ratio = frame width / 900.
+     They used to be derived here with typed length/length division (calc((100vw - 1366px) / 1194px)), which
+     Firefox and older Chrome/Opera/Edge/Safari do not understand - the whole declaration was dropped and every
+     font/size built on it collapsed to 16px. Static defaults here only cover the instant before app.js runs. */
+  --nur-scale:0.96;
+  --nur-scale-projector:0.95;
+  --nur-card-ratio:0.873;
+  --proj-ratio:1;
   /* Countdown's actual laptop/large-monitor sizing lives in index.html's
      #stage-countdown .countdown-number/.countdown-label rules (a more
      specific + !important override that wins over styles.css's plain
@@ -686,8 +694,8 @@ body.nur-pulse{
   /* scaled by --nur-card-scale - see the comment on that var - so the
      name stays proportional to the card instead of a fixed size that
      looks huge once the card shrinks on a narrow screen. */
-  font-size:calc(var(--nur-letter-name-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  word-spacing:calc(var(--nur-letter-name-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-letter-name-font-size) * var(--nur-card-ratio));
+  word-spacing:calc(var(--nur-letter-name-word-spacing) * var(--nur-card-ratio));
   color:#241f16;
   white-space:nowrap;
   transform:rotate(var(--nur-letter-name-rotation));
@@ -705,7 +713,7 @@ body.nur-pulse{
 .page1 .letter-signature{
   right:var(--nur-sig1-x);
   top:var(--nur-sig1-y);
-  font-size:calc(var(--nur-sig1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-sig1-font-size) * var(--nur-card-ratio));
   opacity:var(--nur-sig1-opacity);
   transform:rotate(var(--nur-sig1-rotation));
   transform-origin:right top;
@@ -713,7 +721,7 @@ body.nur-pulse{
 .page2 .letter-signature{
   right:var(--nur-sig2-x);
   top:var(--nur-sig2-y);
-  font-size:calc(var(--nur-sig2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-sig2-font-size) * var(--nur-card-ratio));
   opacity:var(--nur-sig2-opacity);
   transform:rotate(var(--nur-sig2-rotation));
   transform-origin:right top;
@@ -721,7 +729,7 @@ body.nur-pulse{
 .page3 .letter-signature{
   right:var(--nur-sig3-x);
   top:var(--nur-sig3-y);
-  font-size:calc(var(--nur-sig3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-sig3-font-size) * var(--nur-card-ratio));
   opacity:var(--nur-sig3-opacity);
   transform:rotate(var(--nur-sig3-rotation));
   transform-origin:right top;
@@ -734,17 +742,17 @@ body.nur-pulse{
 .page1 .letter-pagenum{
   right:var(--nur-pagenum1-x);
   top:var(--nur-pagenum1-y);
-  font-size:calc(var(--nur-pagenum1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-pagenum1-font-size) * var(--nur-card-ratio));
 }
 .page2 .letter-pagenum{
   right:var(--nur-pagenum2-x);
   top:var(--nur-pagenum2-y);
-  font-size:calc(var(--nur-pagenum2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-pagenum2-font-size) * var(--nur-card-ratio));
 }
 .page3 .letter-pagenum{
   right:var(--nur-pagenum3-x);
   top:var(--nur-pagenum3-y);
-  font-size:calc(var(--nur-pagenum3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-pagenum3-font-size) * var(--nur-card-ratio));
 }
 
 /* the gap between the name and "عزیز" - physical (not logical) margin,
@@ -752,7 +760,7 @@ body.nur-pulse{
    the surrounding RTL flow, and we always want space on its visual left
    (toward "عزیز", which follows it in the markup). */
 .field-name-overlay .handle{
-  margin-left:calc(var(--nur-letter-name-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  margin-left:calc(var(--nur-letter-name-gap) * var(--nur-card-ratio));
 }
 
 /* The letter body text - real HTML now, replacing what used to be baked
@@ -780,10 +788,10 @@ body.nur-pulse{
   width:var(--nur-letter1-width);
 }
 .page1 .letter-body p{
-  font-size:calc(var(--nur-letter1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-letter1-font-size) * var(--nur-card-ratio));
   line-height:var(--nur-letter1-line-height);
-  word-spacing:calc(var(--nur-letter1-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  margin:0 0 calc(var(--nur-letter1-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  word-spacing:calc(var(--nur-letter1-word-spacing) * var(--nur-card-ratio));
+  margin:0 0 calc(var(--nur-letter1-gap) * var(--nur-card-ratio));
 }
 .page2 .letter-body{
   right:var(--nur-letter2-x);
@@ -791,10 +799,10 @@ body.nur-pulse{
   width:var(--nur-letter2-width);
 }
 .page2 .letter-body p{
-  font-size:calc(var(--nur-letter2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-letter2-font-size) * var(--nur-card-ratio));
   line-height:var(--nur-letter2-line-height);
-  word-spacing:calc(var(--nur-letter2-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  margin:0 0 calc(var(--nur-letter2-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  word-spacing:calc(var(--nur-letter2-word-spacing) * var(--nur-card-ratio));
+  margin:0 0 calc(var(--nur-letter2-gap) * var(--nur-card-ratio));
 }
 .page3 .letter-body{
   right:var(--nur-letter3-x);
@@ -802,10 +810,10 @@ body.nur-pulse{
   width:var(--nur-letter3-width);
 }
 .page3 .letter-body p{
-  font-size:calc(var(--nur-letter3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  font-size:calc(var(--nur-letter3-font-size) * var(--nur-card-ratio));
   line-height:var(--nur-letter3-line-height);
-  word-spacing:calc(var(--nur-letter3-word-spacing) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  margin:0 0 calc(var(--nur-letter3-gap) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  word-spacing:calc(var(--nur-letter3-word-spacing) * var(--nur-card-ratio));
+  margin:0 0 calc(var(--nur-letter3-gap) * var(--nur-card-ratio));
 }
 
 /* small in-paper control, sitting right under a page's text rather than
@@ -844,10 +852,10 @@ body.nur-pulse{
 .letter-face.page1 .note-next-btn{
   left:var(--nur-btn1-x);
   top:var(--nur-btn1-y);
-  width:calc(var(--nur-btn1-width) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  height:calc(var(--nur-btn1-height) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  font-size:calc(var(--nur-btn1-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  border-radius:calc(var(--nur-btn1-radius) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  width:calc(var(--nur-btn1-width) * var(--nur-card-ratio));
+  height:calc(var(--nur-btn1-height) * var(--nur-card-ratio));
+  font-size:calc(var(--nur-btn1-font-size) * var(--nur-card-ratio));
+  border-radius:calc(var(--nur-btn1-radius) * var(--nur-card-ratio));
   transform:translate(-50%,-50%) scale(var(--nur-btn1-scale));
 }
 .letter-face.page1 .note-next-btn:active{transform:translate(-50%,-50%) scale(calc(var(--nur-btn1-scale) * .96))}
@@ -855,10 +863,10 @@ body.nur-pulse{
 .letter-face.page2 .note-next-btn{
   left:var(--nur-btn2-x);
   top:var(--nur-btn2-y);
-  width:calc(var(--nur-btn2-width) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  height:calc(var(--nur-btn2-height) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  font-size:calc(var(--nur-btn2-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  border-radius:calc(var(--nur-btn2-radius) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  width:calc(var(--nur-btn2-width) * var(--nur-card-ratio));
+  height:calc(var(--nur-btn2-height) * var(--nur-card-ratio));
+  font-size:calc(var(--nur-btn2-font-size) * var(--nur-card-ratio));
+  border-radius:calc(var(--nur-btn2-radius) * var(--nur-card-ratio));
   transform:translate(-50%,-50%) scale(var(--nur-btn2-scale));
 }
 .letter-face.page2 .note-next-btn:active{transform:translate(-50%,-50%) scale(calc(var(--nur-btn2-scale) * .96))}
@@ -866,10 +874,10 @@ body.nur-pulse{
 .letter-face.page3 .note-next-btn{
   left:var(--nur-btn3-x);
   top:var(--nur-btn3-y);
-  width:calc(var(--nur-btn3-width) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  height:calc(var(--nur-btn3-height) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  font-size:calc(var(--nur-btn3-font-size) * var(--nur-card-scale) / var(--nur-card-reference-width));
-  border-radius:calc(var(--nur-btn3-radius) * var(--nur-card-scale) / var(--nur-card-reference-width));
+  width:calc(var(--nur-btn3-width) * var(--nur-card-ratio));
+  height:calc(var(--nur-btn3-height) * var(--nur-card-ratio));
+  font-size:calc(var(--nur-btn3-font-size) * var(--nur-card-ratio));
+  border-radius:calc(var(--nur-btn3-radius) * var(--nur-card-ratio));
   transform:translate(-50%,-50%) scale(var(--nur-btn3-scale));
 }
 .letter-face.page3 .note-next-btn:active{transform:translate(-50%,-50%) scale(calc(var(--nur-btn3-scale) * .96))}
