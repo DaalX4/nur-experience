@@ -505,7 +505,7 @@
          armLongLoadingEscalation()) - the viewer is never stuck with a
          message and no way out. */
       loadingText: "دارم آماده‌ش می‌کنم...",
-      readyText: "تصویر داره روشن می‌شه…",   // shown only when Play is pressed before the background-prepared video is ready
+      readyText: "اینترنت ضعیفه، برای پخش روان‌تر چند لحظه صبر کن…",   // shown only when Play is pressed before the background-prepared video is ready
       longLoadingText: "یکم بیشتر زمان می‌خواد...",
       stalledText: "اتصال قطع شد",
       retryText: "دوباره تلاش کن",

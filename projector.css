@@ -746,3 +746,19 @@
   transition:opacity .6s ease;
 }
 .proj-note.show{opacity:.9}
+
+/* Readiness state (video still being prepared): three tiny lights pulsing in turn under the text. */
+.proj-dots{display:block;margin-top:9px;text-align:center;line-height:0}
+.proj-dots i{
+  display:inline-block;
+  width:5px; height:5px;
+  margin:0 4px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.3;
+  animation:projDot 1.4s ease-in-out infinite;
+}
+.proj-dots i:nth-child(2){animation-delay:.22s}
+.proj-dots i:nth-child(3){animation-delay:.44s}
+@keyframes projDot{0%,70%,100%{opacity:.25;transform:scale(.8)}35%{opacity:1;transform:scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.proj-dots i{animation:none;opacity:.7}}

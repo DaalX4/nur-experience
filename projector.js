@@ -437,7 +437,14 @@
     gateTextEl.textContent = withEscape
       ? (cfgCache.longLoadingText || "یکم بیشتر زمان می‌خواد...")
       : (cfgCache.loadingText || "دارم آماده‌ش می‌کنم...");
-    if (textOverride) gateTextEl.textContent = textOverride;
+    if (textOverride) {
+      gateTextEl.textContent = textOverride;
+      // three tiny lights pulsing in turn (CSS only, opacity/transform - nearly free); they live inside the text node, so they vanish with the gate
+      const dots = document.createElement("span");
+      dots.className = "proj-dots"; dots.setAttribute("aria-hidden", "true");
+      dots.innerHTML = "<i></i><i></i><i></i>";
+      gateTextEl.appendChild(dots);
+    }
     gateTextEl.classList.add("show");
     ambientGlowEl.classList.add("show");
     if (withEscape) armLongLoadingEscalation();
@@ -538,7 +545,7 @@
       const seq = ++readyWaitSeq;
       clearTimeout(loadingTimeoutId);
       clearTimeout(longLoadingEscalationId);
-      showLoadingGate(false, cfgCache.readyText || "تصویر داره روشن می‌شه…");
+      showLoadingGate(false, cfgCache.readyText || "اینترنت ضعیفه، برای پخش روان‌تر چند لحظه صبر کن…");
       prepApi.whenReady(item.src).then(() => { if (seq === readyWaitSeq) loadItem(index); });
       return;
     }
