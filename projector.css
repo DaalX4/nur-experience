@@ -725,3 +725,24 @@
   .proj-audio-hint-icon{font-size:calc(var(--proj-audio-hint-icon-size,20px) * .78)}
   .proj-audio-hint-text{font-size:calc(var(--proj-audio-hint-text-size,13px) * .78)}
 }
+
+/* Subtle note shown ONLY when a real mid-playback quality rescue happened (projector.js showQualityNote). */
+.proj-note{
+  position:absolute;
+  left:50%; bottom:9%;
+  transform:translateX(-50%);
+  z-index:7;
+  padding:6px 14px;
+  border-radius:999px;
+  background:rgba(20,16,10,.5);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  color:#f6efe0;
+  font-family:var(--font-display);
+  font-size:13px;
+  white-space:nowrap;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .6s ease;
+}
+.proj-note.show{opacity:.9}

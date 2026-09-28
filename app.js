@@ -667,6 +667,7 @@
     }
 
     next.classList.add("active");
+    if (window.NUR_VIDEO_PREP) window.NUR_VIDEO_PREP.stage(id);   // background video preparation yields to this transition
     window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
   }
 

@@ -90,6 +90,7 @@
   let audioHintTimeoutId = null;
   let preloadEl = null;   // the hidden warm-up <video> from preload(), reused for real item-0 playback if it matches
   let preloadUrl = null;
+  let readyWaitSeq = 0;   // cancels a pending "waiting for the prepared copy" (video-prep.js) when anything else takes over
 
   /* -------------------------------------------------------------------- *
    *  YouTube mode (Module 9-18, simplified) - an emergency fallback only,
@@ -373,6 +374,7 @@
    *  with the shipped defaults as fallback - see config.js.
    *  ---------------------------------------------------------------------*/
   function clearTimers() {
+    readyWaitSeq++;
     clearTimeout(loadingTimeoutId);
     clearTimeout(longLoadingEscalationId);
     clearTimeout(stallTimeoutId);
@@ -382,6 +384,17 @@
     longLoadingEscalationId = null;
     stallTimeoutId = null;
     audioHintTimeoutId = null;
+  }
+
+  /* Only shown when a real quality rescue switch actually happened (never for normal pre-play selection). */
+  function showQualityNote() {
+    if (!frameEl) return;
+    let n = document.getElementById("projQualityNote");
+    if (!n) { n = document.createElement("div"); n.id = "projQualityNote"; n.className = "proj-note"; frameEl.appendChild(n); }
+    n.textContent = "برای پخش روان‌تر، کیفیت تصویر هماهنگ شد.";
+    n.classList.add("show");
+    clearTimeout(n.__t);
+    n.__t = setTimeout(() => n.classList.remove("show"), 4500);
   }
 
   function hideGate() {
@@ -416,7 +429,7 @@
      it into the real stalled state - the viewer is never stuck on a
      "still waiting" message with no way out, but the plain waiting
      message itself never carries actions. */
-  function showLoadingGate(withEscape) {
+  function showLoadingGate(withEscape, textOverride) {
     hideGate();
     hideAudioHint();
     setOverlayActive(true);
@@ -424,6 +437,7 @@
     gateTextEl.textContent = withEscape
       ? (cfgCache.longLoadingText || "یکم بیشتر زمان می‌خواد...")
       : (cfgCache.loadingText || "دارم آماده‌ش می‌کنم...");
+    if (textOverride) gateTextEl.textContent = textOverride;
     gateTextEl.classList.add("show");
     ambientGlowEl.classList.add("show");
     if (withEscape) armLongLoadingEscalation();
@@ -517,6 +531,17 @@
     setFrameEmpty(false);
     const item = memories[index];
     currentId = item.id;
+    /* Prepared playback (video-prep.js): Play was pressed but no safe copy is ready yet - keep the blurred frame,
+       show the NUR-styled readiness line (never a spinner) and start automatically the moment it is safe. */
+    const prepApi = window.NUR_VIDEO_PREP;
+    if (index === 0 && item.type === "video" && prepApi && prepApi.status(item.src) === "wait") {
+      const seq = ++readyWaitSeq;
+      clearTimeout(loadingTimeoutId);
+      clearTimeout(longLoadingEscalationId);
+      showLoadingGate(false, cfgCache.readyText || "تصویر داره روشن می‌شه…");
+      prepApi.whenReady(item.src).then(() => { if (seq === readyWaitSeq) loadItem(index); });
+      return;
+    }
     const layer = layers[nextLayer];
     const other = layers[1 - nextLayer];
     const requestToken = ++showRequestSeq;
@@ -550,6 +575,7 @@
       setOverlayActive(false);
       hidePoster();
       layer.classList.add("active");
+      if (index === 0 && item.type === "video" && window.NUR_VIDEO_PREP) window.NUR_VIDEO_PREP.playStarted();
       other.classList.remove("active");
       // Stop the outgoing layer's media immediately instead of only
       // hiding it - otherwise it keeps decoding (and, for video, keeps
@@ -605,7 +631,12 @@
       // two elements pointed at the same URL can each trigger their own
       // network request depending on cache headers; one shared element
       // guarantees exactly one request no matter what.
-      if (index === 0 && preloadEl && preloadUrl === item.src) {
+      const acq = index === 0 && window.NUR_VIDEO_PREP ? window.NUR_VIDEO_PREP.acquire(item.src) : null;
+      if (acq) {
+        // the prepared copy (an in-memory blob, or - if preparation could not work - the lightest real file): one element, no second download
+        if (acq.el) { el = acq.el; } else { el = document.createElement("video"); el.muted = true; el.playsInline = true; el.preload = "auto"; el.src = acq.src; }
+        el.__prepKind = acq.kind; el.__playSrc = acq.src;
+      } else if (index === 0 && preloadEl && preloadUrl === item.src) {
         el = preloadEl;
       } else {
         el = document.createElement("video");
@@ -619,13 +650,14 @@
       fgSlot.appendChild(el);
       el.load();
 
+      el.__origSrc = item.src;
       let bgEl = null;
       if (bgSlot) {
         bgEl = document.createElement("video");
         bgEl.muted = true;
         bgEl.playsInline = true;
         bgEl.preload = "auto";
-        bgEl.src = item.src;
+        bgEl.src = el.__prepKind === "blob" ? el.__playSrc : item.src;   // a blob URL is reusable: no second download
         bgSlot.appendChild(bgEl);
         bgEl.load();
         el.__bgTwin = bgEl;
@@ -641,12 +673,13 @@
       }
 
       el.addEventListener("loadeddata", () => {
-        if (item.trimStart) { try { el.currentTime = item.trimStart; } catch (err) { /* ignore */ } }
+        if (el.__rescueTime != null) { try { el.currentTime = el.__rescueTime; } catch (err) { /* ignore */ } el.__rescueTime = null; }
+        else if (item.trimStart) { try { el.currentTime = item.trimStart; } catch (err) { /* ignore */ } }
         applyAudioSettings(el);
         const wantedAudible = !el.muted;
         el.play().then(() => {
           revealAfterPaint(el);
-          if (wantedAudible) showAudioReminder();
+          if (wantedAudible && !el.__rescued) showAudioReminder();
         }).catch(() => {
           if (wantedAudible) {
             // Audible autoplay was rejected by the browser's autoplay
@@ -671,6 +704,26 @@
         syncBgStart();
       });
       el.addEventListener("error", onItemError);
+      /* Stall rescue - only possible while streaming natively (a prepared blob has no network to stall on): if the
+         picture stops for a moment, freeze gently on the current frame, drop to the next lighter real copy at the same
+         timestamp and continue; a subtle note appears only when this really happens. Two attempts at most, then the
+         existing stall watchdog / Retry-Continue gate takes over. */
+      if (index === 0 && window.NUR_VIDEO_PREP && el.__prepKind === "native") {
+        let rescueTimer = null;
+        const tryRescue = () => {
+          if (requestToken !== showRequestSeq || el.paused || el.ended || el.readyState >= 3) return;
+          window.NUR_VIDEO_PREP.noteStall("waiting");
+          if ((el.__rescues || 0) >= 2) return;
+          const alt = window.NUR_VIDEO_PREP.rescue(item.src, el.__playSrc);
+          if (!alt) return;
+          el.__rescues = (el.__rescues || 0) + 1; el.__rescued = true;
+          el.__rescueTime = el.currentTime; el.__playSrc = alt.src;
+          el.src = alt.src; el.load();
+          showQualityNote();
+        };
+        el.addEventListener("waiting", () => { clearTimeout(rescueTimer); rescueTimer = setTimeout(tryRescue, 1800); });
+        el.addEventListener("playing", () => clearTimeout(rescueTimer));
+      }
       el.addEventListener("timeupdate", () => {
         if (bgEl && bgEl.readyState >= 2 && Math.abs(bgEl.currentTime - el.currentTime) > 0.25) {
           try { bgEl.currentTime = el.currentTime; } catch (err) { /* ignore */ }
@@ -774,7 +827,7 @@
     const first = memories[0];
     if (!first) { loadItem(0); return; }
     const canReuse = currentIndex() === 0 && first.type === "video" &&
-      currentEl && currentEl.tagName === "VIDEO" && currentEl.src === first.src;
+      currentEl && currentEl.tagName === "VIDEO" && (currentEl.__origSrc || currentEl.src) === first.src;
     if (canReuse) {
       hideGate();
       // The confirmed Replay bug: hideGate() only toggles the gate's own
@@ -1167,6 +1220,8 @@
     // Nothing left to warm up for YouTube - the embed iframe is created
     // fresh on Play, no script/player to preload anymore.
     if (cfg.source === "youtube") return;
+    // Prepared playback owns the download (one request, in memory) - never also start a native one
+    if (window.NUR_VIDEO_PREP && window.NUR_VIDEO_PREP.enabled() && window.NUR_VIDEO_PREP.arm(cfg)) { window.NUR_VIDEO_PREP.start(); return; }
     if (preloadEl) return;
     const items = Array.isArray(cfg.items) ? cfg.items : [];
     const first = items[0];
