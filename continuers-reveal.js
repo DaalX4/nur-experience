@@ -47,13 +47,25 @@
   var EASE_LINE = "cubic-bezier(.4,.05,.3,1)";
   var EASE_SOFT = "cubic-bezier(.37,0,.63,1)";
 
-  /* time fraction at which the eased line has drawn fraction p of its length (inverse of EASE_LINE) */
-  function timeAtProgress(p) {
-    var x1 = 0.4, y1 = 0.05, x2 = 0.3, y2 = 1;
+  /* time fraction at which a CSS cubic-bezier(x1,y1,x2,y2) has eased up to value p (its inverse) */
+  function bezTimeAt(x1, y1, x2, y2, p) {
     function bez(a, b, s) { return 3 * (1 - s) * (1 - s) * s * a + 3 * (1 - s) * s * s * b + s * s * s; }
     var lo = 0, hi = 1;
+    p = Math.max(0, Math.min(1, p));
     for (var k = 0; k < 40; k++) { var m = (lo + hi) / 2; if (bez(y1, y2, m) < p) lo = m; else hi = m; }
     return bez(x1, x2, (lo + hi) / 2);
+  }
+  function timeAtProgress(p) { return bezTimeAt(0.4, 0.05, 0.3, 1, p); }   // the line-draw ease (EASE_LINE)
+
+  /* Arrival = the light's leading end touching the node's circle (the chain masks the line inside r=42, so
+     that is where the line visibly ends). Each node gets exactly ONE pulse at that instant: the existing
+     halo (.cont-ping) is driven by these times instead of by a free-running CSS loop. */
+  var NODE_EDGE = 42;
+  var PULSE_MS = 1080, PULSE_PEAK = 0.5, PULSE_BASE = 0.2;   // the page's own halo values (contPing: .2 -> .5 -> .2)
+  var LOOP_MS = 3600, LOOP_ANIM = "contTravel 3.6s cubic-bezier(.3,.08,.5,1) infinite";   // the page's own traveling pulse
+  function pingNode(n) {
+    if (!n || !n.ping || !n.ping.animate) return;
+    n.ping.animate([{ opacity: PULSE_BASE }, { opacity: PULSE_PEAK }, { opacity: PULSE_BASE }], { duration: PULSE_MS, easing: "ease-in-out" });
   }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function flush(el) { void el.getBoundingClientRect(); }
@@ -64,6 +76,13 @@
   function washMatrix(w) { return (1 - w) + " 0 0 0 " + w + "  0 " + (1 - w) + " 0 0 " + (w * 0.965).toFixed(3) + "  0 0 " + (1 - w) + " 0 " + (w * 0.87).toFixed(3) + "  0 0 0 1 0"; }
 
   var runId = 0, running = false, onDoneCb = null, P = null;
+  var loop = { on: false, t0: 0, timers: [], arrivals: [] };
+  function stopLoop() {
+    loop.on = false;
+    loop.timers.forEach(function (id) { clearTimeout(id); });
+    loop.timers = [];
+    if (P) P.nodes.forEach(function (n) { if (n.ping && n.ping.getAnimations) n.ping.getAnimations().forEach(function (a) { a.cancel(); }); });
+  }
 
   /* ---- take the chain apart into its existing pieces (no visual change) ---- */
   function wrap(el) {
@@ -97,6 +116,7 @@
       n.image = n.els.filter(function (e) { return e.tagName.toLowerCase() === "image"; })[0] || null;
       n.label = n.els.filter(function (e) { return e.tagName === "text" && e.classList.contains("cont-user"); })[0] || null;
       n.cx = n.els[0].getAttribute("cx"); n.cy = n.els[0].getAttribute("cy");
+      n.ping = n.els[0].classList.contains("cont-ping") ? n.els[0] : null;
       if (n.q) {                                       // the "؟" node: everything resolves out of the light together
         n.inner = svgEl("g", { "class": "cr-w" });
         n.g.insertBefore(n.inner, n.els[0]); n.els.forEach(function (e) { n.inner.appendChild(e); });
@@ -134,11 +154,12 @@
      then exactly what continuers-chain.js drew, apart from the harmless wrapper <g class="cr-w"> */
   function restoreStyles() {
     texts().forEach(clearStyle);
+    stopLoop();
     var h = document.querySelector(".cr-halo"); if (h) h.parentNode.removeChild(h);
     var og = svg.querySelector("#cr-glow"); if (og) og.parentNode.removeChild(og);
     if (!P) return;
     [P.ray, P.arc].forEach(function (p) { if (p) { p.style.transition = ""; p.style.strokeDasharray = ""; p.style.strokeDashoffset = ""; } });
-    if (P.pulse) P.pulse.style.visibility = "";
+    if (P.pulse) { P.pulse.style.visibility = ""; P.pulse.style.animation = ""; }
     [P.ring, P.bloom, P.core].forEach(clearStyle);
     P.nodes.forEach(function (n) {
       if (n.image) {
@@ -159,6 +180,30 @@
     if (P && P.ringCircle) { P.ringCircle.removeAttribute("class"); }   // back to the exact markup the chain builder drew
     P = null;
     stage.classList.remove("cont-reveal"); stage.classList.remove("cont-light");
+  }
+
+  /* After the reveal: the page's own traveling pulse keeps running exactly as before, but each node's pulse
+     is triggered by the pulse's real arrival (computed above) instead of a separately-timed CSS loop, so they can
+     never drift apart. Times are anchored to one start instant, so nothing accumulates. */
+  function startLoop() {
+    stopLoop();
+    if (!P || !P.pulse) return;
+    loop.on = true;
+    var pulse = P.pulse;
+    pulse.style.animation = "none"; flush(pulse);
+    pulse.style.visibility = "";
+    pulse.style.animation = LOOP_ANIM;
+    loop.t0 = performance.now();
+    function scheduleCycle(k) {
+      if (!loop.on) return;
+      var base = loop.t0 + k * LOOP_MS;
+      P.nodes.forEach(function (n, i) {
+        if (!n.ping) return;
+        loop.timers.push(setTimeout(function () { if (loop.on) pingNode(n); }, Math.max(0, base + loop.arrivals[i] - performance.now())));
+      });
+      loop.timers.push(setTimeout(function () { scheduleCycle(k + 1); }, Math.max(0, base + LOOP_MS - 300 - performance.now())));
+    }
+    scheduleCycle(0);
   }
 
   async function play(id) {
@@ -246,6 +291,14 @@
       })(t0);
     }
 
+    /* When (ms into one LOOP_MS cycle) the page's traveling pulse reaches each node: the pulse's head is at
+       109% * ease(u / .92) of the path (contTravel), so invert that ease at the node's position. */
+    var rayLen0 = mine.ray.getTotalLength(), arcLen0 = mine.arc ? mine.arc.getTotalLength() : 0, seg0 = T0 > 1 ? arcLen0 / (T0 - 1) : 0;
+    loop.arrivals = mine.nodes.map(function (n, i) {
+      var head = 100 * (rayLen0 + i * seg0 - NODE_EDGE) / (rayLen0 + arcLen0);
+      return LOOP_MS * 0.92 * bezTimeAt(0.3, 0.08, 0.5, 1, head / 109);
+    });
+
     /* 1) empty sky: hide every piece the page shows */
     texts().forEach(function (el) { el.style.transition = "none"; el.style.opacity = "0"; });
     [mine.ring, mine.bloom, mine.core].forEach(function (g) { if (g) { g.style.transition = "none"; g.style.opacity = "0"; } });
@@ -283,6 +336,8 @@
       var n = mine.nodes[i], draw = i === 0 ? T.drawRay : T.drawArc, len = i === 0 ? rayLen : segLen;
       if (i === 0) dash(mine.ray, rayLen, 0, draw);
       else dash(mine.arc, arcLen - (i - 1) * segLen, arcLen - i * segLen, draw);
+      /* the moment the line's leading end touches this node: one pulse, on that node */
+      (function (node, ms) { setTimeout(function () { if (live()) pingNode(node); }, ms); })(n, Math.round(timeAtProgress(Math.max(0, (len - NODE_EDGE) / len)) * draw));
       var startMs = Math.round(timeAtProgress(Math.max(0, (len - T.nodeLeadUnits) / len)) * draw);
       await sleep(startMs); if (!live()) return;
 
@@ -306,6 +361,7 @@
           (its existing hold timer + fade to Credit) */
     restoreStyles();
     running = false;
+    startLoop();
     var cb = onDoneCb; onDoneCb = null;
     if (cb) cb();
   }
