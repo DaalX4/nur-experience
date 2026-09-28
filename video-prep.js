@@ -26,9 +26,9 @@
     yieldMs: 1700,        // pause for this long after every stage change (transition + settle)
     startDelayMs: 1500,   // Letter 1 on screen this long before the first byte is requested
     bestMaxEtaSec: 120,   // start the better copy only if it should arrive within this long
-    emergencyEtaSec: 240, // safe copy would take longer than this at the measured speed -> use 360p if it exists
-    waitMaxEtaSec: 40,    // pressed Play with nothing ready: wait if the safe copy is this close, else stream natively
-    hardWaitSec: 75,      // never make anyone wait longer than this for preparation
+    emergencyEtaSec: 60,  // safe copy would take longer than this at the measured speed -> switch to the light 360p copy (if it exists)
+    waitMaxEtaSec: 120,   // pressed Play with nothing ready: WAIT (readiness state) if the prepared copy is this close - a light copy from memory beats a stream that may keep buffering
+    hardWaitSec: 150,     // never make anyone wait longer than this for preparation
     retries: 3,
     probeTimeoutMs: 8000,
     lightMaxBytes: 30 * 1048576   // an original this light is used as-is (no 720p/480p probing)
@@ -194,8 +194,8 @@
   function checkEmergency(d) {
     if (emergencyDone || !job.plan || d.cand !== job.plan.safe || !job.D0) return;
     var eta = (d.size - d.got) / Math.max(1, job.D0);
-    if (!job.plan.emergency) { if (eta > CFG.emergencyEtaSec && d.got > 2097152) lazyEmergency(); return; }
-    if (eta > CFG.emergencyEtaSec && d.got > 2097152) {
+    if (!job.plan.emergency) { if (eta > CFG.emergencyEtaSec && d.got >= 1048576) lazyEmergency(); return; }
+    if (eta > CFG.emergencyEtaSec && d.got >= 1048576) {
       emergencyDone = true;
       mark("emergency-360p", { etaSec: Math.round(eta) });
       job.plan.safe = job.plan.emergency; job.plan.best = null;
@@ -261,6 +261,8 @@
   function goNative(why) {
     if (!job || job.mode === "native") return;
     var pick = job.plan && job.plan.safe ? job.plan.safe : null;
+    /* on a very slow link the native stream must be the lightest copy, never the heavier original */
+    if (job.plan && job.plan.emergency && job.D0 && job.D0 * 8 / 1e6 < 4 && pick && job.plan.emergency.size < pick.size) pick = job.plan.emergency;
     job.mode = "native";
     job.nativeUrl = pick ? pick.url : job.url;
     lazyEmergency();   // so a native stall can still drop to 360p

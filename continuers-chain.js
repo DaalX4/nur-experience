@@ -127,6 +127,10 @@
 
     /* ---- markup ---- */
     var I = function (s) { return idp + s; };
+    /* the arc's fade runs across the WHOLE orbit width it really covers (with 4+ nodes it bulges past the last node,
+       which used to leave its tail at the faintest value and look disconnected); 3 nodes keep the approved axis */
+    var gx1 = nodes[0].x, gx2 = nodes[n - 1].x;
+    if (n > 3) { var ext = R * Math.sin(Math.min(span / 2, 90) * Math.PI / 180); gx1 = CX + ext; gx2 = CX - ext; }
     var defs = '<defs>' +
       '<radialGradient id="' + I("bloom") + '" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff6dc" stop-opacity=".78"/><stop offset="6%" stop-color="#fdf0c8" stop-opacity=".56"/><stop offset="14%" stop-color="#f3dea0" stop-opacity=".36"/><stop offset="26%" stop-color="#dcd097" stop-opacity=".2"/><stop offset="42%" stop-color="#a8c79a" stop-opacity=".1"/><stop offset="62%" stop-color="#8fc19a" stop-opacity=".045"/><stop offset="82%" stop-color="#8fc19a" stop-opacity=".014"/><stop offset="100%" stop-color="#8fc19a" stop-opacity="0"/></radialGradient>' +
       '<radialGradient id="' + I("core-soft") + '" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffffff" stop-opacity=".95"/><stop offset="35%" stop-color="#fffaf0" stop-opacity=".55"/><stop offset="70%" stop-color="#fff3cf" stop-opacity=".16"/><stop offset="100%" stop-color="#fff3cf" stop-opacity="0"/></radialGradient>' +
@@ -134,16 +138,25 @@
       '<filter id="' + I("gap-blur") + '" filterUnits="userSpaceOnUse" x="-200" y="-200" width="1200" height="1200"><feGaussianBlur stdDeviation="2.4"/></filter>' +
       '<radialGradient id="' + I("halo") + '" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fdf6e3" stop-opacity=".5"/><stop offset="1" stop-color="#fdf6e3" stop-opacity="0"/></radialGradient>' +
       '<linearGradient id="' + I("g-ray") + '" gradientUnits="userSpaceOnUse" x1="' + CX + '" y1="' + CY + '" x2="' + f2(nodes[0].x) + '" y2="' + f2(nodes[0].y) + '"><stop offset="0" stop-color="#fffaf0" stop-opacity=".95"/><stop offset="1" stop-color="#fdf6e3" stop-opacity=".5"/></linearGradient>' +
-      '<linearGradient id="' + I("g-arc") + '" gradientUnits="userSpaceOnUse" x1="' + f2(nodes[0].x) + '" y1="0" x2="' + f2(nodes[n - 1].x) + '" y2="0"><stop offset="0" stop-color="#fdf6e3" stop-opacity=".5"/><stop offset="1" stop-color="#fdf6e3" stop-opacity=".14"/></linearGradient>';
+      '<linearGradient id="' + I("g-arc") + '" gradientUnits="userSpaceOnUse" x1="' + f2(gx1) + '" y1="0" x2="' + f2(gx2) + '" y2="0"><stop offset="0" stop-color="#fdf6e3" stop-opacity=".5"/><stop offset="1" stop-color="#fdf6e3" stop-opacity="' + (n <= 3 ? ".14" : ".32") + '"/></linearGradient>';
     nodes.forEach(function (nd) { defs += '<clipPath id="' + I("clip-") + nd.k + '"><circle cx="' + f2(nd.x) + '" cy="' + f2(nd.y) + '" r="34"/></clipPath>'; });
     defs += '<mask id="' + I("node-mask") + '" maskUnits="userSpaceOnUse" x="-300" y="-300" width="1240" height="1240"><rect x="-300" y="-300" width="1240" height="1240" fill="#fff"/>';
     nodes.forEach(function (nd) { defs += '<circle cx="' + f2(nd.x) + '" cy="' + f2(nd.y) + '" r="42" fill="#000"/>'; });
     nodes.forEach(function (nd) {       // the soft clear zone behind every name (same padding for all)
       if (!nd.lab) return;
       var r = labelRect(nd, nd.lab);
+      if (n > 3) { r.l += PAD_X - 4; r.r -= PAD_X - 4; r.t += PAD_Y - 3; r.b -= PAD_Y - 3; }   // 4+ nodes: a tighter clear zone, so a neighbouring arc is not cut off beside a name
       defs += '<rect x="' + f2(r.l) + '" y="' + f2(r.t) + '" width="' + f2(r.r - r.l) + '" height="' + f2(r.b - r.t) + '" rx="9" fill="#000" filter="url(#' + I("gap-blur") + ')"/>';
     });
-    defs += '</mask></defs>';
+    defs += '</mask>';
+    /* 4+ nodes: the path itself (ray, arcs, travelling light) is cut ONLY by the avatar circles - cut exactly at the
+       ring's outer edge (39.5 + a hair) - never by a name's clear zone, which is what left big gaps beside long names */
+    if (n > 3) {
+      defs += '<mask id="' + I("line-mask") + '" maskUnits="userSpaceOnUse" x="-300" y="-300" width="1240" height="1240"><rect x="-300" y="-300" width="1240" height="1240" fill="#fff"/>';
+      nodes.forEach(function (nd) { defs += '<circle cx="' + f2(nd.x) + '" cy="' + f2(nd.y) + '" r="40.3" fill="#000"/>'; });
+      defs += '</mask>';
+    }
+    defs += '</defs>';
 
     var d = "M" + CX + " " + CY + " L" + f2(nodes[0].x) + " " + f2(nodes[0].y), arcD = "M" + f2(nodes[0].x) + " " + f2(nodes[0].y);
     for (var i = 1; i < n; i++) {
@@ -153,7 +166,7 @@
     var out = defs;
     out += '<circle cx="' + CX + '" cy="' + CY + '" r="' + f2(R) + '" fill="none" stroke="#f0eee6" stroke-opacity=".07" stroke-width="1" mask="url(#' + I("node-mask") + ')"/>';
     out += '<circle class="' + cls.breathe + '" cx="' + CX + '" cy="' + CY + '" r="225" fill="url(#' + I("bloom") + ')"/>';
-    out += '<g mask="url(#' + I("node-mask") + ')">' +
+    out += '<g mask="url(#' + I(n > 3 ? "line-mask" : "node-mask") + ')">' +
       '<path d="M' + CX + ' ' + CY + ' L' + f2(nodes[0].x) + ' ' + f2(nodes[0].y) + '" fill="none" stroke="url(#' + I("g-ray") + ')" stroke-width="1.4"/>' +
       (n > 1 ? '<path d="' + arcD + '" fill="none" stroke="url(#' + I("g-arc") + ')" stroke-width="1.4"/>' : '') +
       '<path class="' + cls.pulse + '" d="' + d + '" pathLength="100"/></g>';
