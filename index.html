@@ -49,11 +49,11 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
      never seen, so it's always fetched from origin, never an old cached
      copy, and every visitor's index.html always loads ITS OWN matching
      version of everything, never a mix. -->
-<link rel="stylesheet" href="styles.css?v=20260927-01">
+<link rel="stylesheet" href="styles.css?v=20260927-02">
 <!-- Projector/Memory stage styles - tiny (no media), safe to always load;
      see projector.js for why the frame/mask IMAGES only ever fetch when
      the feature is actually turned on. -->
-<link rel="stylesheet" href="projector.css?v=20260927-01">
+<link rel="stylesheet" href="projector.css?v=20260927-02">
 
 <style>
 /* ===== Final-stage polish only: intentionally isolated from the rest of the project ===== */
@@ -759,6 +759,8 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 #stage-final.active.cont-reveal::before{animation:none}
 #stage-final.active.cont-reveal.cont-light::before{animation:finalLightBloom 4.8s cubic-bezier(.22,.75,.2,1) both}
 #stage-final.cont-reveal #continuers{position:relative}
+/* the faint full-circle orbit is a guide, not part of the story: never shown while the reveal is in charge */
+#stage-final.cont-reveal .cr-ring{display:none}
 /* one very soft aura behind the first sentence: a single gentle swell, then it settles away */
 .cr-halo{
   position:absolute;transform:translate(-50%,-50%);z-index:-1;pointer-events:none;opacity:0;
@@ -1016,12 +1018,12 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 
 </main>
 
-<script src="config.js?v=20260927-01"></script>
-<script src="continuers-chain.js?v=20260927-01"></script>
-<script src="continuers-reveal.js?v=20260927-01"></script>
-<script src="app.js?v=20260927-01"></script>
-<script src="projector.js?v=20260927-01"></script>
-<script src="admin-panel.js?v=20260927-01"></script>
+<script src="config.js?v=20260927-02"></script>
+<script src="continuers-chain.js?v=20260927-02"></script>
+<script src="continuers-reveal.js?v=20260927-02"></script>
+<script src="app.js?v=20260927-02"></script>
+<script src="projector.js?v=20260927-02"></script>
+<script src="admin-panel.js?v=20260927-02"></script>
 
 </body>
 </html>

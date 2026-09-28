@@ -108,8 +108,13 @@
         n.hide = [n.disc, n.init, n.image, n.ring].filter(Boolean);
       }
     });
+    var ringCircle = ring && ring.tagName === "circle" ? ring : null;
+    /* the faint full-circle orbit is a guide, not part of the story: it is hidden for the whole reveal (and stays
+       hidden), so no path exists before the light has drawn it, and the gap between "؟" and the first node stays open */
+    if (ringCircle) ringCircle.setAttribute("class", "cr-ring");
     return {
-      ring: ring && ring.tagName === "circle" ? wrap(ring) : null,
+      ringCircle: ringCircle,
+      ring: ringCircle ? wrap(ringCircle) : null,
       bloom: wrap(bloom), core: wrap(core),
       linesG: linesG, ray: ray, arc: arc, pulse: pulse, nodes: nodes
     };
@@ -150,7 +155,9 @@
     });
   }
   function restore() {                                 // full reset: styles, wrappers, stage classes
-    restoreStyles(); unwrapAll(); P = null;
+    restoreStyles(); unwrapAll();
+    if (P && P.ringCircle) { P.ringCircle.removeAttribute("class"); }   // back to the exact markup the chain builder drew
+    P = null;
     stage.classList.remove("cont-reveal"); stage.classList.remove("cont-light");
   }
 
