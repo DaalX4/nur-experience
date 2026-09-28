@@ -614,6 +614,7 @@
      Credit phase). */
   const finalSeq = { fade: null, show: null };
   function cancelFinalSequence() {
+    if (window.NUR_CONT_REVEAL) window.NUR_CONT_REVEAL.cancel();   // leaving / restarting: the Continuers page is put back as drawn
     clearTimeout(finalSeq.fade);
     clearTimeout(finalSeq.show);
     finalSeq.fade = null;
@@ -784,15 +785,21 @@
     phase2.classList.remove("show");
     if (adminHold) return;                                     // admin editing: page stays until the panel is closed
     const finalStage = document.getElementById("stage-final");
-    finalSeq.fade = setTimeout(() => {
-      finalSeq.fade = null;
-      if (!finalStage.classList.contains("active")) return;
-      phase1.classList.add("fade-out");
-      finalSeq.show = setTimeout(() => {
-        finalSeq.show = null;
-        if (finalStage.classList.contains("active")) phase2.classList.add("show");
-      }, PHASE1_FADE_MS);
-    }, delayMs);
+    // The existing, configurable hold (config.final.phase2DelaySec) and the fade to Credit - unchanged.
+    const scheduleHold = () => {
+      finalSeq.fade = setTimeout(() => {
+        finalSeq.fade = null;
+        if (!finalStage.classList.contains("active")) return;
+        phase1.classList.add("fade-out");
+        finalSeq.show = setTimeout(() => {
+          finalSeq.show = null;
+          if (finalStage.classList.contains("active")) phase2.classList.add("show");
+        }, PHASE1_FADE_MS);
+      }, delayMs);
+    };
+    // The Continuers page reveals itself piece by piece (continuers-reveal.js); the hold starts once the
+    // whole page is visible. Without the script (or with reduced motion) it starts immediately, as before.
+    if (window.NUR_CONT_REVEAL) window.NUR_CONT_REVEAL.start(scheduleHold); else scheduleHold();
   }
 
   const COUNTDOWN_EXIT_MS = 900; // must match @keyframes countdownExit's duration

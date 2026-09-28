@@ -49,11 +49,11 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
      never seen, so it's always fetched from origin, never an old cached
      copy, and every visitor's index.html always loads ITS OWN matching
      version of everything, never a mix. -->
-<link rel="stylesheet" href="styles.css?v=20260917-35">
+<link rel="stylesheet" href="styles.css?v=20260927-01">
 <!-- Projector/Memory stage styles - tiny (no media), safe to always load;
      see projector.js for why the frame/mask IMAGES only ever fetch when
      the feature is actually turned on. -->
-<link rel="stylesheet" href="projector.css?v=20260917-35">
+<link rel="stylesheet" href="projector.css?v=20260927-01">
 
 <style>
 /* ===== Final-stage polish only: intentionally isolated from the rest of the project ===== */
@@ -750,6 +750,26 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 }
 </style>
 
+<style id="nur-cont-reveal">
+/* Continuers staged reveal (continuers-reveal.js). Everything here is scoped to .cont-reveal, a class the
+   script puts on the Final stage ONLY while it runs its reveal (and leaves on for that visit); without it
+   (reduced motion, admin editing, script unavailable) the page behaves exactly as before. */
+#stage-final.cont-reveal .continuers{opacity:1 !important;filter:none !important;transform:none !important;animation:none !important}
+#stage-final.cont-reveal::after{display:none !important}
+#stage-final.active.cont-reveal::before{animation:none}
+#stage-final.active.cont-reveal.cont-light::before{animation:finalLightBloom 4.8s cubic-bezier(.22,.75,.2,1) both}
+#stage-final.cont-reveal #continuers{position:relative}
+/* one very soft aura behind the first sentence: a single gentle swell, then it settles away */
+.cr-halo{
+  position:absolute;transform:translate(-50%,-50%);z-index:-1;pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse at center,
+    rgba(253,246,227,.075) 0%,rgba(253,246,227,.058) 18%,rgba(253,246,227,.034) 40%,
+    rgba(253,246,227,.012) 62%,rgba(253,246,227,0) 84%);
+  filter:blur(22px);
+  animation:crHalo 4200ms cubic-bezier(.37,0,.63,1) both;
+}
+@keyframes crHalo{0%{opacity:0}42%{opacity:1}100%{opacity:0}}
+</style>
 </head>
 <body>
 
@@ -996,11 +1016,12 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 
 </main>
 
-<script src="config.js?v=20260917-35"></script>
-<script src="continuers-chain.js?v=20260917-35"></script>
-<script src="app.js?v=20260917-35"></script>
-<script src="projector.js?v=20260917-35"></script>
-<script src="admin-panel.js?v=20260917-35"></script>
+<script src="config.js?v=20260927-01"></script>
+<script src="continuers-chain.js?v=20260927-01"></script>
+<script src="continuers-reveal.js?v=20260927-01"></script>
+<script src="app.js?v=20260927-01"></script>
+<script src="projector.js?v=20260927-01"></script>
+<script src="admin-panel.js?v=20260927-01"></script>
 
 </body>
 </html>
