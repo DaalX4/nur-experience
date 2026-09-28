@@ -320,6 +320,7 @@
       root.setProperty(`--nur-cont-${key}-fs`, typeof c.fontSize === "number" ? c.fontSize : defaultFs);
       root.setProperty(`--nur-cont-${key}-x`, typeof c.x === "number" ? c.x : 0);
       root.setProperty(`--nur-cont-${key}-y`, typeof c.y === "number" ? c.y : 0);
+      root.setProperty(`--nur-cont-${key}-ws`, typeof c.wordSpacing === "number" ? c.wordSpacing : 0);
     });
     document.getElementById("finalSignature").textContent = config.final.signature;
 

@@ -49,11 +49,11 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
      never seen, so it's always fetched from origin, never an old cached
      copy, and every visitor's index.html always loads ITS OWN matching
      version of everything, never a mix. -->
-<link rel="stylesheet" href="styles.css?v=20260927-05">
+<link rel="stylesheet" href="styles.css?v=20260927-06">
 <!-- Projector/Memory stage styles - tiny (no media), safe to always load;
      see projector.js for why the frame/mask IMAGES only ever fetch when
      the feature is actually turned on. -->
-<link rel="stylesheet" href="projector.css?v=20260927-05">
+<link rel="stylesheet" href="projector.css?v=20260927-06">
 
 <style>
 /* ===== Final-stage polish only: intentionally isolated from the rest of the project ===== */
@@ -209,8 +209,11 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
   animation:finalMessageReveal 3.2s cubic-bezier(.2,.72,.18,1) .55s both;
 }
 #stage-final .cont-txt{
-  margin:0;max-width:min(92vw,720px);font-weight:400;white-space:pre-line;
+  margin:0;max-width:min(92vw,720px);font-weight:400;white-space:pre-wrap;   /* pre-wrap: spaces typed on purpose are kept (pre-line collapsed them) */
 }
+#stage-final .cont-top{word-spacing:calc(var(--nur-cont-top-ws,0) * 1px)}
+#stage-final .cont-title{word-spacing:calc(var(--nur-cont-title-ws,0) * 1px)}
+#stage-final .cont-bottom{word-spacing:calc(var(--nur-cont-bottom-ws,0) * 1px)}
 #stage-final .cont-top{
   font-size:calc(var(--nur-cont-top-fs,32) * 1px);line-height:1.75;margin-bottom:58px;
   transform:translate(calc(var(--nur-cont-top-x,0) * 1px), calc(var(--nur-cont-top-y,0) * 1px));
@@ -1020,12 +1023,12 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 
 </main>
 
-<script src="config.js?v=20260927-05"></script>
-<script src="continuers-chain.js?v=20260927-05"></script>
-<script src="continuers-reveal.js?v=20260927-05"></script>
-<script src="app.js?v=20260927-05"></script>
-<script src="projector.js?v=20260927-05"></script>
-<script src="admin-panel.js?v=20260927-05"></script>
+<script src="config.js?v=20260927-06"></script>
+<script src="continuers-chain.js?v=20260927-06"></script>
+<script src="continuers-reveal.js?v=20260927-06"></script>
+<script src="app.js?v=20260927-06"></script>
+<script src="projector.js?v=20260927-06"></script>
+<script src="admin-panel.js?v=20260927-06"></script>
 
 </body>
 </html>

@@ -348,14 +348,17 @@
         { type: "slider", path: ["final", "continuers", "top", "fontSize"], label: "پیام بالا: اندازه فونت", min: 12, max: 64, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "top", "x"], label: "پیام بالا: جابجایی افقی (چپ / راست)", min: -240, max: 240, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "top", "y"], label: "پیام بالا: جابجایی عمودی (بالا / پایین)", min: -140, max: 140, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
+        { type: "slider", path: ["final", "continuers", "top", "wordSpacing"], label: "پیام بالا: فاصله کلمات", min: 0, max: 40, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "textarea", path: ["final", "continuers", "title", "text"], label: "عنوان", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "title", "fontSize"], label: "عنوان: اندازه فونت", min: 12, max: 64, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "title", "x"], label: "عنوان: جابجایی افقی (چپ / راست)", min: -240, max: 240, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "title", "y"], label: "عنوان: جابجایی عمودی (بالا / پایین)", min: -140, max: 140, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
+        { type: "slider", path: ["final", "continuers", "title", "wordSpacing"], label: "عنوان: فاصله کلمات", min: 0, max: 40, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "textarea", path: ["final", "continuers", "bottom", "text"], label: "پیام پایین", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "bottom", "fontSize"], label: "پیام پایین: اندازه فونت", min: 12, max: 64, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "bottom", "x"], label: "پیام پایین: جابجایی افقی (چپ / راست)", min: -240, max: 240, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
         { type: "slider", path: ["final", "continuers", "bottom", "y"], label: "پیام پایین: جابجایی عمودی (بالا / پایین)", min: -140, max: 140, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
+        { type: "slider", path: ["final", "continuers", "bottom", "wordSpacing"], label: "پیام پایین: فاصله کلمات", min: 0, max: 40, step: 1, unit: "px", group: "صفحه ادامه‌دهندگان نور (فاز اول)" },
 
         { type: "slider", path: ["final", "offsetY"], label: "جابجایی کل بخش اعتبار (بالا/پایین)", help: "فقط بخش اعتبار و شبکه‌های اجتماعی را جابجا می‌کند.", min: -200, max: 200, step: 1, unit: "px", group: "اعتبار و شبکه‌های اجتماعی (فاز دوم)" },
 
