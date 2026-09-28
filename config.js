@@ -97,7 +97,13 @@
       gap: 10,
       greetingFontSize: 36,
       greetingGap: 22,
-      wordSpacing: 0
+      wordSpacing: 0,
+      /* Optional per-stage text overrides (empty = the normal, generated text). greetingWord replaces the word
+         "درود"; nameText replaces the name shown after it (default: the page's streamer name).
+         greetingWordSpacing (px) is for that first line only; -1 = same as the body's word spacing (as before). */
+      greetingWord: "",
+      nameText: "",
+      greetingWordSpacing: -1
     },
 
     envelope: {
@@ -116,7 +122,9 @@
       fontSize: 48,
       rotation: 0,
       gapToAziz: 8,
-      wordSpacing: 0
+      wordSpacing: 0,
+      /* Optional: the exact text of this line (empty = streamer name + " عزیز", as before). */
+      text: ""
     },
 
     /* The three letter pages used to be baked-text PNGs; the artwork is now

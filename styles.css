@@ -492,7 +492,7 @@ body.nur-pulse{
 #stage-intro .scene-text p.greeting{
   font-size:calc(var(--nur-intro-greeting-font-size) * var(--nur-scale));
   margin-bottom:var(--nur-intro-greeting-gap);
-  word-spacing:var(--nur-intro-word-spacing);
+  word-spacing:var(--nur-intro-greeting-word-spacing, var(--nur-intro-word-spacing));
 }
 #stage-intro .scene-body p{
   white-space:pre-wrap;

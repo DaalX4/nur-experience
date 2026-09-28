@@ -37,6 +37,10 @@
       label: "اینترو",
       screen: { stage: "stage-intro" },
       fields: [
+        { type: "text", path: ["intro", "greetingWord"], label: "کلمه‌ی خوش‌آمد (خالی = «درود»)", placeholder: "درود" },
+        { type: "text", path: ["intro", "nameText"], label: "نام/عبارت نمایشی این صفحه (خالی = نام صفحه)", placeholder: () => draft.streamerName || "" },
+        { type: "slider", path: ["intro", "greetingWordSpacing"], label: "فاصله کلمات خط اول (−۱ = مثل متن اصلی)", min: -1, max: 40, step: 1, unit: "px" },
+        { type: "actionButton", buttonLabel: "اعمال این نام روی همه‌ی صفحه‌ها (پاکت و نامه ۱)", help: "فقط وقتی کلیک کنی اعمال می‌شود؛ ویرایش عادی فقط روی همین صفحه است.", action: () => applyNameToAllStages() },
         { type: "textarea", path: ["intro", "body"], label: "متن اینترو (خط خالی = پاراگراف جدید)" },
         { type: "slider", path: ["intro", "offsetX"], label: "جابجایی چپ/راست", min: -200, max: 200, step: 1, unit: "px" },
         { type: "slider", path: ["intro", "offsetY"], label: "جابجایی بالا/پایین", min: -200, max: 200, step: 1, unit: "px" },
@@ -68,6 +72,7 @@
       screen: { stage: "stage-letter", letterPage: 1 },
       dragTarget: { path: ["letterPage1", "button"], elementId: "toPage2" },
       fields: [
+        { type: "text", path: ["letterName", "text"], label: "متن نام (خالی = نام صفحه + «عزیز»)", placeholder: () => (draft.streamerName || "") + " عزیز" },
         { type: "slider", path: ["letterName", "x"], label: "X (فاصله از راست)", min: 0, max: 45, step: 0.5, unit: "%" },
         { type: "slider", path: ["letterName", "y"], label: "Y (فاصله از بالا)", min: 0, max: 55, step: 0.5, unit: "%" },
         { type: "slider", path: ["letterName", "fontSize"], label: "اندازه فونت", min: 16, max: 90, step: 1, unit: "px" },
@@ -412,6 +417,20 @@
     }
   }
 
+  /* Optional, explicit action (never runs on normal editing): take the name shown on the intro (or the page's
+     name) and put it on the other name lines - the envelope greeting (its {name}) and the letter's name line. */
+  function applyNameToAllStages() {
+    const v = String(getPath(draft, ["intro", "nameText"]) || "").trim() || String(draft.streamerName || "").replace(/^@/, "").trim();
+    if (!v) return;
+    if (!window.confirm("این نام روی اینترو، صفحه‌ی پاکت و نامه‌ی صفحه ۱ اعمال شود؟\n(تا وقتی «ذخیره» نزنی فقط پیش‌نمایش است)")) return;
+    setPath(draft, ["intro", "nameText"], v);
+    const g = String(getPath(draft, ["envelope", "greeting"]) || "");
+    if (g.indexOf("{name}") >= 0) setPath(draft, ["envelope", "greeting"], g.split("{name}").join(v));
+    setPath(draft, ["letterName", "text"], v + " عزیز");
+    livePreview();
+    renderTabContent();
+  }
+
   function livePreview() {
     window.NUR_APP.previewConfig(api.deepClone(draft));
     updateStreamerUi();
@@ -469,6 +488,7 @@
       input.type = "text";
       input.className = "nurap-input";
       input.value = value || "";
+      if (field.placeholder) input.placeholder = typeof field.placeholder === "function" ? field.placeholder() : field.placeholder;
       input.addEventListener("input", () => {
         setPath(draft, field.path, input.value);
         livePreview();

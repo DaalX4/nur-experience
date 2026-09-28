@@ -148,11 +148,18 @@
 
   function renderStreamerName(config) {
     const name = (effectiveStreamerName || config.streamerName || "").replace(/^@/, "");
-    setHandle(document.getElementById("introHandle"), name);
+    // Per-stage text overrides: empty = the generated default, so a config without them renders exactly as before.
+    const introCfg = config.intro || {};
+    const introName = String(introCfg.nameText || "").trim() ? String(introCfg.nameText) : name;
+    setHandle(document.getElementById("introHandle"), introName);
+    const greetWordEl = document.getElementById("introGreetingWord");
+    if (greetWordEl) greetWordEl.textContent = String(introCfg.greetingWord || "").trim() ? String(introCfg.greetingWord) : "درود";
     renderNameTemplate(document.getElementById("envelopeGreeting"), config.envelope.greeting, name);
 
     const nameOverlay = document.getElementById("letterNameOverlay");
     nameOverlay.textContent = "";
+    const letterOverride = String((config.letterName && config.letterName.text) || "").trim();
+    if (letterOverride) { nameOverlay.textContent = letterOverride; return; }   // the exact text typed for this stage
     const bdi = document.createElement("bdi");
     bdi.className = "handle";
     bdi.textContent = name;
@@ -174,6 +181,12 @@
     root.setProperty("--nur-intro-greeting-font-size", config.intro.greetingFontSize + "px");
     root.setProperty("--nur-intro-greeting-gap", config.intro.greetingGap + "px");
     root.setProperty("--nur-intro-word-spacing", config.intro.wordSpacing + "px");
+    // First line (greeting + name) only; a negative/absent value = follow the body's spacing, as before.
+    if (typeof config.intro.greetingWordSpacing === "number" && config.intro.greetingWordSpacing >= 0) {
+      root.setProperty("--nur-intro-greeting-word-spacing", config.intro.greetingWordSpacing + "px");
+    } else {
+      root.removeProperty("--nur-intro-greeting-word-spacing");
+    }
     renderParagraphs(document.getElementById("introBody"), config.intro.body);
 
     root.setProperty("--nur-envelope-y", config.envelope.offsetY + "px");
