@@ -149,11 +149,21 @@
   function renderStreamerName(config) {
     const name = (effectiveStreamerName || config.streamerName || "").replace(/^@/, "");
     // Per-stage text overrides: empty = the generated default, so a config without them renders exactly as before.
+    // Intro line: not set (null/absent) = the default text; set to empty = intentionally nothing there.
     const introCfg = config.intro || {};
-    const introName = String(introCfg.nameText || "").trim() ? String(introCfg.nameText) : name;
-    setHandle(document.getElementById("introHandle"), introName);
+    const introName = introCfg.nameLineText == null ? name : String(introCfg.nameLineText).trim();
+    const introWord = introCfg.greetingText == null ? "درود" : String(introCfg.greetingText).trim();
+    const introHandleEl = document.getElementById("introHandle");
+    setHandle(introHandleEl, introName);
     const greetWordEl = document.getElementById("introGreetingWord");
-    if (greetWordEl) greetWordEl.textContent = String(introCfg.greetingWord || "").trim() ? String(introCfg.greetingWord) : "درود";
+    if (greetWordEl) greetWordEl.textContent = introWord;
+    const showWord = introWord !== "", showName = introName !== "";
+    if (greetWordEl) greetWordEl.hidden = !showWord;
+    introHandleEl.hidden = !showName;
+    const greetGapEl = document.getElementById("introGreetingGap");
+    if (greetGapEl) greetGapEl.hidden = !(showWord && showName);
+    const greetLineEl = document.querySelector("#stage-intro p.greeting");
+    if (greetLineEl) greetLineEl.hidden = !(showWord || showName);
     renderNameTemplate(document.getElementById("envelopeGreeting"), config.envelope.greeting, name);
 
     const nameOverlay = document.getElementById("letterNameOverlay");

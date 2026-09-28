@@ -101,8 +101,12 @@
       /* Optional per-stage text overrides (empty = the normal, generated text). greetingWord replaces the word
          "درود"; nameText replaces the name shown after it (default: the page's streamer name).
          greetingWordSpacing (px) is for that first line only; -1 = same as the body's word spacing (as before). */
-      greetingWord: "",
-      nameText: "",
+      greetingWord: "",   // legacy (first release): only migrated into greetingText below
+      nameText: "",       // legacy (first release): only migrated into nameLineText below
+      /* Tri-state: null = not set -> the normal text ("درود" / the page's streamer name);
+         "" = set to empty on purpose -> nothing is shown there; any other text = shown as typed. */
+      greetingText: null,
+      nameLineText: null,
       greetingWordSpacing: -1
     },
 
@@ -547,6 +551,12 @@
       } else if (saved[key] !== undefined && typeof merged[key] !== "object") {
         merged[key] = saved[key];
       }
+    }
+    // Carry a first-release override over to its tri-state key (a legacy empty string means "not set").
+    const it = merged.intro;
+    if (it) {
+      if (it.greetingText == null && typeof it.greetingWord === "string" && it.greetingWord.trim()) it.greetingText = it.greetingWord;
+      if (it.nameLineText == null && typeof it.nameText === "string" && it.nameText.trim()) it.nameLineText = it.nameText;
     }
     return merged;
   }

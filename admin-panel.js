@@ -37,8 +37,8 @@
       label: "اینترو",
       screen: { stage: "stage-intro" },
       fields: [
-        { type: "text", path: ["intro", "greetingWord"], label: "کلمه‌ی خوش‌آمد (خالی = «درود»)", placeholder: "درود" },
-        { type: "text", path: ["intro", "nameText"], label: "نام/عبارت نمایشی این صفحه (خالی = نام صفحه)", placeholder: () => draft.streamerName || "" },
+        { type: "text", nullable: true, path: ["intro", "greetingText"], label: "کلمه‌ی خوش‌آمد (خالی = نمایش داده نشود)", placeholder: "درود" },
+        { type: "text", nullable: true, path: ["intro", "nameLineText"], label: "نام/عبارت نمایشی این صفحه (خالی = نمایش داده نشود)", placeholder: () => draft.streamerName || "" },
         { type: "slider", path: ["intro", "greetingWordSpacing"], label: "فاصله کلمات خط اول (−۱ = مثل متن اصلی)", min: -1, max: 40, step: 1, unit: "px" },
         { type: "actionButton", buttonLabel: "اعمال این نام روی همه‌ی صفحه‌ها (پاکت و نامه ۱)", help: "فقط وقتی کلیک کنی اعمال می‌شود؛ ویرایش عادی فقط روی همین صفحه است.", action: () => applyNameToAllStages() },
         { type: "textarea", path: ["intro", "body"], label: "متن اینترو (خط خالی = پاراگراف جدید)" },
@@ -420,10 +420,10 @@
   /* Optional, explicit action (never runs on normal editing): take the name shown on the intro (or the page's
      name) and put it on the other name lines - the envelope greeting (its {name}) and the letter's name line. */
   function applyNameToAllStages() {
-    const v = String(getPath(draft, ["intro", "nameText"]) || "").trim() || String(draft.streamerName || "").replace(/^@/, "").trim();
+    const v = String(getPath(draft, ["intro", "nameLineText"]) || "").trim() || String(draft.streamerName || "").replace(/^@/, "").trim();
     if (!v) return;
     if (!window.confirm("این نام روی اینترو، صفحه‌ی پاکت و نامه‌ی صفحه ۱ اعمال شود؟\n(تا وقتی «ذخیره» نزنی فقط پیش‌نمایش است)")) return;
-    setPath(draft, ["intro", "nameText"], v);
+    setPath(draft, ["intro", "nameLineText"], v);
     const g = String(getPath(draft, ["envelope", "greeting"]) || "");
     if (g.indexOf("{name}") >= 0) setPath(draft, ["envelope", "greeting"], g.split("{name}").join(v));
     setPath(draft, ["letterName", "text"], v + " عزیز");
@@ -488,12 +488,33 @@
       input.type = "text";
       input.className = "nurap-input";
       input.value = value || "";
-      if (field.placeholder) input.placeholder = typeof field.placeholder === "function" ? field.placeholder() : field.placeholder;
-      input.addEventListener("input", () => {
-        setPath(draft, field.path, input.value);
-        livePreview();
-      });
-      row.appendChild(input);
+      const defaultPh = field.placeholder ? (typeof field.placeholder === "function" ? field.placeholder() : field.placeholder) : "";
+      if (field.nullable) {
+        /* tri-state: "not set" (null) shows the default text greyed out; an empty box the admin typed means
+           "show nothing" on purpose; the small button returns to "not set" */
+        const setPh = () => {
+          const v = getPath(draft, field.path);
+          input.placeholder = (v === null || v === undefined) ? defaultPh : "— خالی: چیزی نمایش داده نمی‌شود —";
+        };
+        setPh();
+        input.addEventListener("input", () => { setPath(draft, field.path, input.value); setPh(); livePreview(); });
+        const dflt = document.createElement("button");
+        dflt.type = "button";
+        dflt.className = "nurap-btn nurap-btn--ghost";
+        dflt.textContent = "پیش‌فرض";
+        dflt.addEventListener("click", () => { setPath(draft, field.path, null); input.value = ""; setPh(); livePreview(); });
+        const line = document.createElement("div");
+        line.style.cssText = "display:flex;gap:8px;align-items:center";
+        line.appendChild(input); line.appendChild(dflt);
+        row.appendChild(line);
+      } else {
+        if (defaultPh) input.placeholder = defaultPh;
+        input.addEventListener("input", () => {
+          setPath(draft, field.path, input.value);
+          livePreview();
+        });
+        row.appendChild(input);
+      }
     } else if (field.type === "continuersManager") {
       row.appendChild(buildContinuersManager());
     } else if (field.type === "youtubeSource") {
