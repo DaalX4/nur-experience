@@ -31,6 +31,26 @@
   applyScaleVars();
   let scaleRaf = 0;
   window.addEventListener("resize", () => { cancelAnimationFrame(scaleRaf); scaleRaf = requestAnimationFrame(applyScaleVars); });
+
+  /* Fixes an intermittent bug: the Letter-1 name overlay is the ONLY thing on the page that uses
+     DigiDerakhshandeh (see its @font-face comment in styles.css) - stage-letter is display:none until
+     the envelope opens, and a browser only starts fetching an @font-face file once something using it is
+     actually laid out, so on a first visit (or a slow/uncached connection) that download did not even
+     START until the exact moment the user opened the envelope. The overlay painted at once in the Tahoma
+     fallback (visibly wider/larger for this Farsi text at the same px size), then snapped to the real
+     font a moment later - the "large text flash" this closes. Warming both custom fonts here, as early
+     as page load, means the file is normally long since cached by the time anyone could reach Letter 1
+     (index.html also <link rel="preload">s it, so the fetch starts even before this script runs); the
+     short capped wait in openEnvelope() below is only a safety net for a genuinely slow connection. */
+  let letterFontsReady = null;
+  function warmLetterNameFont() {
+    if (letterFontsReady || !(document.fonts && document.fonts.load)) return;
+    letterFontsReady = Promise.all([
+      document.fonts.load('700 60px "DigiDerakhshandeh"').catch(() => {}),
+      document.fonts.load('700 20px "DigiSarve"').catch(() => {}),
+    ]);
+  }
+  warmLetterNameFont();
   let currentConfig = configApi.loadConfig();
   // Set once the admin commits a local edit (Save/Reset/Import - see
   // window.NUR_APP.applyConfig below) - guards the one-time boot fetch
@@ -678,7 +698,11 @@
    *  Envelope → letter
    * ------------------------------------------------------------------ */
   const envelopeScene = document.getElementById("openEnvelope");
-  function openEnvelope() {
+  async function openEnvelope() {
+    // Near-instant in the normal case (the font was warmed at page load, well before this click could
+    // ever happen) - only a genuinely slow connection actually waits here, capped so it can never look
+    // like a stall. See warmLetterNameFont() above for the root cause this closes.
+    if (letterFontsReady) await Promise.race([letterFontsReady, new Promise((resolve) => setTimeout(resolve, 350))]);
     show("stage-letter");
   }
   envelopeScene.addEventListener("click", openEnvelope);
