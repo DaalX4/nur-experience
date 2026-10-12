@@ -444,9 +444,11 @@ body.nur-pulse{
   to{opacity:0;filter:blur(18px)}
 }
 @media (prefers-reduced-motion: reduce){
-  .stage.active{animation:none}
+  /* no blur/zoom for these visitors, but still a gentle fade in - never a hard cut between stages */
+  .stage.active{animation:sceneInSoft .8s ease both}
   .stage.leaving{animation:none;opacity:0}
 }
+@keyframes sceneInSoft{from{opacity:0}to{opacity:1}}
 
 /* ==========================================================================
    Full-screen text scenes (intro / leaving / before-open)

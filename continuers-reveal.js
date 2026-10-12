@@ -368,9 +368,12 @@
 
   function start(onDone) {
     restore();                                          // always from a clean, exactly-as-drawn chain
-    var reduced = false;
-    try { reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { /* ignore */ }
-    if (reduced || !stage.classList.contains("active")) { if (onDone) onDone(); return; }
+    /* Deliberately NOT skipped for prefers-reduced-motion: that shortcut used to jump straight to the finished
+       page (every circle, name and path at once) for any visitor whose device has "reduce motion"/"remove
+       animations"/battery-saver on - the intermittent "no reveal" report. The reveal is only slow opacity fades
+       and a thin line being drawn (no movement, zoom or flashing), which is what reduced-motion users can
+       still be given. */
+    if (!stage.classList.contains("active")) { if (onDone) onDone(); return; }
     stage.classList.add("cont-reveal");                 // css hooks (index.html): no block entrance, no sparkle trio, bloom waits
     P = analyse();
     if (!P) { stage.classList.remove("cont-reveal"); if (onDone) onDone(); return; }
