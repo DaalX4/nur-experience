@@ -333,7 +333,7 @@
     // text + font size + x/y offset. Sizes/offsets are unitless numbers here;
     // index.html's .cont-* rules multiply by 1px.
     const cont = (config.final && config.final.continuers) || {};
-    [["top", "contTop", 32, 100], ["title", "contTitle", 23, 100], ["bottom", "contBottom", 17, 85]].forEach(([key, id, defaultFs, defaultOp]) => {
+    [["top", "contTop", 32, 100], ["title", "contTitle", 23, 100], ["bottom", "contBottom", 17, 100]].forEach(([key, id, defaultFs, defaultOp]) => {
       const c = cont[key] || {};
       const el = document.getElementById(id);
       if (el) el.textContent = typeof c.text === "string" ? c.text : "";

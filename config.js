@@ -260,7 +260,7 @@
       continuers: {
         top:    { text: "این نور دیگه بخشی از تو شده،\nولی پایان راه نیست.", fontSize: 32, x: 0, y: 0, wordSpacing: 0, opacity: 100 },
         title:  { text: "ادامه‌دهندگان نور",                                   fontSize: 23, x: 0, y: 0, wordSpacing: 0, opacity: 100 },
-        bottom: { text: "مسیر بعدی نور، می‌تونه با تو ادامه پیدا کنه...",       fontSize: 17, x: 0, y: 0, wordSpacing: 0, opacity: 85 }
+        bottom: { text: "مسیر بعدی نور، می‌تونه با تو ادامه پیدا کنه...",       fontSize: 17, x: 0, y: 0, wordSpacing: 0, opacity: 100 }
       },
       mainFontSize: 34,
       mainOffsetY: 0,
