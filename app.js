@@ -899,10 +899,12 @@
     const proj = currentConfig.projector;
     if (proj && proj.enabled && window.NUR_PROJECTOR) {
       show("stage-projector");
-      let handedOff = false; // a fast double-click on Continue must not run the Final entrance twice
       window.NUR_PROJECTOR.start(proj, () => {
-        if (handedOff) return;
-        handedOff = true;
+        // A fast double-click on Continue must not run the Final entrance twice: after the first one the projector is
+        // no longer the active stage, so the second is ignored. (This used to be a one-way "already handed off" flag,
+        // which stayed true for the rest of the page's life - so once Final had been reached, re-entering the
+        // projector in the admin preview, e.g. right after uploading a new video, left Continue dead.)
+        if (!document.getElementById("stage-projector").classList.contains("active")) return;
         show("stage-final");
         revealSignature();
       });
