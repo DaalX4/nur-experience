@@ -258,9 +258,9 @@
          two-line message this page replaced): kept only so an existing
          saved config still merges cleanly; nothing reads them any more. */
       continuers: {
-        top:    { text: "این نور دیگه بخشی از تو شده،\nولی پایان راه نیست.", fontSize: 32, x: 0, y: 0, wordSpacing: 0 },
-        title:  { text: "ادامه‌دهندگان نور",                                   fontSize: 23, x: 0, y: 0, wordSpacing: 0 },
-        bottom: { text: "مسیر بعدی نور، می‌تونه با تو ادامه پیدا کنه...",       fontSize: 17, x: 0, y: 0, wordSpacing: 0 }
+        top:    { text: "این نور دیگه بخشی از تو شده،\nولی پایان راه نیست.", fontSize: 32, x: 0, y: 0, wordSpacing: 0, opacity: 100 },
+        title:  { text: "ادامه‌دهندگان نور",                                   fontSize: 23, x: 0, y: 0, wordSpacing: 0, opacity: 100 },
+        bottom: { text: "مسیر بعدی نور، می‌تونه با تو ادامه پیدا کنه...",       fontSize: 17, x: 0, y: 0, wordSpacing: 0, opacity: 85 }
       },
       mainFontSize: 34,
       mainOffsetY: 0,
@@ -553,6 +553,10 @@
         merged[key] = saved[key];
       }
     }
+    // Saved configs predate the Continuers text opacity: fill it from the defaults (which are what the page always showed),
+    // so the admin slider starts at the real value instead of an empty one. (final is merged one level deep only.)
+    const fc = merged.final && merged.final.continuers, dc = DEFAULT_CONFIG.final.continuers;
+    if (fc) ["top", "title", "bottom"].forEach((k) => { if (fc[k] && typeof fc[k].opacity !== "number") fc[k].opacity = dc[k].opacity; });
     // Carry a first-release override over to its tri-state key (a legacy empty string means "not set").
     const it = merged.intro;
     if (it) {

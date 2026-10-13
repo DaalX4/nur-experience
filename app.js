@@ -333,7 +333,7 @@
     // text + font size + x/y offset. Sizes/offsets are unitless numbers here;
     // index.html's .cont-* rules multiply by 1px.
     const cont = (config.final && config.final.continuers) || {};
-    [["top", "contTop", 32], ["title", "contTitle", 23], ["bottom", "contBottom", 17]].forEach(([key, id, defaultFs]) => {
+    [["top", "contTop", 32, 100], ["title", "contTitle", 23, 100], ["bottom", "contBottom", 17, 85]].forEach(([key, id, defaultFs, defaultOp]) => {
       const c = cont[key] || {};
       const el = document.getElementById(id);
       if (el) el.textContent = typeof c.text === "string" ? c.text : "";
@@ -341,6 +341,7 @@
       root.setProperty(`--nur-cont-${key}-x`, typeof c.x === "number" ? c.x : 0);
       root.setProperty(`--nur-cont-${key}-y`, typeof c.y === "number" ? c.y : 0);
       root.setProperty(`--nur-cont-${key}-ws`, typeof c.wordSpacing === "number" ? c.wordSpacing : 0);
+      root.setProperty(`--nur-cont-${key}-op`, typeof c.opacity === "number" ? Math.max(0, Math.min(100, c.opacity)) : defaultOp);   // percent; defaults are what the page always had
     });
     document.getElementById("finalSignature").textContent = config.final.signature;
 
