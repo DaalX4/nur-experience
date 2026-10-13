@@ -60,11 +60,11 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
      already do - by the time anyone could reach Letter 1 the font is normally long since cached. See
      app.js's warmLetterNameFont()/openEnvelope() for the remaining (near-instant) safety wait. -->
 <link rel="preload" as="font" type="font/ttf" href="assets/fonts/DigiDerakhshandeh.ttf" crossorigin>
-<link rel="stylesheet" href="styles.css?v=20260929-05">
+<link rel="stylesheet" href="styles.css?v=20260929-06">
 <!-- Projector/Memory stage styles - tiny (no media), safe to always load;
      see projector.js for why the frame/mask IMAGES only ever fetch when
      the feature is actually turned on. -->
-<link rel="stylesheet" href="projector.css?v=20260929-05">
+<link rel="stylesheet" href="projector.css?v=20260929-06">
 
 <style>
 /* ===== Final-stage polish only: intentionally isolated from the rest of the project ===== */
@@ -144,52 +144,9 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
   pointer-events:none;
 }
 
-#stage-final .final-message{
-  margin:0;
-  opacity:0;
-  filter:blur(15px);
-  transform:translateY(16px) scale(.985);
-  color:#f6f4ed;
-  text-wrap:balance;
-  text-shadow:
-    0 1px 0 rgba(0,0,0,.12),
-    0 0 22px rgba(212,231,197,.08);
-}
 #stage-final .scene-text{
   transform:translateY(var(--nur-final-y));
 }
-#stage-final .final-message-main{
-  font-size:calc(var(--nur-final-font-size) * var(--nur-scale));
-  font-weight:700;
-  line-height:1.5;
-  word-spacing:var(--nur-final-word-spacing);
-  /* Independent vertical nudge (Module: "split the shared position
-     control into separate top/bottom controls") - position:relative/top,
-     deliberately NOT transform:translateY(), since the entrance
-     animation below (finalMessageReveal) already animates transform on
-     this same element and its 100% keyframe locks transform:translateY(0)
-     in place once the animation finishes (fill-mode:both) - a second
-     translateY here would just get silently overwritten. top is a
-     completely different property, so it stacks cleanly with the
-     animation instead of fighting it. Default 0px = no change from the
-     existing look. */
-  position:relative;
-  top:var(--nur-final-main-y,0px);
-}
-#stage-final .final-message-sub{
-  margin-top:22px;
-  font-size:calc(var(--nur-final-sub-font-size,clamp(18px,2vw,26px)) * var(--nur-scale));
-  font-weight:500;
-  line-height:1.9;
-  color:#eae8dd;
-  word-spacing:var(--nur-final-word-spacing);
-  /* Same technique as .final-message-main above - this is what actually
-     lets the admin change the GAP between the two lines, since it moves
-     independently of margin-top and of the entrance animation. */
-  position:relative;
-  top:var(--nur-final-sub-y,0px);
-}
-
 /* PHASE 1 (continuers page) - the approved prototype composition. Everything
    is scoped under #stage-final; class/keyframe names are prefixed cont/cont*
    so nothing here can collide with another stage.
@@ -200,7 +157,7 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
      Credit phase).
    - It reuses the existing reveal (finalMessageReveal) and the existing
      .final-phase1 fade-out, so entrance/exit timing is unchanged.
-   (The old #stage-final .final-message-main/-sub rules below are now unused.) */
+   */
 #stage-final .final-phase1{
   grid-area:auto;
   position:absolute;
@@ -214,7 +171,7 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 #stage-final .continuers{
   display:flex;flex-direction:column;align-items:center;text-align:center;
   color:var(--text);
-  opacity:0;filter:blur(15px);transform:translateY(16px) scale(.985); /* = .final-message initial state */
+  opacity:0;filter:blur(15px);transform:translateY(16px) scale(.985); /* initial state of the entrance (finalMessageReveal) */
 }
 #stage-final.active .continuers{
   animation:finalMessageReveal 3.2s cubic-bezier(.2,.72,.18,1) .55s both;
@@ -375,10 +332,6 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
   animation:finalSparkle 5.2s ease both;
 }
 
-#stage-final.active .final-message{
-  animation:finalMessageReveal 3.2s cubic-bezier(.2,.72,.18,1) .55s both;
-}
-
 @keyframes finalLightBloom{
   0%{
     opacity:0;
@@ -444,15 +397,6 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
   #stage-final .scene-text{
     width:88vw;
   }
-  #stage-final .final-message-main{
-    font-size:clamp(22px,6vw,30px);
-    line-height:1.45;
-  }
-  #stage-final .final-message-sub{
-    margin-top:16px;
-    font-size:clamp(16px,4.4vw,20px);
-    line-height:1.8;
-  }
   #stage-final .final-signature{
     margin-top:64px;
     font-size:16px;
@@ -470,7 +414,6 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 @media (prefers-reduced-motion:reduce){
   #stage-final.active::before,
   #stage-final.active::after,
-  #stage-final.active .final-message,
   #stage-final.active .continuers{
     animation-duration:.01ms !important;
     animation-delay:0ms !important;
@@ -1038,14 +981,14 @@ html.nur-boot-out body{animation:nurBootIn .5s ease both}
 
 </main>
 
-<script src="config.js?v=20260929-05"></script>
-<script src="continuers-chain.js?v=20260929-05"></script>
-<script src="continuers-reveal.js?v=20260929-05"></script>
-<script src="app.js?v=20260929-05"></script>
-<script src="video-prep.js?v=20260929-05"></script>
-<script src="projector.js?v=20260929-05"></script>
-<script src="projector-controls.js?v=20260929-05"></script>
-<script src="admin-panel.js?v=20260929-05"></script>
+<script src="config.js?v=20260929-06"></script>
+<script src="continuers-chain.js?v=20260929-06"></script>
+<script src="continuers-reveal.js?v=20260929-06"></script>
+<script src="app.js?v=20260929-06"></script>
+<script src="video-prep.js?v=20260929-06"></script>
+<script src="projector.js?v=20260929-06"></script>
+<script src="projector-controls.js?v=20260929-06"></script>
+<script src="admin-panel.js?v=20260929-06"></script>
 
 </body>
 </html>

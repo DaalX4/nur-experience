@@ -123,7 +123,10 @@
     var c = job.cands, acceptable = c.filter(function (x) { return x.rank >= 1; });
     acceptable.sort(function (a, b) { return a.size - b.size; });
     var safe = acceptable[0] || c[0];
-    var higher = acceptable.filter(function (x) { return x.rank > safe.rank && x.size > safe.size * 1.1; });
+    /* the better copy only when it is a modest step up (at most ~1.6x the safe copy): a big original (e.g. a 63 MB 720p
+       file next to a 29 MB 480p one) would double the data a visitor - often on a weak or shared connection - has to
+       pull, and double the memory held, for a picture that is only shown ~650-900 px wide anyway */
+    var higher = acceptable.filter(function (x) { return x.rank > safe.rank && x.size > safe.size * 1.1 && x.size <= safe.size * 1.6; });
     higher.sort(function (a, b) { return a.size - b.size; });
     var emergency = c.filter(function (x) { return x.rank === 0 && x.size < safe.size; })[0] || null;
     job.plan = { safe: safe, best: higher[0] || null, emergency: emergency };
@@ -223,6 +226,12 @@
     if (isBest) job.bestReadyAt = now();
     mark("ready", { tier: d.cand.name, sec: +((now() - d.t0) / 1000).toFixed(1) });
     warmUp(job.ready[d.cand.name]);
+    /* the better copy has replaced the safe one: release the safe copy's memory, unless the projector already took it */
+    if (isBest && !job.acquired) {
+      Object.keys(job.ready).forEach(function (k) {
+        if (k !== d.cand.name) { try { URL.revokeObjectURL(job.ready[k].blobUrl); } catch (e) { /* ignore */ } delete job.ready[k]; }
+      });
+    }
     wake();
   }
   /* a decoded-and-waiting <video> so the first frame is painted the instant Play is pressed */
@@ -300,6 +309,7 @@
     if (r) {
       var el = null;
       if (job.warm && job.warm.tier === r.name) { el = job.warm.el; job.warm = null; }
+      job.acquired = true;
       mark("acquire", { kind: "blob", tier: r.name, warm: !!el });
       return { kind: "blob", src: r.blobUrl, el: el, tier: r.name };
     }
