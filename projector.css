@@ -762,3 +762,47 @@
 .proj-dots i:nth-child(3){animation-delay:.44s}
 @keyframes projDot{0%,70%,100%{opacity:.25;transform:scale(.8)}35%{opacity:1;transform:scale(1.15)}}
 @media (prefers-reduced-motion:reduce){.proj-dots i{animation:none;opacity:.7}}
+
+/* Playback controls feedback (projector-controls.js): a brief centered pause/play icon and a small "-5s"/"+5s" tag.
+   Pure CSS/SVG, opacity + a tiny scale only, never interactive, gone within a second. */
+.proj-ctl-fx{
+  position:absolute;
+  left:50%; top:50%;
+  z-index:8;
+  display:none;
+  align-items:center; justify-content:center;
+  pointer-events:none;
+  color:#f6efe0;
+  font-family:var(--font-display);
+}
+.proj-ctl-fx.show{display:flex; animation:projCtlFx .8s ease-out both}
+.proj-ctl-fx--pause,
+.proj-ctl-fx--play{
+  width:clamp(52px,6vw,76px);
+  height:clamp(52px,6vw,76px);
+  margin:calc(clamp(52px,6vw,76px) / -2) 0 0 calc(clamp(52px,6vw,76px) / -2);
+  border-radius:50%;
+  background:rgba(20,16,10,.5);
+}
+.proj-ctl-fx--pause svg,
+.proj-ctl-fx--play svg{width:46%;height:46%;fill:currentColor}
+.proj-ctl-fx--play svg{margin-left:6%}
+.proj-ctl-fx--seek{
+  padding:6px 16px;
+  border-radius:999px;
+  background:rgba(20,16,10,.5);
+  font-size:15px;
+  line-height:1.2;
+  transform:translate(-50%,-50%);
+  direction:ltr;
+}
+@keyframes projCtlFx{
+  0%{opacity:0;scale:.86}
+  18%{opacity:1;scale:1}
+  60%{opacity:1;scale:1}
+  100%{opacity:0;scale:1.06}
+}
+@media (prefers-reduced-motion:reduce){
+  .proj-ctl-fx.show{animation-name:projCtlFxSoft}
+  @keyframes projCtlFxSoft{0%{opacity:0}18%{opacity:1}60%{opacity:1}100%{opacity:0}}
+}
