@@ -313,16 +313,20 @@
     });
     await sleep(T.emptySky); if (!live()) return;
 
-    /* 2-3) sentences (with one very soft aura behind the first) */
+    /* 2-3) sentences (with one very soft aura behind the first one that exists). The timeline is built from the
+       text that is really there: a section left empty on purpose is skipped together with its fade AND the wait that
+       belongs to it, so the next real step follows at once (sections that do have text keep exactly their old timing). */
+    function hasText(id) { var e = $(id); return !!(e && String(e.textContent || "").replace(/\s+/g, "") !== ""); }
+    var hasTop = hasText("contTop"), hasTitle = hasText("contTitle"), hasBottom = hasText("contBottom");
     (function halo() {
-      var cont = $("continuers"), top = $("contTop"); if (!cont || !top) return;
+      var cont = $("continuers"), top = hasTop ? $("contTop") : hasTitle ? $("contTitle") : null; if (!cont || !top) return;
       var h = document.createElement("div"); h.className = "cr-halo";
       var w = Math.max(top.offsetWidth * 1.3, 320), ht = Math.max(top.offsetHeight * 3.4, 150);
       h.style.cssText = "width:" + w + "px;height:" + ht + "px;left:" + (top.offsetLeft + top.offsetWidth / 2) + "px;top:" + (top.offsetTop + top.offsetHeight / 2) + "px;animation-duration:" + T.haloTotal + "ms";
       cont.insertBefore(h, cont.firstChild);
     })();
-    fade($("contTop"), T.top); await sleep(T.top + T.gapToTitle); if (!live()) return;
-    fade($("contTitle"), T.title); await sleep(T.title + T.gapToLight); if (!live()) return;
+    if (hasTop) { fade($("contTop"), T.top); await sleep(T.top + (hasTitle ? T.gapToTitle : T.gapToLight)); if (!live()) return; }
+    if (hasTitle) { fade($("contTitle"), T.title); await sleep(T.title + T.gapToLight); if (!live()) return; }
 
     /* 4) the existing center light (its own breathing/flicker keeps running inside the wrappers); the
           page's own soft bloom starts with it */
@@ -354,8 +358,10 @@
     }
 
     /* 8) bottom sentence */
-    await sleep(T.gapToBottom); if (!live()) return;
-    fade($("contBottom"), T.bottom); await sleep(T.bottom); if (!live()) return;
+    if (hasBottom) {
+      await sleep(T.gapToBottom); if (!live()) return;
+      fade($("contBottom"), T.bottom); await sleep(T.bottom); if (!live()) return;
+    }
 
     /* 9) everything is visible: give the page back every property touched, then hand over to app.js
           (its existing hold timer + fade to Credit) */
