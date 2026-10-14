@@ -2158,6 +2158,8 @@
         #nurAdminPanel .nurap-st-create label{font-size:11px; opacity:.8}
         #nurAdminPanel .nurap-st-url{font-size:12px; direction:ltr; text-align:left; opacity:.9}
         #nurAdminPanel .nurap-st-adv{display:none; flex-direction:column; gap:4px}
+        /* the advanced block is shown with display:block (see cr-adv), which made these labels sit INLINE beside the input above them - the page-text-name label looked like it belonged to the address field. One label above its own field: */
+        #nurAdminPanel .nurap-st-adv label{display:block; margin-top:4px}
         #nurAdminPanel .nurcm{display:flex; flex-direction:column; gap:6px}
         #nurAdminPanel .nurcm label{font-size:11.5px; opacity:.8; margin-top:4px}
         #nurAdminPanel .nurcm .nurcm-row{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
