@@ -16,22 +16,19 @@ class NurShell extends HTMLElement {
     this.style.display = "block";
     this.style.background = "#0a1226"; /* matches NUR's own bg-1, avoids a flash of white while the iframe loads */
 
-    /* Multi-streamer: the page's own first path segment is the streamer's
-       slug (daalvi.com/ario -> "ario"). The original /nur page (and the home
-       page, and anything unexpected) passes no slug, so it loads exactly as
-       it always has. */
+    /* Final rollout: every approved page shows the same film landing. The approved pages are /nur plus the people in
+       the "ادامه‌دهندگان نور" list. Any other NUR-only route (a retired streamer page that still exists in Wix) is sent
+       to /nur instead of showing anything old. */
+    const APPROVED = ["hamidfailz", "sayeh", "samirasaly", "heisenbergofficial", "bogytv", "caffeinn", "1fairyfresh", "bighead-farshid"];
     let slug = "";
     try {
       const first = (location.pathname.split("/").filter(Boolean)[0] || "").toLowerCase();
       if (/^[a-z0-9-]{1,30}$/.test(first) && first !== "nur") slug = first;
     } catch (err) { /* keep "" */ }
+    if (slug && APPROVED.indexOf(slug) === -1) { location.replace("/nur"); return; }
 
     const iframe = document.createElement("iframe");
-    /* STAGING: only the slugs listed here show the new film landing (landing/index.html); every other slug and /nur
-       keep loading the original interactive experience exactly as before. Empty this list to roll the staging back. */
-    const LANDING_SLUGS = ["zz-test"];
-    const base = "https://daalx4.github.io/nur-experience/";
-    iframe.src = LANDING_SLUGS.indexOf(slug) !== -1 ? base + "landing/" : base + (slug ? "?s=" + encodeURIComponent(slug) : "");
+    iframe.src = "https://daalx4.github.io/nur-experience/";
     iframe.title = "Nur";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
