@@ -33,7 +33,10 @@ class NurShell extends HTMLElement {
     iframe.style.height = "100%";
     iframe.style.border = "0";
     iframe.style.display = "block";
-    iframe.allow = "autoplay; encrypted-media; picture-in-picture; clipboard-write";
+    /* "fullscreen" is what lets the YouTube player nested inside the app go fullscreen: every cross-origin frame in
+       the chain (this iframe -> the app's own YouTube iframe) has to allow it. */
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture; clipboard-write; fullscreen";
+    iframe.setAttribute("allowfullscreen", "");
     this.appendChild(iframe);
   }
 }
