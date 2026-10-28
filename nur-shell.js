@@ -27,7 +27,11 @@ class NurShell extends HTMLElement {
     } catch (err) { /* keep "" */ }
 
     const iframe = document.createElement("iframe");
-    iframe.src = "https://daalx4.github.io/nur-experience/" + (slug ? "?s=" + encodeURIComponent(slug) : "");
+    /* STAGING: only the slugs listed here show the new film landing (landing/index.html); every other slug and /nur
+       keep loading the original interactive experience exactly as before. Empty this list to roll the staging back. */
+    const LANDING_SLUGS = ["zz-test"];
+    const base = "https://daalx4.github.io/nur-experience/";
+    iframe.src = LANDING_SLUGS.indexOf(slug) !== -1 ? base + "landing/" : base + (slug ? "?s=" + encodeURIComponent(slug) : "");
     iframe.title = "Nur";
     iframe.style.width = "100%";
     iframe.style.height = "100%";

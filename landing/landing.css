@@ -1,0 +1,134 @@
+/* NUR landing prototype - reuses the original experience's tokens (midnight sky, warm off-white, soft light,
+   DigiSarve). No frameworks, no heavy effects: gradients, one tiny star layer, opacity-only entrances. */
+@font-face{
+  font-family:"DigiSarve";
+  src:url("assets/fonts/DigiSarve.ttf") format("truetype");
+  font-display:swap;
+  font-weight:400 800;
+}
+:root{
+  --bg-1:#0a1226;
+  --bg-2:#16224a;
+  --text:#f0eee6;
+  --cream:#ebe8dc;
+  --muted:#a7b0c9;
+  --gold:rgba(231,207,138,.78);
+  --star:#fdf6e3;
+  --font:"DigiSarve",Tahoma,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  min-height:100vh;
+  min-height:100svh;
+  color:var(--text);
+  font-family:var(--font);
+  font-weight:400;
+  background-color:var(--bg-1);   /* navy fallback while the texture loads / if it ever fails */
+  overflow-x:hidden;
+}
+
+/* ---- the sky: textured indigo twilight (portrait source 941x1672, never stretched: cover keeps its ratio).
+   A fixed layer, so it stays put while the page scrolls and the stars below sit above it. A soft navy veil keeps the
+   cream text contrast high; --sky-y picks which part of the portrait shows on a wide screen. ---- */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(10,18,38,.50) 0%,rgba(10,18,38,.34) 55%,rgba(10,18,38,.44) 100%),
+    url("assets/bg-indigo-twilight.webp") center var(--sky-y,62%) / cover no-repeat,
+    var(--bg-1);
+}
+:root{--sky-y:46%}
+
+/* ---- stars (same recipe as the original) ---- */
+.stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.star{
+  position:absolute;border-radius:50%;background:var(--star);
+  box-shadow:0 0 5px 1px rgba(253,246,227,.45);
+  animation:twinkle var(--dur,6s) ease-in-out infinite;animation-delay:var(--delay,0s);
+  opacity:.3;
+}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(.8)}50%{opacity:.75;transform:scale(1.1)}}
+
+/* ---- page ---- */
+.wrap{
+  position:relative;z-index:1;
+  width:100%;max-width:1240px;margin:0 auto;
+  min-height:100vh;min-height:100svh;
+  padding:clamp(30px,6vh,64px) 24px calc(26px + env(safe-area-inset-bottom,0px));
+  padding-left:max(24px,env(safe-area-inset-left,0px));
+  padding-right:max(24px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.line{
+  margin:0 0 clamp(24px,4.5vh,44px);
+  max-width:760px;text-align:center;font-weight:700;
+  font-size:clamp(23px,4.4vw,36px);line-height:1.7;
+  text-wrap:balance;
+  text-shadow:0 1px 0 rgba(0,0,0,.12),0 0 26px rgba(212,231,197,.1);
+}
+
+/* ---- composition: film + About ---- */
+.stage{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:clamp(26px,5vh,40px);direction:ltr}  /* ltr only decides the SIDES on desktop; text blocks are RTL */
+
+.film{position:relative;display:flex;flex-direction:column;align-items:center;direction:rtl}
+.glow{
+  position:absolute;left:50%;top:44%;width:125%;height:140%;
+  transform:translate(-50%,-50%);pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at center,rgba(253,246,227,.10) 0%,rgba(143,193,154,.06) 34%,transparent 68%);
+  animation:breathe 9s ease-in-out infinite;
+}
+@keyframes breathe{0%,100%{opacity:.7}50%{opacity:1}}
+.frame{
+  position:relative;z-index:1;width:100%;
+  border-radius:16px;overflow:hidden;background:#05080f;
+  box-shadow:0 0 0 1px rgba(253,246,227,.16),0 24px 70px rgba(0,0,0,.55),0 0 80px rgba(143,193,154,.07);
+}
+.ratio{position:relative;width:100%;height:0;padding-top:56.25%}   /* 16:9 */
+.ratio iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+
+.yt{
+  position:relative;z-index:1;margin-top:14px;padding:6px 8px;
+  font-size:14.5px;color:var(--muted);text-decoration:none;opacity:.8;
+  border-bottom:1px solid rgba(167,176,201,.28);
+  transition:opacity .25s ease,color .25s ease,border-color .25s ease;
+}
+.yt:hover{opacity:1;color:var(--text);border-color:rgba(240,238,230,.5)}
+
+.about{position:relative;z-index:1;direction:rtl;text-align:right;color:var(--cream)}
+.about h2{
+  margin:0 0 14px;font-weight:700;font-size:clamp(20px,3.6vw,25px);line-height:1.6;
+  color:var(--text);
+  display:flex;align-items:center;gap:12px;
+}
+.about h2::after{content:"";flex:1;height:1px;background:linear-gradient(270deg,rgba(231,207,138,.45),transparent)}  /* quiet cream rule, no ornament */
+.about p{margin:0 0 1.3em;font-size:clamp(16px,2.9vw,17px);line-height:2.15;color:rgba(235,232,220,.92)}
+.about p:last-child{margin-bottom:0}
+
+.credit{margin-top:clamp(22px,4vh,38px);font-size:13.5px;color:var(--gold);text-align:center}
+
+/* ---- opacity-only entrances ---- */
+.line,.film,.about,.credit{opacity:0;animation:rise .9s ease-out forwards}
+.line{animation-delay:.15s}.film{animation-delay:.6s}.about{animation-delay:.95s}.credit{animation-delay:1.3s}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .star,.glow{animation:none}
+  .star{opacity:.4}
+  .line,.film,.about,.credit{animation:none;opacity:1}
+}
+
+/* ---- desktop / laptop: film LEFT (65%), About RIGHT (35%), both top-aligned ---- */
+@media (min-width:900px){
+  .stage{flex-direction:row;align-items:flex-start;gap:clamp(30px,3.4vw,48px)}
+  .film{flex:65 1 0;min-width:0}
+  .about{flex:35 1 0;min-width:0}
+}
+/* ---- phones: film first, text below ---- */
+@media (max-width:899px){
+  .wrap{justify-content:flex-start;padding-top:clamp(30px,6vh,52px)}
+  .about{padding:0 2px}
+}
+@media (max-width:520px){
+  .frame{border-radius:12px}
+}
