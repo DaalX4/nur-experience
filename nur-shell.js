@@ -19,7 +19,7 @@ class NurShell extends HTMLElement {
     /* Final rollout: every approved page shows the same film landing. The approved pages are /nur plus the people in
        the "ادامه‌دهندگان نور" list. Any other NUR-only route (a retired streamer page that still exists in Wix) is sent
        to /nur instead of showing anything old. */
-    const APPROVED = ["hamidfailz", "sayeh", "samirasaly", "heisenbergofficial", "bogytv", "caffeinn", "1fairyfresh", "bighead-farshid"];
+    const APPROVED = ["hamidfailz", "sayeh", "samirasaly", "heisenbergofficial", "bogytv", "caffeinn", "1fairyfresh", "bighead-farshid", "rezaayeene"];
     let slug = "";
     try {
       const first = (location.pathname.split("/").filter(Boolean)[0] || "").toLowerCase();
